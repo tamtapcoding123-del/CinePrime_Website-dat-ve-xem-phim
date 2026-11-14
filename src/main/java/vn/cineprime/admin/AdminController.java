@@ -48,6 +48,8 @@ public class AdminController {
         entry("business","Kinh doanh","Quản lý","Bảng giá","/admin/manage/prices","Bắp nước / Combo","/admin/manage/products","Voucher","/admin/manage/vouchers"),
         entry("content","Nội dung","Quản lý","Banner trang chủ","/admin/banners","Bài viết / Ưu đãi / Chính sách","/admin/manage/contents","Bình luận","/admin/manage/reviews"),
         entry("system","Hệ thống","Quản lý","Người dùng","/admin/manage/users","Nhật ký hoạt động","/admin/audit"));
+    /** Areas whose screens open as sidebar sub-items (no tab strip, no page heading). */
+    private static final Set<String> SIDEBAR_GROUPS=Set.of("schedule");
     private static final Set<String> CINEMA_SCOPED=Set.of("/admin/schedule","/admin/manage/showtimes","/admin/manage/rooms","/admin/manage/seats","/admin/manage/prices");
     private static final Map<String,String> ADD_LABELS=Map.of("movies","phim","cinemas","rạp","rooms","phòng","prices","giá vé","products","sản phẩm","vouchers","voucher","contents","nội dung","users","tài khoản");
     private static boolean selected(String href,String path){if(href.equals("/admin"))return path.equals(href);if(path.equals(href)||path.startsWith(href+"/"))return true;return switch(href){case "/admin/showtimes/new"->path.equals("/admin/showtimes/batch");case "/admin/manage/rooms"->path.startsWith("/admin/layout")||path.startsWith("/admin/setup/rooms");case "/admin/manage/vouchers"->path.startsWith("/admin/voucher-usage");default->false;};}
@@ -66,7 +68,10 @@ public class AdminController {
         for(NavEntry e:NAV){
             String activeTab=e.tabs().stream().filter(t->selected(t[1],path)).map(t->t[0]).findFirst().orElse(null);
             Map<String,Object> item=new HashMap<>();item.put("id",e.id());item.put("label",e.label());item.put("href",e.tabs().getFirst()[1]);item.put("active",activeTab!=null);item.put("sectionStart",e.section().equals(previous)?"":e.section());previous=e.section();items.add(item);
+            // Lịch chiếu is a sidebar group (chốt 14/11/2026): its three screens are sub-items, carrying the shared context, instead of tabs on the page.
+            if(SIDEBAR_GROUPS.contains(e.id())){String context=activeTab!=null?scheduleContext(request):"";item.put("children",e.tabs().stream().map(t->Map.<String,Object>of("label",t[0],"href",t[1]+context,"active",selected(t[1],path))).toList());}
             if(activeTab==null)continue;section=activeTab;
+            if(SIDEBAR_GROUPS.contains(e.id())){model.addAttribute("hubLabel",e.label());model.addAttribute("groupPage",true);continue;}
             // Tabs only on the list screens themselves; edit forms and sub-pages keep their own heading.
             if(e.tabs().size()>1&&e.tabs().stream().anyMatch(t->t[1].equals(path))){String cinema=cinemaParam;hubLabel=e.label();
                 // Lịch chiếu: the three tabs share one context bar, so cinema, room, film, day and status travel with every tab.

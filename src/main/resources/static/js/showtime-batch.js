@@ -32,7 +32,8 @@
   const sourceText=row=>{const o=origins.get(row.rowKey);return row.sourceRow!=null?`${o?.fileName||'Excel'} · ${o?.sheetName||'Đăng ký suất mới'} · dòng ${row.sourceRow}${o?.cell?` · ô ${o.cell}${o.token>1?` · giờ ${o.token}`:''}`:''}`:'Xếp trên bảng';};
   const legacyWarning=()=>[...origins.values()].some(o=>o.version===1)?'Mẫu v1: mọi dòng có dữ liệu được hiểu là suất mới.':[...origins.values()].some(o=>o.version===2)?'Mẫu v2: mỗi dòng đăng ký là một suất mới.':'';
   const locked=()=>busy||!!pending||reviewing||asking;
-  function message(text,type=''){$('message').className=`sched-message ${type}`;$('message').textContent=text;}
+  function message(text,type=''){$('message').className=`sched-message ${type}`;$('message').textContent=text;$('message').title=text;}
+  $('message').addEventListener('click',()=>$('message').classList.toggle('full'));
   function notify(text,items=[]){const box=$('notice');box.replaceChildren();box.hidden=!text;if(!text)return;box.append(node('span',text));if(items.length){const more=node('details'),list=node('ul');more.append(node('summary',`Xem ${items.length} dòng chi tiết`));items.forEach(item=>list.append(node('li',item)));more.append(list);box.append(more);}box.append(button('×',()=>notify(''),'sched-notice-close'));box.lastChild.setAttribute('aria-label','Ẩn ghi chú');}
   function ask(text,yes='Xác nhận',heading='Xác nhận'){if($('dialog').open)return Promise.resolve(false);asking=true;state();return new Promise(resolve=>{const d=$('dialog');$('dialog-title').textContent=heading;$('dialog-text').textContent=text;$('dialog-yes').textContent=yes;const done=v=>{d.close();asking=false;state();resolve(v);};$('dialog-yes').onclick=()=>done(true);$('dialog-no').onclick=()=>done(false);d.oncancel=e=>{e.preventDefault();done(false);};d.showModal();});}
   async function request(path,options={}){
@@ -189,7 +190,9 @@
   function pickRoom(id){if(locked())return;viewRoom=String(id);if(panel.open){pickPanelRoom(viewRoom);return;}if([...$('room').options].some(o=>o.value===viewRoom))$('room').value=viewRoom;focusMovie='';renderStrip();renderMain();state();}
   /* On wide screens the board (or the week table) ends exactly above the sticky footer, and the side panel never grows past it. */
   function fit(){
-    const box=$('board'),side=root.querySelector('.sched-side'),wrap=$('week-wrap'),foot=root.querySelector('.sched-footer').offsetHeight;
+    /* Everything fits one window: the panel ends at the window bottom, the calendar above the pending list and the footer. */
+    const add=$('add');if(!add.hidden)add.style.maxHeight=`${Math.max(380,innerHeight-Math.max(12,add.getBoundingClientRect().top)-12)}px`;
+    const box=$('board'),side=root.querySelector('.sched-side'),wrap=$('week-wrap'),foot=root.querySelector('.sched-footer').offsetHeight+$('pending-panel').offsetHeight+28;
     if(stacked.matches){box.style.height='';side.style.maxHeight='';wrap.style.maxHeight='';return;}
     if(mode==='week'){wrap.style.maxHeight=`${Math.max(300,innerHeight-(wrap.getBoundingClientRect().top+scrollY)-foot-10)}px`;return;}
     const space=Math.max(340,innerHeight-(box.getBoundingClientRect().top+scrollY)-foot-10);box.style.height=`${space}px`;side.style.maxHeight=`${space+box.offsetTop-side.offsetTop}px`;
@@ -252,6 +255,10 @@
   /* ---- Ngăn "Thêm suất": one side panel for one show, a back-to-back chain, or several films in one room. ----
      Room, films (in order), days, first start and last start; every planned show is listed per day with its real time,
      editable (typing or dragging a show pins it), and the shows after it move along, always 15 minutes of cleanup apart. */
+  /* Times in the panel are typed as 24-hour HH:MM text (a time input shows 12-hour "02:15 CH" in Vietnamese, which read as 02:15).
+     Accepts "9", "9:5", "930", "0930", "9h30", "21.15". Returns '' when it is not a valid time. */
+  const pad=n=>String(n).padStart(2,'0');
+  const toHM=v=>{const s=String(v||'').trim().replace(/\s/g,'');let h,mi;if(/^\d{3,4}$/.test(s)){h=+s.slice(0,-2);mi=+s.slice(-2);}else{const m=s.match(/^(\d{1,2})(?:[:.hH](\d{1,2}))?$/);if(!m)return '';h=+m[1];mi=+(m[2]||0);}return h<24&&mi<60?`${pad(h)}:${pad(mi)}`:'';};
   const panel={open:false,films:[],slots:new Map(),extra:new Map(),result:[],focus:null,drag:null};
   const usable=()=>movies.filter(m=>m.active&&m.status!=='ENDED');
   const panelRoom=()=>$('room').value;
@@ -334,9 +341,8 @@
         const li=node('li',undefined,`series-slot${item.off?' off':''}${item.reason?' bad':''}${item.typed?' typed':''}`),use=node('input'),time=node('input'),slot=()=>{const l=panel.slots.get(day)||[];panel.slots.set(day,l);return l[item.index]||(l[item.index]={});};
         li.style.setProperty('--tone',tone(item.row.movieId));
         use.type='checkbox';use.checked=!item.off;use.setAttribute('aria-label',`Chiếu suất ${item.row.time} ${dayName(day)}`);use.onchange=()=>{slot().off=!use.checked;renderPanel();};
-        time.type='time';time.step='60';time.value=item.row.time;time.dataset.focus=`${day}|${item.index}`;time.setAttribute('aria-label',`Giờ bắt đầu suất ${item.index+1} ${dayName(day)}${item.typed?', đã ghim':''}`);
-        time.onchange=()=>{if(!time.value)return;slot().time=time.value;panel.focus=time.dataset.focus;renderPanel();};
-        const end=node('small',`${panel.films.length>1?`${title(item.row.movieId)} · `:''}hết ${item.endsAt.slice(11,16)}`,'series-end');
+        time.type='text';time.inputMode='numeric';time.maxLength=5;time.autocomplete='off';time.className='sched-hm';time.value=item.row.time;time.dataset.focus=`${day}|${item.index}`;time.setAttribute('aria-label',`Giờ bắt đầu suất ${item.index+1} ${dayName(day)}, dạng 24 giờ${item.typed?', đã ghim':''}`);
+        time.onchange=()=>{const v=toHM(time.value);if(!v){time.value=item.row.time;return;}slot().time=v;panel.focus=time.dataset.focus;renderPanel();};        const end=node('small',`${panel.films.length>1?`${title(item.row.movieId)} · `:''}hết ${item.endsAt.slice(11,16)}`,'series-end');
         li.append(use,time,end);
         if(item.typed&&!one){const unpin=button('Bỏ ghim',()=>{delete slot().time;renderPanel();},'series-pin');unpin.title='Giờ này lại tự dời theo suất trước';li.append(unpin);}
         if(item.reason){const why=node('small',item.reason,'series-why');li.append(why);}else if(item.late)li.append(node('small','Sau giờ suất cuối đã đặt','series-note'));
@@ -500,11 +506,13 @@
   $('add-film').onclick=async()=>{const id=$('add-movie').value;if(!id)return;const old=panel.films.slice();panel.films.push({id,count:3});if(!await changePlan())panel.films=old;renderPanel();};
   $('add-form').addEventListener('change',e=>{
     if(e.target.closest('#batch-add-list')||e.target.id==='batch-add-movie')return;
+    if(e.target.classList.contains('sched-hm')){const v=toHM(e.target.value);if(!v){e.target.value=e.target.dataset.last||(e.target.id==='batch-add-until'?'23:00':'09:00');return;}e.target.value=v;e.target.dataset.last=v;}
     if(e.target.name==='batch-add-mode'||e.target.name==='batch-add-order'){panel.slots.clear();panel.extra.clear();}
     // A new first start moves the first show of every day; the last start never drops pins.
     if(e.target.id==='batch-add-start')panel.slots.forEach(list=>{if(list[0])delete list[0].time;});
     renderPanel();
   });
+  $('add-form').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.classList?.contains('sched-hm')){e.preventDefault();e.target.dispatchEvent(new Event('change',{bubbles:true}));}});
   $('add').addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]')){e.preventDefault();closeAdd();}});
   $('add-form').addEventListener('submit',e=>{
     e.preventDefault();if(locked()||!calendar)return;const picked=seriesRows().map(row=>({...row,rowKey:uuid()}));if(!picked.length)return;

@@ -1,41 +1,33 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-batch.css")
-  script(src="/js/showtime-batch.js" defer)
-  script(src="/js/showtime-hub.js" defer)
+  link(rel="stylesheet" href="/css/showtime-batch.css?v=20261114c")
+  script(src="/js/showtime-batch.js?v=20261114c" defer)
+  script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   #showtime-batch.sched.is-week(data-cinema=batchCinemaId data-room=batchRoomId data-movie=batchMovieId data-date=batchDate)
-    p.sched-keys
-      kbd N
-      |  thêm suất ·
-      kbd ←
-      |
-      kbd →
-      |  đổi tuần ·
-      kbd T
-      |  tuần này ·
-      kbd Esc
-      |  đóng ngăn
+    h1.sched-title Xếp lịch tuần
     .sched-bar
-      label.sched-field Rạp
+      label.sched-field
+        span.sched-title Rạp
         select#batch-cinema
           each c in adminCinemas
             option(value=c.id selected=batchCinemaId == c.id.toString())= c.name
-      span.sched-sep(aria-hidden="true")
       .sched-week(role="group" aria-label="Tuần đang xếp")
-        button#batch-back.button.secondary(type="button" aria-label="Tuần trước" title="Tuần trước" data-hotkey="ArrowLeft") ←
+        button#batch-back.button.secondary(type="button" aria-label="Tuần trước" title="Tuần trước · phím ←" data-hotkey="ArrowLeft") ←
         label.sched-date
           span#batch-week-label
           input#batch-day(type="date" value=batchDate aria-label="Chọn một ngày trong tuần muốn xếp")
-        button#batch-forward.button.secondary(type="button" aria-label="Tuần sau" title="Tuần sau" data-hotkey="ArrowRight") →
-        button#batch-today.button.secondary(type="button" data-hotkey="t") Tuần này
+        button#batch-forward.button.secondary(type="button" aria-label="Tuần sau" title="Tuần sau · phím →" data-hotkey="ArrowRight") →
+        button#batch-today.button.secondary(type="button" title="Phím T" data-hotkey="t") Tuần này
       .sched-tools
         .sched-view(role="group" aria-label="Cách xem lịch")
           button#batch-view-week.button.secondary.active(type="button" aria-pressed="true" title="Một phòng, cả tuần") Cả tuần
           button#batch-view-day.button.secondary(type="button" aria-pressed="false" title="Một ngày theo trục giờ, mọi phòng, kéo thả được") Theo giờ
-        button#batch-add-open.button.secondary(type="button" data-hotkey="n") + Thêm suất
+        button#batch-add-open.button.secondary(type="button" title="Phím N" data-hotkey="n")
+          | + Thêm suất
+          kbd N
         button#batch-copy.button.secondary(type="button" title="Chép các suất mới của một ngày sang ngày khác trong tuần") Chép ngày
-        button#batch-refresh.button.secondary(type="button") Làm mới
+        button#batch-refresh.button.secondary.sched-icon(type="button" aria-label="Làm mới lịch" title="Làm mới lịch") ↻
         details#batch-excel.sched-menu
           summary.button.secondary Excel ▾
           .sched-menu-items
@@ -72,7 +64,7 @@ block admin
           table#batch-week.sched-weektable(aria-label="Lịch cả tuần của phòng đang chọn")
       aside#batch-add.sched-panel(aria-labelledby="batch-add-title" hidden)
         form#batch-add-form.sched-panel-form(novalidate)
-          header.sched-panel-head
+          .sched-panel-head
             h2#batch-add-title Thêm suất chiếu
             kbd Esc
             button#batch-add-close.sched-x(type="button" aria-label="Đóng ngăn Thêm suất") ×
@@ -119,10 +111,10 @@ block admin
               .sched-times
                 label
                   span#batch-add-start-label Suất đầu từ
-                  input#batch-add-start(type="time" step="60" value="09:00")
+                  input#batch-add-start.sched-hm(type="text" inputmode="numeric" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" placeholder="HH:MM" value="09:00" autocomplete="off")
                 label#batch-add-until-wrap
                   span Suất cuối bắt đầu trước
-                  input#batch-add-until(type="time" step="60" value="23:00")
+                  input#batch-add-until.sched-hm(type="text" inputmode="numeric" maxlength="5" pattern="[0-2][0-9]:[0-5][0-9]" placeholder="HH:MM" value="23:00" autocomplete="off")
                 strong#batch-add-count.sched-count
             details.sched-defaults
               summary Ngôn ngữ, định dạng, phụ thu
@@ -134,7 +126,7 @@ block admin
                 label Phụ thu (VND)
                   input#batch-surcharge(value="0" inputmode="numeric" pattern="[0-9]+")
             #batch-add-list.series-list(aria-live="polite")
-          footer.sched-panel-foot
+          .sched-panel-foot
             p#batch-add-summary
             .actions
               button#batch-add-apply.button(type="submit" disabled) Thêm vào lịch

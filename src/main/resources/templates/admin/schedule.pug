@@ -1,103 +1,86 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-hub.css")
-  script(src="/js/showtime-hub.js" defer)
+  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261114c")
+  script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   - var keep = '/admin/schedule?cinemaId=' + cinemaId + '&roomId=' + roomId + '&movieId=' + movieId + '&state=' + state + '&date='
-  .hub-bar
-    p.hub-keys
-      kbd N
-      |  thêm suất ·
-      kbd ←
-      |
-      kbd →
-      |  đổi ngày ·
-      kbd T
-      |  hôm nay
-    a.button.primary(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n") + Thêm suất chiếu
+  h1.visually-hidden Lịch chiếu theo ngày
   form.hub-context(method="get" action="/admin/schedule")
-    label.hub-field
-      span Rạp
-      select(name="cinemaId" data-autosubmit="true")
-        each c in adminCinemas
-          option(value=c.id selected=cinemaId == c.id.toString())= c.name
-    span.hub-sep(aria-hidden="true")
+    select(name="cinemaId" aria-label="Rạp" data-autosubmit="true")
+      each c in adminCinemas
+        option(value=c.id selected=cinemaId == c.id.toString())= c.name
     .hub-day(role="group" aria-label="Ngày chiếu")
-      a.button.secondary.hub-step(href=keep + prevDay aria-label="Ngày trước" title="Ngày trước" data-hotkey="ArrowLeft") ←
+      a.button.secondary.hub-step(href=keep + prevDay aria-label="Ngày trước (phím ←)" title="Ngày trước · phím ←" data-hotkey="ArrowLeft") ←
       label.hub-date
         span.num= dayLabel
         input(type="date" name="date" value=day required aria-label="Chọn ngày chiếu" data-autosubmit="true")
-      a.button.secondary.hub-step(href=keep + nextDay aria-label="Ngày sau" title="Ngày sau" data-hotkey="ArrowRight") →
-      a.button.secondary(href=keep + todayDay data-hotkey="t") Hôm nay
+      a.button.secondary.hub-step(href=keep + nextDay aria-label="Ngày sau (phím →)" title="Ngày sau · phím →" data-hotkey="ArrowRight") →
+      a.button.secondary(href=keep + todayDay title="Phím T" data-hotkey="t") Hôm nay
+    span.hub-sep(aria-hidden="true")
+    select(name="movieId" aria-label="Phim" data-autosubmit="true")
+      option(value="") Tất cả phim
+      each m in filterMovies
+        option(value=m.id selected=movieId == m.id.toString())= m.name
+    select#schedule-room(name="roomId" aria-label="Phòng" data-autosubmit="true")
+      option(value="") Tất cả phòng
+      each r in adminRooms
+        option(value=r.id selected=roomId == r.id.toString())= r.name
+    select(name="state" aria-label="Trạng thái" data-autosubmit="true")
+      option(value="") Mở bán và nháp
+      option(value="OPEN" selected=state == 'OPEN') Mở bán
+      option(value="DRAFT" selected=state == 'DRAFT') Nháp
+      option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
+    noscript
+      button.button(type="submit") Lọc
     span.hub-grow
-    label.hub-field
-      span Phim
-      select(name="movieId" data-autosubmit="true")
-        option(value="") Tất cả phim
-        each m in filterMovies
-          option(value=m.id selected=movieId == m.id.toString())= m.name
-    label.hub-field
-      span Phòng
-      select#schedule-room(name="roomId" data-autosubmit="true")
-        option(value="") Tất cả phòng
-        each r in adminRooms
-          option(value=r.id selected=roomId == r.id.toString())= r.name
-    label.hub-field
-      span Trạng thái
-      select(name="state" data-autosubmit="true")
-        option(value="") Mở bán và nháp
-        option(value="OPEN" selected=state == 'OPEN') Mở bán
-        option(value="DRAFT" selected=state == 'DRAFT') Nháp
-        option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
-    button.button.hub-apply(type="submit") Lọc
-  .hub-kpis
-    .kpi-card.tone-info
-      span.kpi-label Suất trong ngày
-      strong.kpi-value= stats.total
-      span.kpi-note #{stats.roomsWithShows} phòng có suất
-    .kpi-card.tone-ok
-      span.kpi-label Đang mở bán
-      strong.kpi-value= stats.open
-      span.kpi-note= stats.live > 0 ? stats.live + ' suất đang chiếu' : 'Không có suất đang chiếu'
-    .kpi-card.tone-off
-      span.kpi-label Nháp, chưa bán
-      strong.kpi-value= stats.draft
-      if stats.draft > 0
-        a.kpi-note(href='/admin/manage/showtimes?cinemaId=' + cinemaId + '&date=' + day + '&state=DRAFT') Mở bán #{stats.draft} suất →
-      else
-        span.kpi-note Mọi suất đã mở bán
-    .kpi-card.tone-warn
-      span.kpi-label Phòng chưa có suất
-      strong.kpi-value= stats.emptyRooms
-      span.kpi-note= stats.emptyRooms > 0 ? stats.emptyNames : 'Phòng nào cũng có suất'
+    a.button.primary(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n" title="Phím N")
+      | + Thêm suất
+      kbd N
   section.panel.tl(aria-label="Trục giờ theo phòng")
-    header.tl-head
-      h2 Trục giờ theo phòng
+    .tl-head
+      ul.hub-stats(aria-label="Số liệu trong ngày")
+        li.tone-info
+          strong.num= stats.total
+          span suất · #{stats.roomsWithShows} phòng
+        li.tone-ok
+          strong.num= stats.open
+          span= stats.live > 0 ? 'mở bán · ' + stats.live + ' đang chiếu' : 'mở bán'
+        li.tone-off
+          strong.num= stats.draft
+          if stats.draft > 0
+            a(href='/admin/manage/showtimes?cinemaId=' + cinemaId + '&date=' + day + '&state=DRAFT') nháp · mở bán →
+          else
+            span nháp
+        li.tone-warn
+          strong.num= stats.emptyRooms
+          span(title=stats.emptyNames) phòng trống
       ul.tl-legend
         li
           span.sw.open
           | Mở bán
         li
           span.sw.fill
-          | Phần ghế đã bán
+          | Đã bán
         li
           span.sw.draft
           | Nháp
         li
           span.sw.clean
-          | Dọn phòng 15 phút
+          | Dọn phòng
         li
           span.sw.now
           | Bây giờ
     if boardRooms.size() == 0
       p.empty Rạp chưa có phòng hoạt động. Tạo phòng ở mục Rạp &amp; phòng trước khi xếp lịch.
     else
-      .tl-grid
+      .tl-grid(data-fit="96")
         .tl-scale
           span.tl-corner
           .tl-ruler
             each h in boardHours
               span.tl-hour(data-left=h.left)= h.label
+            if showNow
+              span.tl-nowtag.num(data-left=nowLeft)= nowLabel
         each r in boardRooms
           .tl-row(class=r.active ? '' : 'inactive')
             .tl-room
@@ -122,20 +105,13 @@ block admin
                   span.tl-empty Phòng đã ngừng hoạt động.
               if showNow
                 span.tl-now(data-left=nowLeft)
-        if showNow
-          .tl-nowlabel
-            span.tl-corner
-            .tl-ruler
-              span.num(data-left=nowLeft) #{nowLabel}
-    p.tl-hint Bấm một suất để sửa. Bấm vào khoảng trống trên trục giờ để thêm suất đúng phòng và giờ đó.
-  section.panel.attention(aria-label="Cần để ý")
-    h2 Cần để ý
-    if attention.size() == 0
-      p.attention-row
+    .tl-foot
+      if attention.size() == 0
         span.status-badge.tone-ok Ổn
-        span Lịch trong ngày không có khoảng trống dài hay suất nháp.
-    each a in attention
-      p.attention-row
-        span.status-badge(class='tone-' + a.tone)= a.chip
-        span.grow= a.text
-        a(href=a.link)= a.linkText
+        span.grow Không có khoảng trống dài hay suất nháp. Bấm một suất để sửa, bấm khoảng trống để thêm suất.
+      else
+        each a in attention
+          span.tl-note
+            span.status-badge(class='tone-' + a.tone)= a.chip
+            span= a.text
+            a(href=a.link)= a.linkText

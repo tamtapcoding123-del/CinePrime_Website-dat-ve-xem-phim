@@ -5,6 +5,9 @@
   'use strict';
   /* The CSP allows no inline style attributes, so positions on the time axis and sales meters arrive as data-left / data-width. */
   document.querySelectorAll('[data-left],[data-width]').forEach(el => { if (el.dataset.left) el.style.left = el.dataset.left; if (el.dataset.width) el.style.width = el.dataset.width; });
+  /* [data-fit="N"]: the box ends N px above the window bottom and scrolls inside, so the page itself does not scroll. */
+  const fit = () => document.querySelectorAll('[data-fit]').forEach(el => { el.style.maxHeight = `${Math.max(220, innerHeight - el.getBoundingClientRect().top - window.scrollY - Number(el.dataset.fit || 0))}px`; });
+  fit(); addEventListener('resize', fit);
   const typing = el => !!el?.closest?.('input,select,textarea,[contenteditable="true"]');
   /* N, T, ←, → click the element marked data-hotkey, unless the admin is typing or a dialog is open. */
   document.addEventListener('keydown', e => {

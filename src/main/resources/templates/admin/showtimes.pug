@@ -1,58 +1,41 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-hub.css")
-  script(src="/js/showtime-hub.js" defer)
+  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261114c")
+  script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   - var keep = '/admin/manage/showtimes?cinemaId=' + cinemaId + '&roomId=' + roomId + '&movieId=' + movieId + '&state=' + state + '&q=' + q + '&date='
-  .hub-bar
-    p.hub-keys
-      kbd N
-      |  thêm suất ·
-      kbd ←
-      |
-      kbd →
-      |  đổi ngày ·
-      kbd T
-      |  hôm nay
-    a.button.primary(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n") + Thêm suất chiếu
+  h1.visually-hidden Danh sách suất chiếu
   form.hub-context(method="get" action="/admin/manage/showtimes")
-    label.hub-field
-      span Rạp
-      select(name="cinemaId" data-autosubmit="true")
-        each c in adminCinemas
-          option(value=c.id selected=cinemaId == c.id.toString())= c.name
-    span.hub-sep(aria-hidden="true")
+    select(name="cinemaId" aria-label="Rạp" data-autosubmit="true")
+      each c in adminCinemas
+        option(value=c.id selected=cinemaId == c.id.toString())= c.name
     .hub-day(role="group" aria-label="Ngày chiếu")
-      a.button.secondary.hub-step(href=keep + prevDay aria-label="Ngày trước" title="Ngày trước" data-hotkey="ArrowLeft") ←
+      a.button.secondary.hub-step(href=keep + prevDay aria-label="Ngày trước (phím ←)" title="Ngày trước · phím ←" data-hotkey="ArrowLeft") ←
       label.hub-date
         span.num= dayLabel
         input(type="date" name="date" value=day required aria-label="Chọn ngày chiếu" data-autosubmit="true")
-      a.button.secondary.hub-step(href=keep + nextDay aria-label="Ngày sau" title="Ngày sau" data-hotkey="ArrowRight") →
-      a.button.secondary(href=keep + todayDay data-hotkey="t") Hôm nay
+      a.button.secondary.hub-step(href=keep + nextDay aria-label="Ngày sau (phím →)" title="Ngày sau · phím →" data-hotkey="ArrowRight") →
+      a.button.secondary(href=keep + todayDay title="Phím T" data-hotkey="t") Hôm nay
+    span.hub-sep(aria-hidden="true")
+    select(name="movieId" aria-label="Phim" data-autosubmit="true")
+      option(value="") Tất cả phim
+      each m in filterMovies
+        option(value=m.id selected=movieId == m.id.toString())= m.name
+    select(name="roomId" aria-label="Phòng" data-autosubmit="true")
+      option(value="") Tất cả phòng
+      each r in adminRooms
+        option(value=r.id selected=roomId == r.id.toString())= r.name
+    select(name="state" aria-label="Trạng thái" data-autosubmit="true")
+      option(value="") Mở bán và nháp
+      option(value="OPEN" selected=state == 'OPEN') Mở bán
+      option(value="DRAFT" selected=state == 'DRAFT') Nháp
+      option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
+    input.hub-search(name="q" value=q placeholder="Tìm phim hoặc phòng" aria-label="Tìm phim hoặc phòng")
+    button.button.secondary(type="submit") Lọc
     span.hub-grow
-    label.hub-field
-      span Phim
-      select(name="movieId" data-autosubmit="true")
-        option(value="") Tất cả phim
-        each m in filterMovies
-          option(value=m.id selected=movieId == m.id.toString())= m.name
-    label.hub-field
-      span Phòng
-      select(name="roomId" data-autosubmit="true")
-        option(value="") Tất cả phòng
-        each r in adminRooms
-          option(value=r.id selected=roomId == r.id.toString())= r.name
-    label.hub-field
-      span Trạng thái
-      select(name="state" data-autosubmit="true")
-        option(value="") Mở bán và nháp
-        option(value="OPEN" selected=state == 'OPEN') Mở bán
-        option(value="DRAFT" selected=state == 'DRAFT') Nháp
-        option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
-    label.hub-field.hub-search
-      span Tìm
-      input(name="q" value=q placeholder="Phim hoặc phòng")
-    button.button.hub-apply(type="submit") Lọc
+    a.button.primary(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n" title="Phím N")
+      | + Thêm suất
+      kbd N
   section.panel.st-list(data-bulk="true")
     .st-bulk(hidden)
       strong.st-count Đã chọn 0 suất
@@ -62,7 +45,7 @@ block admin
       button.button.secondary.st-cancel(type="button") Huỷ suất đã chọn
       button.button.secondary.st-clear(type="button") Bỏ chọn
     p.st-message(role="status" aria-live="polite" hidden)
-    .table-wrap
+    .table-wrap.st-scroll(data-fit="70")
       table.management-table.st-table
         thead
           tr
@@ -105,10 +88,9 @@ block admin
     if rows.size() == 0
       .empty Không có suất nào khớp bộ lọc trong ngày này. Bấm + Thêm suất chiếu để xếp lịch.
     nav.ops-pagination.pager(aria-label="Phân trang")
-      span.pager-info Trang #{page + 1} / #{pages} · #{total} suất · 20 dòng mỗi trang · xếp theo phòng rồi giờ chiếu
+      span.pager-info Trang #{page + 1} / #{pages} · #{total} suất · xếp theo phòng rồi giờ · suất có vé, đang giữ ghế hoặc đã bắt đầu không chọn được
       .actions.pager-arrows
         if hasPrevious
           a.pager-btn(href=keep + day + '&page=' + (page - 1) aria-label="Trang trước") ‹
         if hasMore
           a.pager-btn(href=keep + day + '&page=' + (page + 1) aria-label="Trang sau") ›
-    p.st-note Suất đã có vé, đang có người giữ ghế hoặc đã bắt đầu không chọn được để thao tác hàng loạt.

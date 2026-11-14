@@ -57,7 +57,7 @@ public class AdminReads {
         var p=page("select s,m.title,r.name,c.name",from," order by m.title,s.startsAt,s.id",args,requested);
         return mapped(p,p.rows().stream().map(row->{var s=(Showtime)row[0];return Map.<String,Object>of("id",s.id,"movieTitle",row[1],"roomName",row[2],"cinemaName",row[3],"when",interval(s.startsAt,s.endsAt),"status",AdminPresentation.text(s.status),"date",s.startsAt.atZone(ReportService.ZONE).toLocalDate().toString());}).toList());
     }
-    private static final String[] WEEKDAYS={"Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7","Chủ nhật"};
+    private static final String[] WEEKDAYS={"T2","T3","T4","T5","T6","T7","CN"};
     public static String dayLabel(LocalDate day){return WEEKDAYS[day.getDayOfWeek().getValue()-1]+" · "+DateTimeFormatter.ofPattern("dd/MM/yyyy").format(day);}
     private static String pct(double v){return String.format(Locale.ROOT,"%.3f%%",v);}
     private static String hm(int minute){return String.format("%02d:%02d",Math.floorMod(minute/60,24),minute%60);}

@@ -10,22 +10,31 @@
 .sched .muted{font-size:12px;color:var(--muted)}
 .sched label{display:flex;flex-direction:column;gap:4px;margin:0;min-width:0;font-size:12px;font-weight:500;color:var(--muted)}
 .sched input,.sched select{width:100%;min-height:38px;margin:0;padding:0 10px;border:1px solid var(--line-strong);border-radius:6px;background:var(--card);font:inherit;font-size:14px;font-weight:400;color:var(--ink)}
-.sched .button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 14px;border-radius:6px;font-size:13px;white-space:nowrap;cursor:pointer}
+.sched .button{min-height:38px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border-radius:6px;font-size:13px;white-space:nowrap;cursor:pointer}
 .sched .button.secondary{background:var(--card);border:1px solid var(--line-strong);color:var(--ink)}
 .sched .button.secondary:hover:not(:disabled){background:var(--canvas)}
 .sched .button.secondary.active{background:var(--brand-soft);border-color:var(--brand);color:var(--brand)}
 .sched button:disabled{opacity:.5;cursor:default}
 .sched :is(button,input,select,summary,a):focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .sched kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--line-strong);border-radius:4px;background:var(--card-head);font:600 11px var(--mono);color:var(--ink-2);text-align:center}
-.sched-keys{align-self:flex-end;margin:-50px 0 0!important;min-height:38px;display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted)}
+/* Compact page (chốt 14/11/2026): no heading or tab strip — the screen is a sidebar sub-item — so the planner fits one window. */
+body.admin-compact:has(.sched) .ops-main{padding-top:16px;padding-bottom:0}
+.sched-title{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;margin:0}
+.sched .button kbd{margin-left:6px}
+.sched .sched-hm{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+/* admin-sheet.css loads last with the same specificity, so the bar's tighter buttons need one more class to apply. */
+.admin-compact .sched-bar .button{padding:0 10px}
+.admin-compact .sched-bar .button.sched-icon{width:38px;padding:0;font-size:16px}
+/* With the panel open the pending list and the save bar step aside, so the calendar and the panel share the whole window. */
+.sched.has-panel .sched-pending{display:none}
 
 /* Context bar: cinema · week · view · tools — one white card */
-.sched-bar{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;padding:12px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.sched-bar{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px}
 .sched-bar label{flex-direction:row;align-items:center;gap:8px;white-space:nowrap}
-.sched-field select{width:auto;min-width:150px;max-width:220px}
+.sched-field select{width:auto;min-width:140px;max-width:200px}
 .sched-sep{align-self:stretch;width:1px;background:var(--line)}
 .sched-week{display:flex;gap:6px;align-items:center}
-.sched-date{position:relative;min-width:190px;min-height:38px;justify-content:center;align-items:center;padding:0 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--card);font-size:14px!important;font-weight:600!important;color:var(--ink)!important;font-variant-numeric:tabular-nums}
+.sched-date{position:relative;min-width:160px;min-height:38px;justify-content:center;align-items:center;padding:0 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--card);font-size:14px!important;font-weight:600!important;color:var(--ink)!important;font-variant-numeric:tabular-nums}
 .sched-date input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .sched-date:focus-within{outline:2px solid var(--brand);outline-offset:2px}
 .sched-tools{display:flex;gap:6px;margin-left:auto;align-items:center}
@@ -105,7 +114,7 @@
 .sched-weektable th.today .week-day{background:var(--brand-soft);color:var(--brand);box-shadow:inset 0 -3px var(--brand)}
 .sched-weektable th.bad small{color:var(--bad-fg);font-weight:600}
 .sched-weektable td.past{background:var(--canvas)}
-.week-cell{display:flex;flex-direction:column;gap:4px;height:100%;min-height:220px;padding:6px}
+.week-cell{display:flex;flex-direction:column;gap:4px;height:100%;min-height:140px;padding:6px}
 .week-none{margin:auto;color:var(--faint)}
 .week-chip{display:flex;min-width:0;border:1px solid var(--info-line);border-left:3px solid var(--tone);border-radius:4px;background:var(--info-bg);color:var(--info-fg)}
 .week-chip.draft{background:var(--off-bg);border-color:var(--off-line);border-left-color:var(--tone);color:var(--off-fg)}
@@ -227,14 +236,14 @@
 .series-block.plan.pin{background:var(--brand-soft);border-style:solid}
 .series-block.plan.bad{background:var(--bad-bg);border-color:var(--bad-fg);color:var(--bad-fg)}
 .series-day ol{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:8px 10px;list-style:none}
-.series-slot{display:grid;grid-template-columns:16px 78px;grid-auto-flow:row;align-items:center;column-gap:6px;padding:4px 6px;border:1px solid var(--line);border-left:3px solid var(--tone);border-radius:6px;font-size:12px}
+.series-slot{display:grid;grid-template-columns:16px 62px;grid-auto-flow:row;align-items:center;column-gap:6px;padding:4px 6px;border:1px solid var(--line);border-left:3px solid var(--tone);border-radius:6px;font-size:12px}
 .series-slot input[type=checkbox]{width:14px;height:14px;min-height:0;padding:0;accent-color:var(--brand)}
-.series-slot input[type=time]{min-height:28px;padding:0 4px;font-size:13px;font-variant-numeric:tabular-nums}
-.series-slot.typed input[type=time]{border-color:var(--brand);background:var(--brand-soft);color:var(--brand);font-weight:600}
+.series-slot input.sched-hm{min-height:28px;padding:0 6px;font-size:13px;font-weight:600;text-align:center}
+.series-slot.typed input.sched-hm{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
 .series-slot.off{opacity:.55}
-.series-slot.off input[type=time]{text-decoration:line-through}
+.series-slot.off input.sched-hm{text-decoration:line-through}
 .series-slot.bad{border-color:var(--bad-line);background:var(--bad-bg)}
-.series-slot.bad input[type=time]{border-color:var(--bad-fg)}
+.series-slot.bad input.sched-hm{border-color:var(--bad-fg)}
 .series-end,.series-why,.series-note,.series-pin{grid-column:1 / -1}
 .series-end{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
 .series-why{max-width:150px;font-size:11px;color:var(--bad-fg)}
@@ -264,7 +273,9 @@
 .sched-pager{display:flex;gap:9px;justify-content:flex-end;align-items:center;font-size:12px;margin-top:10px}
 .sched-footer{position:sticky;bottom:0;z-index:9;display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;padding:10px 16px;background:var(--card);border:1px solid var(--line);border-radius:10px 10px 0 0}
 .sched-status{flex:1 1 320px;display:flex;flex-direction:column;gap:6px;min-width:0}
-.sched-message{padding:7px 12px;border-radius:6px;background:var(--info-bg);color:var(--info-fg);font-size:12px;overflow-wrap:anywhere}
+/* One line, so the save bar stays one row high; a click shows the whole text. */
+.sched-message{padding:7px 12px;border-radius:6px;background:var(--info-bg);color:var(--info-fg);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default}
+.sched-message.full{white-space:normal;overflow-wrap:anywhere}
 .sched-message.error,.sched-errors{background:var(--bad-bg);color:var(--bad-fg)}
 .sched-message.success{background:var(--ok-bg);color:var(--ok-fg)}
 .sched-message a{display:inline-block;margin:2px 8px;font-weight:600}

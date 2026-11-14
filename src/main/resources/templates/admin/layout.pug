@@ -42,10 +42,22 @@ block content
         each item in navItems
           if item.sectionStart
             p.nav-section= item.sectionStart
-          a.nav-item(href=item.href class=item.active ? 'active' : '' aria-current=item.active ? 'page' : false data-nav-id=item.id)
-            span.nav-icon
-              +navIcon(item.id)
-            span.nav-label= item.label
+          if item.children
+            details.nav-group(open=item.active data-nav-id=item.id)
+              summary.nav-item(class=item.active ? 'active' : '')
+                span.nav-icon
+                  +navIcon(item.id)
+                span.nav-label= item.label
+                svg.nav-caret(viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false")
+                  path(d="M9 6l6 6-6 6")
+              .nav-children
+                each child in item.children
+                  a.nav-child(href=child.href class=child.active ? 'active' : '' aria-current=child.active ? 'page' : false)= child.label
+          else
+            a.nav-item(href=item.href class=item.active ? 'active' : '' aria-current=item.active ? 'page' : false data-nav-id=item.id)
+              span.nav-icon
+                +navIcon(item.id)
+              span.nav-label= item.label
       .sidebar-account
         if viewer
           .account-who
@@ -62,12 +74,13 @@ block content
                 path(d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10")
             span.nav-label Đăng xuất
     main#main.ops-main
-      .ops-breadcrumb
-        a(href="/admin") Quản trị
-        if hub
-          span / #{hubLabel} / #{resourceLabel}
-        else
-          span / #{resourceLabel ? resourceLabel : title}
+      if !groupPage
+        .ops-breadcrumb
+          a(href="/admin") Quản trị
+          if hub
+            span / #{hubLabel} / #{resourceLabel}
+          else
+            span / #{resourceLabel ? resourceLabel : title}
       if hub
         .hub-head
           h1= hubLabel

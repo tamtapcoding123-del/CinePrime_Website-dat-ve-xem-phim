@@ -21,9 +21,9 @@ html(lang="vi")
       script(src="/js/admin-editor.js" defer)
       script(src="/js/admin-dialog.js" defer)
       script(src="/js/admin-setup.js" defer)
-      script(src="/js/showtime-calendar.js" defer)
-      script(src="/js/showtime-editor.js" defer)
-      link(rel="stylesheet" href="/css/showtime-editor.css")
+      script(src="/js/showtime-calendar.js?v=20261114c" defer)
+      script(src="/js/showtime-editor.js?v=20261114c" defer)
+      link(rel="stylesheet" href="/css/showtime-editor.css?v=20261114c")
       if adminForm
         script(src="/js/admin-forms.js" defer)
       if seatWorkspace
@@ -31,7 +31,7 @@ html(lang="vi")
         script(src="/js/admin-workspace.js?v=20261113c" defer)
     block head
     if navItems
-      link(rel="stylesheet" href="/css/admin-sheet.css?v=20261113j")
+      link(rel="stylesheet" href="/css/admin-sheet.css?v=20261114c")
   body.operations(class=navItems ? (seatWorkspace ? 'admin-compact seat-workspace' : 'admin-compact') : (staffUi ? 'staff-ui' : '') data-admin-id=navItems && viewer ? viewer.id : false)
     a.skip(href="#main") Đi đến nội dung
     header.ops-header
