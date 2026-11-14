@@ -38,6 +38,15 @@ $env:TEST_DB_USER='cineprime'; $env:TEST_DB_PASSWORD='...'
 - The integration suite wipes the test schema's tables before each case. It uses a `MutableClock` bean to control time, plus test MoMo keys, and turns off jobs, mail and seed.
 - Never use H2. Concurrency claims (seat, voucher, check-in races) must be proven on MySQL.
 
+## MySQL MCP (read-only, since 14/11/2026)
+
+`.mcp.json` (committed) defines the `cineprime-mysql` server, tool `mcp__cineprime-mysql__mysql_query`. Use it first to inspect schema or test data in `cineprime_test` instead of shelling out to `mysql.exe`; it is faster and needs no password handling.
+
+- It connects as `cineprime_ro`, which has `SELECT` only on `cineprime_test` (it cannot read `cineprime`, and the server also blocks INSERT/UPDATE/DELETE). The password comes from the user env vars `CINEPRIME_RO_USER` / `CINEPRIME_RO_PASS`; never write it into the repo. If the tool is missing, those vars are unset or MySQL is down (service `CinePrimeMySQL`, port 3307).
+- It is for reading only. Schema changes still go through Flyway migrations; write test data through tests or the app. To look at the real `cineprime` data use `C:\ProgramData\CinePrime\MySQL\bin\mysql.exe` with the `cineprime` account (see user memory), read-only unless a migration is being applied.
+- mysqldump backups before a DDL migration or bulk change go to `D:\0_JAV102\Database-CinePrime-bakup` as `cineprime-YYYY-MM-DD.sql` (outside the repo; add `--no-tablespaces` because `cineprime` lacks the PROCESS privilege).
+- The IntelliJ run configuration `CinePrime Local` takes `DB_PASSWORD` from `.idea/workspace.xml`; it must equal the current `cineprime` password or the app fails to start.
+
 ## Architecture
 
 There is one Spring Boot app packaged as an executable JAR. Packages under `vn.cineprime` are split by business area:
