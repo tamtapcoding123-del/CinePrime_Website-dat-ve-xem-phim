@@ -8,11 +8,12 @@ html(lang="vi")
     title= title
     - var staffUi = !navItems && viewer != null && viewer.role == 'STAFF'
     link(rel="icon" href="/images/cineprime-mark.svg" type="image/svg+xml")
+    link(rel="stylesheet" href="/css/cineprime-theme.css?v=20261115q")
     if !staffUi
-      link(rel="stylesheet" href="/css/app.css")
-      link(rel="stylesheet" href="/css/operations.css?v=20261113c")
+      link(rel="stylesheet" href="/css/app.css?v=20261115p")
+      link(rel="stylesheet" href="/css/operations.css?v=20261115p")
     if navItems
-      link(rel="stylesheet" href="/css/admin-ui.css")
+      link(rel="stylesheet" href="/css/admin-ui.css?v=20261115p")
       script(src="/js/admin-nav-pref.js")
     script(src="/js/app.js" defer)
     script(src="/js/operations.js?v=20261113d" defer)
@@ -23,7 +24,7 @@ html(lang="vi")
       script(src="/js/admin-setup.js" defer)
       script(src="/js/showtime-calendar.js?v=20261114c" defer)
       script(src="/js/showtime-editor.js?v=20261114c" defer)
-      link(rel="stylesheet" href="/css/showtime-editor.css?v=20261114c")
+      link(rel="stylesheet" href="/css/showtime-editor.css?v=20261115p")
       if adminForm
         script(src="/js/admin-forms.js" defer)
       if seatWorkspace
@@ -31,7 +32,7 @@ html(lang="vi")
         script(src="/js/admin-workspace.js?v=20261113c" defer)
     block head
     if navItems
-      link(rel="stylesheet" href="/css/admin-sheet.css?v=20261114c")
+      link(rel="stylesheet" href="/css/admin-sheet.css?v=20261115p")
   body.operations(class=navItems ? (seatWorkspace ? 'admin-compact seat-workspace' : 'admin-compact') : (staffUi ? 'staff-ui' : '') data-admin-id=navItems && viewer ? viewer.id : false)
     a.skip(href="#main") Đi đến nội dung
     header.ops-header

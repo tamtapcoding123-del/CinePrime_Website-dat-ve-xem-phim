@@ -181,6 +181,12 @@ Reset token dùng một lần/30 phút; đổi password vô hiệu phiên cũ. N
 
 ## Hướng dẫn demo ba vai trò
 
+### Phong cách giao diện (từ 15/11/2026)
+
+Cả ba vai trò dùng phong cách **Studio Cinema Pearl** (UI-Template.md §3.5): nền xám ngọc trai, chữ slate, điểm nhấn đỏ, vát 45° ở góc trên trái và dưới phải. Token, phông và lớp vát nằm ở `static/css/cineprime-theme.css`, nạp trước mọi stylesheet; phông Be Vietnam Pro, Plus Jakarta Sans, JetBrains Mono tự host trong `static/fonts` (giấy phép OFL kèm theo). Bố cục và luồng thao tác không đổi. Đã kiểm chứng 15/11/2026: 142 kiểm thử qua trên MySQL và xem trực tiếp các màn chính của khách, Admin, Staff ở 1366×768 (trang chủ khách thêm 390×844); các màn chưa xem lại sau khi đổi phong cách liệt kê ở Plan.md §8.
+
+**Lịch chiếu tô màu theo phim (16/11/2026):** ở ba màn Lịch trong ngày, Xếp lịch chiếu và Quản lý suất chiếu, nền của suất là màu phim (token `--film-0…7`, phim dùng `mã phim % 8`), trạng thái đọc ở viền. Đã xem trên cổng 8081 với dữ liệu demo chỉ có suất mở bán; các trạng thái khác chưa xem trên dữ liệu thật.
+
 ### Giao diện khách
 
 Từ 13/11/2026, trang khách dùng bố cục gọn theo phác thảo của người dùng (UI-Template §3.0): header một hàng, hero có chữ + ảnh ngang + poster, dải mua vé nhanh, lưới phim 6 cột có nút thích, footer 5 cột. Đã kiểm tra trên JAR ở 1366×650, 1920×950 và 375×812. Chưa thử trên điện thoại thật.
@@ -274,11 +280,11 @@ Chưa triển khai Google Login, VNPay, hoàn tiền, đổi điểm và gợi �
 
 ## Xếp suất chiếu trên bảng cả tuần
 
-Admin → **Lịch chiếu** là một nhóm trên sidebar: bấm vào mở ra ba mục **Theo ngày · Danh sách · Xếp lịch tuần** (nhóm tự mở khi đang ở một trong ba màn). Ba trang không có tiêu đề hay dải tab; mỗi trang bắt đầu bằng một thanh ngữ cảnh một hàng (Rạp · ← ngày/tuần → · Hôm nay · Phim · Phòng · Trạng thái … **+ Thêm suất**), ô chọn đổi là lọc ngay, ngữ cảnh đi theo khi chuyển mục. Trang vừa một cửa sổ (đã đo ở 1366×768); phần dài cuộn bên trong thẻ. Phím tắt `N` thêm suất, `←`/`→` đổi ngày (tuần), `T` hôm nay, `Esc` đóng ngăn (ghi trong tooltip và `kbd` trên nút):
+Admin → **Lịch chiếu** là một nhóm trên sidebar: bấm vào mở ra ba mục **Lịch trong ngày · Xếp lịch chiếu · Quản lý suất chiếu** (đổi tên 15/11/2026; trước là Theo ngày · Xếp lịch tuần · Danh sách) (nhóm tự mở khi đang ở một trong ba màn). Ba trang không có tiêu đề hay dải tab; mỗi trang bắt đầu bằng một thanh ngữ cảnh một hàng (Rạp · ← ngày/tuần → · Hôm nay · Phim · Phòng · Trạng thái … **+ Thêm suất**), ô chọn đổi là lọc ngay, ngữ cảnh đi theo khi chuyển mục. Trang vừa một cửa sổ (đã đo ở 1366×768); phần dài cuộn bên trong thẻ. Phím tắt `N` thêm suất, `←`/`→` đổi ngày (tuần), `T` hôm nay, `Esc` đóng ngăn (ghi trong tooltip và `kbd` trên nút):
 
-- **Theo ngày** (`/admin/schedule`): bốn số liệu (suất trong ngày, đang mở bán, nháp, phòng chưa có suất) và **trục giờ theo phòng**: mỗi suất là một thanh (Mở bán xanh nhạt, Nháp viền đứt), vạch dưới thanh là tỉ lệ ghế đã bán, đuôi xám là 15 phút dọn phòng, vạch cam là bây giờ. Bấm thanh để mở hộp Sửa suất; bấm khoảng trống để sang Xếp lịch tuần với ngăn Thêm suất điền sẵn phòng, ngày, giờ. Thẻ **Cần để ý** liệt kê khoảng trống ≥ 3 giờ, suất nháp, phòng chưa có suất.
-- **Danh sách** (`/admin/manage/showtimes`): 20 dòng/trang, nhóm theo phòng rồi giờ, có cột Đã bán. Tick nhiều suất → **Mở bán N suất nháp** hoặc **Huỷ N suất**, tất cả hoặc không (`POST /api/admin/showtime-batches/showtimes/bulk`, gửi `expected` từng suất; suất có vé/giữ ghế hoặc đã bắt đầu không chọn được).
-- **Xếp lịch tuần** (`/admin/showtimes/new`): bảng tuần/theo giờ như dưới đây.
+- **Lịch trong ngày** (`/admin/schedule`): bốn số liệu (suất trong ngày, đang mở bán, nháp, phòng chưa có suất) và **trục giờ theo phòng**: mỗi suất là một thanh (Mở bán xanh nhạt, Nháp viền đứt), vạch dưới thanh là tỉ lệ ghế đã bán, đuôi xám là 15 phút dọn phòng, vạch cam là bây giờ. Bấm thanh để mở hộp Sửa suất; bấm khoảng trống để sang Xếp lịch chiếu với ngăn Thêm suất điền sẵn phòng, ngày, giờ. Thẻ **Cần để ý** liệt kê khoảng trống ≥ 3 giờ, suất nháp, phòng chưa có suất.
+- **Quản lý suất chiếu** (`/admin/manage/showtimes`): 20 dòng/trang, nhóm theo phòng rồi giờ, có cột Đã bán. Tick nhiều suất → **Mở bán N suất nháp** hoặc **Huỷ N suất**, tất cả hoặc không (`POST /api/admin/showtime-batches/showtimes/bulk`, gửi `expected` từng suất; suất có vé/giữ ghế hoặc đã bắt đầu không chọn được).
+- **Xếp lịch chiếu** (`/admin/showtimes/new`): bảng tuần/theo giờ như dưới đây. Ở **Theo giờ**, bấm cột phòng khi chưa chọn phim sẽ mở ngăn Thêm suất điền sẵn phòng, ngày, giờ; đã chọn phim thì thêm ngay. Ngày đã qua chỉ xem (nhãn "đã qua", suất đã chiếu tô xám, không thêm/dời). Suất đang mở bán ghi `đã bán/số ghế` (ví dụ `0/60 vé`): mỗi suất chỉ bán tối đa bằng số ghế đang hoạt động của phòng. Nút **Danh sách suất mới · N** ở thanh lưu mở ô nổi liệt kê các suất chưa lưu (chỉ hiện khi có suất mới).
 
 Nút cam **+ Thêm suất chiếu** ở mọi tab và ở Thiết lập phòng mở `/admin/showtimes/new` (kèm `add=1` để mở sẵn ngăn Thêm suất) và giữ ngữ cảnh rạp/phòng/phim/ngày. `/admin/showtimes/batch` cũ chuyển hướng, giữ cả mã tra cứu kết quả. Đường tạo đơn cũ bị chặn tại controller và service. Suất đã lưu được sửa, dời và hủy ngay trên bảng (bước 3); trang sửa riêng vẫn còn cho trường hợp đặc biệt.
 

@@ -95,7 +95,7 @@ public class AdminReads {
                 Map<String,Object> b=new HashMap<>();b.put("id",s.id);b.put("date",day.toString());b.put("title",row[1]);b.put("time",hm(st));b.put("end",hm(en));
                 b.put("left",pct((st-from)/span*100));b.put("width",pct((en-st)/span*100));b.put("tailLeft",pct((en-from)/span*100));b.put("tailWidth",pct(15/span*100));
                 b.put("fill",pct(cap==0?0:Math.min(100,n*100.0/cap)));b.put("sold",cap==0?n+" vé":n+" / "+cap+" ghế");
-                b.put("cls","tl-bar "+s.status.toLowerCase(Locale.ROOT)+(isLive?" live":"")+(isPast?" past":""));
+                b.put("cls","tl-bar film-"+Math.floorMod(s.movieId,8L)+" "+s.status.toLowerCase(Locale.ROOT)+(isLive?" live":"")+(isPast?" past":""));
                 b.put("label",row[1]+" · "+hm(st)+"–"+hm(en)+" · "+AdminPresentation.text(s.status)+(cap==0?"":" · đã bán "+n+"/"+cap)+(isLive?" · đang chiếu":""));bars.add(b);
             }
             if(list.isEmpty()){if(r.active)emptyNames.add(r.name);}else withShows++;
@@ -134,7 +134,7 @@ public class AdminReads {
             Showtime s=(Showtime)row[0];long cap=seats.getOrDefault(s.roomId,0L),n=sold.getOrDefault(s.id,0L);boolean locked=busy.contains(s.id),future=s.startsAt.isAfter(now);
             if(!s.roomId.equals(lastRoom)){lastRoom=s.roomId;items.add(Map.of("group",true,"room",row[2],"meta",row[3]+" · "+cap+" ghế · "+perRoom.getOrDefault(s.roomId,0L)+" suất trong ngày"));}
             Map<String,Object> v=new HashMap<>();v.put("group",false);v.put("id",s.id);v.put("date",day.toString());v.put("when",interval(s.startsAt,s.endsAt));v.put("title",row[1]);v.put("room",row[2]);
-            v.put("kind",s.format+" · "+s.language);v.put("sold",s.status.equals("DRAFT")?"Chưa bán":n+" / "+cap);v.put("fill",pct(cap==0?0:Math.min(100,n*100.0/cap)));v.put("surcharge",db.cash(s.surcharge));
+            v.put("kind",s.format+" · "+s.language);v.put("film","film-"+Math.floorMod(s.movieId,8L));v.put("sold",s.status.equals("DRAFT")?"Chưa bán":n+" / "+cap);v.put("fill",pct(cap==0?0:Math.min(100,n*100.0/cap)));v.put("surcharge",db.cash(s.surcharge));
             v.put("status",AdminPresentation.text(s.status));v.put("tone",statusTone(s.status));v.put("token",ShowtimeQuickEdit.token(s));v.put("draft",s.status.equals("DRAFT"));v.put("locked",locked);
             boolean selectable=future&&!locked&&!s.status.equals("CANCELLED");v.put("selectable",selectable);if(selectable&&s.status.equals("DRAFT"))drafts++;
             v.put("why",s.status.equals("CANCELLED")?"Suất đã huỷ":locked?"Có vé hoặc lượt giữ ghế, không thao tác hàng loạt":!future?"Suất đã bắt đầu":"");items.add(v);

@@ -14,8 +14,8 @@
   const durations=new Map();
   const title=id=>movies.find(m=>String(m.id)===String(id))?.title||[...$('line-movie').options].find(o=>o.value===String(id))?.textContent||`Phim #${id}`;
   const roomName=id=>rooms.find(r=>String(r.id)===String(id))?.name||`Phòng #${id}`;
-  /* Each film keeps one thin colour bar (tokens --film-0…7 in showtime-batch.css) so its shows are easy to follow across the week. */
-  const tone=id=>`var(--film-${Math.max(0,movies.findIndex(m=>String(m.id)===String(id)))%TONES})`;
+  /* Each film keeps one colour (tokens --film-0…7 in cineprime-theme.css, index = movie id % 8) on all three Lịch chiếu screens. */
+  const tone=id=>`var(--film-${(Number(id)%TONES+TONES)%TONES||0})`;
   let activeCinema=$('cinema').value,activeDay=$('day').value,week=C.monday(activeDay),movieId=root.dataset.movie||'',calendar=null,loading=false,loadError='';
   let asking=false,busy=false,pending=null,editing=null,editorDirty=false,page=0,calendarRevision=0,previewController=null,previewTimer=null,reviewing=false,reviewCommand=null;
   let serverTime=null,loadedAt=Date.now(),view={from:540,to:1380},hourPx=40,scroll={top:0,left:0},initialScroll=true,ghost=null,drag=null,suppressClick=false,resizeTimer=null;
@@ -32,7 +32,7 @@
   const sourceText=row=>{const o=origins.get(row.rowKey);return row.sourceRow!=null?`${o?.fileName||'Excel'} · ${o?.sheetName||'Đăng ký suất mới'} · dòng ${row.sourceRow}${o?.cell?` · ô ${o.cell}${o.token>1?` · giờ ${o.token}`:''}`:''}`:'Xếp trên bảng';};
   const legacyWarning=()=>[...origins.values()].some(o=>o.version===1)?'Mẫu v1: mọi dòng có dữ liệu được hiểu là suất mới.':[...origins.values()].some(o=>o.version===2)?'Mẫu v2: mỗi dòng đăng ký là một suất mới.':'';
   const locked=()=>busy||!!pending||reviewing||asking;
-  function message(text,type=''){$('message').className=`sched-message ${type}`;$('message').textContent=text;$('message').title=text;}
+  function message(text,type=''){$('message').className=`sched-message ${type}`;$('message').textContent=text;$('message').title=text;$('message').hidden=!text;}
   $('message').addEventListener('click',()=>$('message').classList.toggle('full'));
   function notify(text,items=[]){const box=$('notice');box.replaceChildren();box.hidden=!text;if(!text)return;box.append(node('span',text));if(items.length){const more=node('details'),list=node('ul');more.append(node('summary',`Xem ${items.length} dòng chi tiết`));items.forEach(item=>list.append(node('li',item)));more.append(list);box.append(more);}box.append(button('×',()=>notify(''),'sched-notice-close'));box.lastChild.setAttribute('aria-label','Ẩn ghi chú');}
   function ask(text,yes='Xác nhận',heading='Xác nhận'){if($('dialog').open)return Promise.resolve(false);asking=true;state();return new Promise(resolve=>{const d=$('dialog');$('dialog-title').textContent=heading;$('dialog-text').textContent=text;$('dialog-yes').textContent=yes;const done=v=>{d.close();asking=false;state();resolve(v);};$('dialog-yes').onclick=()=>done(true);$('dialog-no').onclick=()=>done(false);d.oncancel=e=>{e.preventDefault();done(false);};d.showModal();});}
@@ -57,12 +57,17 @@
     $('add-open').disabled=!ready;$('copy').disabled=!ready||!draft.rows.length;
     $('commit').textContent=`Lưu và mở bán ${draft.rows.length} suất`;$('commit').disabled=!ready||editorDirty||!draft.rows.length;$('draft').disabled=!ready||editorDirty||!draft.rows.length;
     $('prev').disabled=locked()||page===0;$('next').disabled=locked()||(page+1)*5>=filteredRows().length;
-    $('result').hidden=!pending;$('result').disabled=busy;$('retry').hidden=!pending?.command;$('retry').disabled=busy;$('jump').hidden=!bad;$('list').hidden=!draft.rows.length;
+    $('result').hidden=!pending;$('result').disabled=busy;$('retry').hidden=!pending?.command;$('retry').disabled=busy;$('jump').hidden=!bad;
+    const listed=$('pending-panel');if(!draft.rows.length&&listed.open)listed.open=false;$('list').hidden=!draft.rows.length;$('list').textContent=`Danh sách suất mới · ${draft.rows.length} ${listed.open?'▾':'▴'}`;$('list').setAttribute('aria-expanded',String(listed.open));$('list').classList.toggle('active',listed.open);
     $('total').textContent=draft.rows.length?`${draft.rows.length} suất mới chưa lưu · ${new Set(draft.rows.map(r=>r.date)).size} ngày · ${new Set(draft.rows.map(r=>r.roomId)).size} phòng${bad?` · ${bad} cần sửa`:''}${warn?` · ${warn} chưa đủ điều kiện mở bán`:''}`:'Chưa có suất mới';
-    $('hint').textContent=!calendar?'':movieId?`${title(movieId)} · ${durations.get(movieId)} phút + 15 phút dọn. Bấm cột phòng để thêm, kéo suất mới để dời.`:'Chọn phim bên cạnh rồi bấm vào cột phòng, hoặc bấm + Thêm suất.';
+    const gone=mode==='day'&&activeDay<today();$('hint').textContent=!calendar?'':gone?`${dayName(activeDay)} đã qua · chỉ xem`:movieId?`${title(movieId)} · ${durations.get(movieId)} phút + 15 phút dọn`:'';$('hint').classList.toggle('gone',gone);
     root.classList.toggle('is-locked',locked());
   }
-  const idle=()=>mode==='week'?'Bấm + Thêm ở ngày muốn chiếu (hoặc phím N) để xếp suất. Chưa có gì được lưu cho đến khi bạn bấm Lưu nháp hoặc Lưu và mở bán.':'Chọn phim rồi bấm vào cột phòng để thêm suất. Chưa có gì được lưu cho đến khi bạn bấm Lưu nháp hoặc Lưu và mở bán.';
+  /* Nothing to say while idle: the footer already reads "Chưa có suất mới". */
+  const idle=()=>'';
+  const localNow=()=>Date.parse(now())+7*3600000,ended=e=>!!e.endsAt&&C.stamp(e.endsAt)<=localNow(),running=e=>C.stamp(e.startsAt)<=localNow()&&!ended(e);
+  /* Tickets sold against the room's seats: a show can never sell more than the room holds. */
+  const tickets=e=>e.status==='OPEN'&&e.seats?`${e.sold||0}/${e.seats} vé`:'';
   function problem(row){return C.problem(row,durations,calendar?.events||[],draft.rows,now());}
   function renderMain(){renderRoomTabs();mode==='day'?renderBoard():renderWeek();}
   function render(){renderDays();renderMovies();renderStrip();renderMain();renderRows();}
@@ -71,10 +76,10 @@
     for(const [id,on] of [['view-week',mode==='week'],['view-day',mode==='day']]){$(id).classList.toggle('active',on);$(id).setAttribute('aria-pressed',String(on));}
     initialScroll=true;clearDrag();render();if(!draft.rows.length&&calendar&&!pending)message(idle());
   }
-  function changed(rows=draft.rows,keepNotice=false){if(!keepNotice)notify('');draft.replace(rows);message(draft.rows.length?`Đang xếp ${draft.rows.length} suất. Đang kiểm tra toàn bộ đợt…`:`Chưa có suất mới. ${idle()}`);reviewCommand=null;clearTimeout(previewTimer);previewController?.abort();render();if(draft.rows.length)previewTimer=setTimeout(check,300);}
+  function changed(rows=draft.rows,keepNotice=false){if(!keepNotice)notify('');draft.replace(rows);message(draft.rows.length?`Đang xếp ${draft.rows.length} suất. Đang kiểm tra toàn bộ đợt…`:'');reviewCommand=null;clearTimeout(previewTimer);previewController?.abort();render();if(draft.rows.length)previewTimer=setTimeout(check,300);}
   async function check(){
     clearTimeout(previewTimer);if(locked()||editorDirty||!calendar||!draft.rows.length)return;previewController?.abort();const controller=new AbortController();previewController=controller;const revision=draft.revision;
-    try{const {body}=await request('/preview',{method:'POST',body:JSON.stringify(payload(draft.rows)),signal:controller.signal});if(previewController!==controller||!draft.accept(revision,body))return;const warned=body.rows.filter(r=>!r.errors.length&&r.warnings?.length).length;message([body.canCommit?`${body.total} suất hợp lệ, chưa lưu. Bấm Lưu nháp hoặc Lưu và mở bán khi xong.`:`${body.invalid}/${body.total} suất cần sửa. Chưa lưu suất nào.`,warned?`${warned} suất lưu nháp được nhưng chưa đủ điều kiện mở bán (xem danh sách).`:'',legacyWarning()].filter(Boolean).join(' '),body.canCommit?'':'error');renderDays();renderMain();renderRows();}
+    try{const {body}=await request('/preview',{method:'POST',body:JSON.stringify(payload(draft.rows)),signal:controller.signal});if(previewController!==controller||!draft.accept(revision,body))return;const warned=body.rows.filter(r=>!r.errors.length&&r.warnings?.length).length;message([body.canCommit?`${body.total} suất hợp lệ, chưa lưu.`:`${body.invalid}/${body.total} suất cần sửa. Chưa lưu suất nào.`,warned?`${warned} suất lưu nháp được nhưng chưa đủ điều kiện mở bán (xem danh sách).`:'',legacyWarning()].filter(Boolean).join(' '),body.canCommit?'':'error');renderDays();renderMain();renderRows();}
     catch(e){if(e.name!=='AbortError'&&revision===draft.revision)message(e.message,'error');}finally{state();}
   }
   async function loadCalendar(keepMessage=false){
@@ -126,7 +131,7 @@
     const from=taken.row,next={...from,...patch};if(patch.roomId)next.format=formatFor(from,patch.roomId);
     if(next.date===from.date&&String(next.roomId)===String(from.roomId))return;
     const reason=C.problem(next,durations,others(from),draft.rows,now());if(reason){message(`Không dời suất: ${reason}`,'error');return;}
-    if(taken.event)moveSaved(taken.event,next);else{changed(draft.rows.map(r=>r.rowKey===next.rowKey?next:r));notify(`Đã dời suất mới ${title(next.movieId)} sang ${next.time} ${dayName(next.date)}, ${roomName(next.roomId)}. Chưa lưu cho đến khi bạn bấm Tạo.`);}
+    if(taken.event)moveSaved(taken.event,next);else{changed(draft.rows.map(r=>r.rowKey===next.rowKey?next:r));notify(`Đã dời suất mới ${title(next.movieId)} sang ${next.time} ${dayName(next.date)}, ${roomName(next.roomId)}. Chưa lưu.`);}
   }
   /* Stored shows open the shared popup (showtime-editor.js); drafts on the board count when it checks for clashes. */
   function openShow(e){
@@ -164,13 +169,13 @@
       const day=C.addDays(week,d),saved=(calendar?.events||[]).filter(e=>e.startsAt.slice(0,10)===day).length,fresh=draft.rows.filter(r=>r.date===day),bad=fresh.filter(r=>checked(r.rowKey)?.errors.length).length;
       const tab=button('',()=>{if(day===activeDay)return;activeDay=day;$('day').value=day;render();},`sched-day${day===activeDay?' active':''}${day<today()?' past':''}${day===today()?' today':''}${bad?' bad':''}`);
       tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(day===activeDay));
-      tab.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}`),node('small',[calendar?`${saved} đã lưu`:'',fresh.length?`${fresh.length} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')||'—'));box.append(tab);
+      tab.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}`),node('small',[day<today()?'đã qua':'',calendar?`${saved} ${day<today()?'suất':'đã lưu'}`:'',fresh.length?`${fresh.length} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')||'—'));box.append(tab);
     }
   }
   function renderMovies(){
     const box=$('movies'),q=$('movie-filter').value.trim().toLowerCase(),list=movies.filter(m=>m.active&&m.status!=='ENDED');box.replaceChildren();$('movie-filter').hidden=list.length<=6;
     for(const m of list.filter(m=>!q||m.title.toLowerCase().includes(q)||String(m.id)===movieId)){
-      const on=String(m.id)===movieId,item=button('',()=>{movieId=String(m.id);renderMovies();renderMain();state();},`sched-movie${on?' active':''}`);
+      const on=String(m.id)===movieId,item=button('',()=>{const id=String(m.id);if(mode==='week')focusMovie=on&&focusMovie===id?'':id;movieId=id;renderMovies();renderMain();state();},`sched-movie${on?' active':''}`);if(mode==='week')item.title=on&&focusMovie===String(m.id)?'Bấm lần nữa để hiện lại mọi phim':'Chọn phim này để thêm suất và làm nổi các suất của nó';
       item.setAttribute('role','radio');item.setAttribute('aria-checked',String(on));item.style.setProperty('--tone',tone(m.id));
       item.append(node('strong',m.title),node('small',`${m.duration} phút${m.status==='COMING_SOON'?' · Sắp chiếu':''}`));box.append(item);
     }
@@ -183,7 +188,7 @@
       let all=0,fresh=0,bad=0;for(let d=0;d<7;d++)for(const i of items.get(`${room.id}|${C.addDays(week,d)}`)||[]){if(i.ghost)continue;all++;if(i.row){fresh++;if(checked(i.row.rowKey)?.errors.length)bad++;}}
       const tab=button('',()=>pickRoom(room.id),`button secondary sched-room${String(room.id)===chosen?' active':''}${bad?' bad':''}`);tab.setAttribute('aria-pressed',String(String(room.id)===chosen));
       if(wide&&room.active)dropZone(tab,()=>({roomId:String(room.id)}),`Thả để chuyển sang ${room.name}, giữ ngày và giờ`);
-      tab.append(node('strong',room.name),node('small',[room.active?room.format:'Ngừng hoạt động',calendar?`${all} suất`:'',fresh?`${fresh} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')));box.append(tab);
+      tab.append(node('strong',room.name),node('small',[room.active?room.format:'Ngừng hoạt động',room.seats?`${room.seats} ghế`:'',calendar?`${all} suất`:'',fresh?`${fresh} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')));box.append(tab);
     }
     if(had)box.querySelector('.active')?.focus();
   }
@@ -192,9 +197,9 @@
   function fit(){
     /* Everything fits one window: the panel ends at the window bottom, the calendar above the pending list and the footer. */
     const add=$('add');if(!add.hidden)add.style.maxHeight=`${Math.max(380,innerHeight-Math.max(12,add.getBoundingClientRect().top)-12)}px`;
-    const box=$('board'),side=root.querySelector('.sched-side'),wrap=$('week-wrap'),foot=root.querySelector('.sched-footer').offsetHeight+$('pending-panel').offsetHeight+28;
+    const box=$('board'),side=root.querySelector('.sched-side'),wrap=$('week-wrap'),foot=root.querySelector('.sched-footer').offsetHeight+28;
     if(stacked.matches){box.style.height='';side.style.maxHeight='';wrap.style.maxHeight='';return;}
-    if(mode==='week'){wrap.style.maxHeight=`${Math.max(300,innerHeight-(wrap.getBoundingClientRect().top+scrollY)-foot-10)}px`;return;}
+    if(mode==='week'){side.style.maxHeight=`${Math.max(300,innerHeight-(side.getBoundingClientRect().top+scrollY)-foot-10)}px`;wrap.style.maxHeight=`${Math.max(300,innerHeight-(wrap.getBoundingClientRect().top+scrollY)-foot-10)}px`;return;}
     const space=Math.max(340,innerHeight-(box.getBoundingClientRect().top+scrollY)-foot-10);box.style.height=`${space}px`;side.style.maxHeight=`${space+box.offsetTop-side.offsetTop}px`;
   }
   /* Rooms worth a row: active ones, plus stopped rooms that still hold a show this week. */
@@ -219,13 +224,13 @@
     for(let d=0;d<7;d++){
       const day=C.addDays(week,d),shown=items.get(`${room.id}|${day}`)||[],all=shown.filter(i=>!i.ghost),bad=all.filter(i=>i.row&&checked(i.row.rowKey)?.errors.length).length,fresh=all.filter(i=>i.row).length,when=`${day<today()?'past':''}${day===today()?' today':''}`.trim();
       const th=node('th',undefined,`${when}${bad?' bad':''}`.trim()),open=button('',()=>setMode('day',day),'week-day');th.scope=rows?'row':'col';open.title='Xem ngày này theo giờ, mọi phòng';
-      open.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}${day===today()?' · hôm nay':''}`),node('small',[all.length?`${all.length} suất`:day<today()?'đã qua':'chưa có suất',fresh?`${fresh} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')));th.append(open);
+      open.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}`),node('small',[day===today()?'hôm nay':'',day<today()?'đã qua':'',all.length?`${all.length} suất`:day<today()?'':'chưa có suất',fresh?`${fresh} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')));th.append(open);
       const td=node('td',undefined,when),cell=node('div',undefined,'week-cell');
       if(day>=today()&&room.active)dropZone(td,()=>({date:day}),'');
       for(const item of shown){
         if(item.ghost){const ghostChip=node('div',undefined,'week-chip ghost');ghostChip.style.setProperty('--tone',tone(item.movieId));const inner=node('div',undefined,'chip-body');inner.append(node('b',`${item.startsAt.slice(11,16)} – ${item.endsAt.slice(11,16)}`),node('span',`Dự kiến · ${item.movieTitle}`));ghostChip.append(inner);ghostChip.title='Suất dự kiến trong bảng Nhiều suất nối tiếp, chưa thêm vào lịch';cell.append(ghostChip);continue;}
-        const row=item.row,value=row&&checked(row.rowKey),wrong=!!value?.errors.length,label=row?'Mới, chưa lưu':item.locked?'Có vé hoặc lượt giữ ghế, không dời được':item.status==='OPEN'?'Đang bán vé':'Nháp, chưa bán';
-        const chip=node('div',undefined,`week-chip ${row?wrong?'fresh error':'fresh':item.status==='DRAFT'?'saved draft':'saved open'}${!row&&item.locked?' locked':''}${focusMovie&&String(item.movieId)!==focusMovie?' dim':''}`),show=button('',()=>row?edit(row):showExisting(item),'chip-body'),time=row?row.time||'--:--':item.startsAt.slice(11,16);
+        const row=item.row,value=row&&checked(row.rowKey),wrong=!!value?.errors.length,over=!row&&ended(item),label=row?'Mới, chưa lưu':[over?'Đã chiếu':running(item)?'Đang chiếu':item.locked?'Có vé hoặc lượt giữ ghế, không dời được':item.status==='OPEN'?'Đang bán vé':'Nháp, chưa bán',tickets(item)].filter(Boolean).join(' · ');
+        const chip=node('div',undefined,`week-chip ${row?wrong?'fresh error':'fresh':item.status==='DRAFT'?'saved draft':'saved open'}${!row&&item.locked?' locked':''}${over?' over':''}${focusMovie&&String(item.movieId)!==focusMovie?' dim':''}`),show=button('',()=>row?edit(row):showExisting(item),'chip-body'),time=row?row.time||'--:--':item.startsAt.slice(11,16);
         chip.style.setProperty('--tone',tone(item.movieId));show.append(node('b',`${time}${item.endsAt?` – ${item.endsAt.slice(11,16)}`:''}`),node('span',item.movieTitle));if(wrong)show.append(node('small',value.errors[0].message));
         show.title=`${item.movieTitle} · ${time}${item.endsAt?` – ${item.endsAt.slice(11,16)} · dọn phòng đến ${item.cleanupUntil.slice(11,16)}`:''} · ${wrong?value.errors.map(e=>e.message).join(' '):label}`;chip.append(show);
         if(row){chip.dataset.rowKey=row.rowKey;const drop=button('×',()=>remove(row.rowKey),'chip-remove');drop.title='Bỏ suất này';drop.setAttribute('aria-label',`Bỏ suất ${item.movieTitle} ${time} ${dayName(day)}`);chip.append(drop);}
@@ -388,13 +393,13 @@
   $('add-list').addEventListener('pointerup',()=>{const d=panel.drag;panel.drag=null;if(!d||!d.moved||d.to==null)return;const l=panel.slots.get(d.day)||[];panel.slots.set(d.day,l);(l[d.index]||(l[d.index]={})).time=C.clock(d.to);renderPanel();});
   $('add-list').addEventListener('pointercancel',()=>{panel.drag=null;renderPanel();});
   function renderBoard(){
-    const box=$('board');if(box.querySelector('.sched-grid'))scroll={top:box.scrollTop,left:box.scrollLeft};box.replaceChildren();ghost=null;
+    const box=$('board');box.classList.toggle('past-day',activeDay<today());if(box.querySelector('.sched-grid'))scroll={top:box.scrollTop,left:box.scrollLeft};box.replaceChildren();ghost=null;
     if(!calendar){box.append(node('p',loading?'Đang tải lịch…':loadError||'Chọn rạp để xem lịch.','sched-empty'));return;}
     const list=boardRooms();if(!list.length){box.append(node('p','Rạp chưa có phòng hoạt động. Tạo phòng trước khi xếp suất.','sched-empty'));return;}
     fit();view=viewWindow();const hours=(view.to-view.from)/60,height=box.clientHeight||480;hourPx=Math.max(small.matches?66:26,Math.floor((height-48)/hours));
     const grid=node('div',undefined,'sched-grid');grid.style.setProperty('--hour',`${hourPx}px`);grid.style.gridTemplateColumns=`52px repeat(${list.length},minmax(${small.matches?0:150}px,1fr))`;
     grid.append(node('div','Giờ','sched-head axis'));
-    for(const room of list){const head=button(room.name,()=>{if(room.active)pickRoom(room.id);},`sched-head${String(room.id)===$('room').value?' target':''}`);head.title=room.active?'Chọn phòng này cho Thêm theo giờ':'Phòng đã ngừng hoạt động';head.append(node('small',room.active?room.format:'Ngừng hoạt động'));grid.append(head);}
+    for(const room of list){const head=button(room.name,()=>{if(room.active)pickRoom(room.id);},`sched-head${String(room.id)===$('room').value?' target':''}`);head.title=room.active?'Chọn phòng này cho Thêm theo giờ':'Phòng đã ngừng hoạt động';head.append(node('small',room.active?`${room.format}${room.seats?` · ${room.seats} ghế`:''}`:'Ngừng hoạt động'));grid.append(head);}
     const axis=node('div',undefined,'sched-axis');axis.style.height=`${hours*hourPx}px`;for(let minute=view.from;minute<view.to;minute+=60){const mark=node('span',C.clock(minute));mark.style.top=`${(minute-view.from)/60*hourPx}px`;axis.append(mark);}grid.append(axis);
     const base=C.stamp(`${activeDay}T00:00`),items=dayItems(activeDay),nowMinute=(Date.parse(now())+7*3600000-base)/60000;
     for(const room of list){
@@ -404,10 +409,10 @@
       const daily=items.filter(i=>String(i.roomId)===String(room.id)).sort((a,b)=>C.stamp(a.startsAt)-C.stamp(b.startsAt));
       for(const item of daily){
         const starts=(C.stamp(item.startsAt)-base)/60000,from=Math.max(view.from,starts),until=Math.min(view.to,(C.stamp(item.cleanupUntil)-base)/60000),end=Math.min(until,Math.max(from,(C.stamp(item.endsAt)-base)/60000));if(until<=from)continue;
-        const row=item.row,value=row&&checked(row.rowKey),bad=!!value?.errors.length,carried=starts<0,block=node('article',undefined,`sched-event ${row?bad?'fresh error':'fresh':item.status==='DRAFT'?'saved draft':'saved open'}${!row&&item.locked?' locked':''}${!row&&!carried&&movable(item)?' movable':''}`);
+        const row=item.row,value=row&&checked(row.rowKey),bad=!!value?.errors.length,carried=starts<0,block=node('article',undefined,`sched-event ${row?bad?'fresh error':'fresh':item.status==='DRAFT'?'saved draft':'saved open'}${!row&&item.locked?' locked':''}${!row&&ended(item)?' over':''}${!row&&!carried&&movable(item)?' movable':''}`);
         block.style.top=`${(from-view.from)/60*hourPx}px`;block.style.height=`${(until-from)/60*hourPx}px`;block.style.setProperty('--tone',tone(item.movieId));
         const peers=daily.filter(other=>C.overlaps(item,other)),lane=peers.indexOf(item);if(peers.length>1){block.style.left=`calc(${lane/peers.length*100}% + 2px)`;block.style.width=`calc(${100/peers.length}% - 4px)`;block.style.right='auto';}
-        const label=row?'Mới, chưa lưu':item.locked?'Có vé':item.status==='OPEN'?'Đang bán vé':'Nháp',body=button('',()=>row?edit(row):showExisting(item),'event-body');
+        const label=row?'Mới, chưa lưu':[ended(item)?'Đã chiếu':running(item)?'Đang chiếu':item.status==='OPEN'?'Đang bán vé':'Nháp',tickets(item)].filter(Boolean).join(' · '),body=button('',()=>row?edit(row):showExisting(item),'event-body');
         body.append(node('strong',`${carried?'Tiếp · ':''}${item.startsAt.slice(11,16)} ${item.movieTitle}`),node('small',bad?value.errors[0].message:`${label} · hết ${item.endsAt.slice(11,16)}`));
         body.title=`${item.movieTitle} · ${when(item.startsAt)} – ${item.endsAt.slice(11,16)} · dọn đến ${item.cleanupUntil.slice(11,16)} · ${bad?value.errors.map(e=>e.message).join(' '):label}`;block.append(body);
         if(row){block.dataset.rowKey=row.rowKey;if(!carried){
@@ -441,14 +446,16 @@
   root.addEventListener('click',e=>{if(suppressClick){e.preventDefault();e.stopPropagation();suppressClick=false;}},true);
   $('board').addEventListener('pointermove',e=>{
     if(drag||e.pointerType==='touch')return;const col=e.target.closest?.('.sched-col');
-    if(!col||e.target.closest('.sched-event')||locked()||!movieId||col.classList.contains('inactive')){clearGhost();return;}
+    if(!col||e.target.closest('.sched-event')||locked()||!movieId||activeDay<today()||col.classList.contains('inactive')){clearGhost();return;}
     const spot=place(col,e.clientY);if(spot)drawGhost(col,spot);
   });
   $('board').addEventListener('pointerleave',()=>{if(!drag)clearGhost();});
   $('board').addEventListener('click',e=>{
     const col=e.target.closest('.sched-col');if(!col||e.target.closest('.sched-event')||locked()||!calendar)return;
     if(col.classList.contains('inactive')){message('Phòng đã ngừng hoạt động. Mở lại phòng trước khi xếp suất.','error');return;}
-    if(!movieId){message('Chọn phim ở danh sách bên cạnh trước khi thêm suất.','error');return;}
+    if(activeDay<today()){message(`${dayName(activeDay)} đã qua, không thêm suất được.`,'error');return;}
+    /* No film picked yet: the click still means "a show here", so the panel opens with this room, day and hour filled in. */
+    if(!movieId){const minute=Math.max(0,Math.min(1435,Math.round((view.from+(e.clientY-col.getBoundingClientRect().top)/hourPx*60)/15)*15));openAdd(col.dataset.room,activeDay,C.clock(minute));return;}
     const spot=place(col,e.clientY);if(!spot)return;clearGhost();if(spot.reason){message(spot.reason,'error');return;}$('room').value=String(col.dataset.room);add(spot.row);
   });
   addEventListener('pointermove',e=>{
@@ -519,7 +526,7 @@
     const skipped=panel.result.flatMap(d=>d.list.filter(x=>!x.off&&x.reason).map(x=>`${dayName(d.day)} ${x.row.time}: ${x.reason}`));let rows;
     try{rows=C.merge(draft.rows,picked);}catch(error){$('add-summary').textContent=error.message;return;}
     const room=panelRoom(),films=[...new Set(picked.map(r=>r.movieId))];movieId=films[0];viewRoom=String(room);closeAdd();changed(rows);
-    notify(`Đã thêm ${picked.length} suất ${films.map(title).join(', ')} tại ${roomName(room)}, ${new Set(picked.map(r=>r.date)).size} ngày. Chưa lưu cho đến khi bạn bấm Lưu nháp hoặc Lưu và mở bán.${skipped.length?` Bỏ qua ${skipped.length} suất trùng lịch hoặc ngoài thời gian chiếu.`:''}`,skipped);
+    notify(`Đã thêm ${picked.length} suất ${films.map(title).join(', ')} tại ${roomName(room)}, ${new Set(picked.map(r=>r.date)).size} ngày.${skipped.length?` Bỏ qua ${skipped.length} suất trùng lịch hoặc ngoài thời gian chiếu.`:''}`,skipped);
   });
   /* Chép ngày works in both views: pick the day whose new shows are copied, then the days that receive them. */
   let copyFrom='';
@@ -549,7 +556,9 @@
     const body=[...root.querySelectorAll(mode==='day'?'#batch-board .sched-event':'#batch-week .week-chip')].find(el=>el.dataset.rowKey===row.rowKey)?.querySelector('button');
     if(body){body.scrollIntoView({block:'center',inline:'center'});body.focus();}else{$('errors-only').checked=true;page=0;renderRows();$('pending-panel').open=true;$('pending-panel').scrollIntoView({block:'center'});}
   };
-  $('list').onclick=()=>{$('pending-panel').open=true;$('pending-panel').scrollIntoView({block:'start',behavior:'smooth'});};
+  $('list').onclick=()=>{$('pending-panel').open=!$('pending-panel').open;};$('pending-close').onclick=()=>{$('pending-panel').open=false;$('list').focus();};
+  $('pending-panel').addEventListener('toggle',()=>state());
+  document.addEventListener('click',e=>{const p=$('pending-panel');if(p.open&&e.target.isConnected&&!e.target.closest('.sched-footer,dialog'))p.open=false;});
   $('import').onclick=()=>{$('excel').open=false;$('file').click();};
   $('file').onchange=async()=>{
     const file=$('file').files[0];if(!file||locked())return;if(file.size>5*1024*1024||!/\.xlsx$/i.test(file.name)){message('Chọn file .xlsx tối đa 5 MB.','error');$('file').value='';return;}

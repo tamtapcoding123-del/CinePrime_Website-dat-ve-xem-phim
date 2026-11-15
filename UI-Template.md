@@ -73,6 +73,8 @@ Thiết kế website đặt vé xem phim rõ ràng, chuyên nghiệp, ưu tiên 
 
 ## 3. Design System
 
+> **Từ 15/11/2026:** màu, phông và hình khối theo mục **3.5 "Studio Cinema Pearl"**. Các giá trị màu, bo góc và phông ghi ở 3.0–3.4 là của giao diện xanh–cam cũ, chỉ giữ để tra cứu; phần **bố cục, mật độ, luồng và nghĩa màu trạng thái** của 3.0 và 3.4 vẫn có hiệu lực.
+
 ### 3.0. Giao diện khách (từ 12/11/2026)
 
 Trang khách dùng `static/css/site.css`; token khai báo ở `:root` đầu file. Admin/Staff theo mục **3.4** (phương án B, chốt 13/11/2026); bảng 3.1–3.3 là token cũ của `app.css`/`operations.css`, chỉ giữ để tra cứu cho tới khi 3.4 được triển khai.
@@ -249,6 +251,62 @@ Icon màu `--muted`; mục đang mở nền `--brand-soft`, icon và chữ `--br
 - **Bán vé tại quầy (Staff):** dải ca nền `counter` nhạt (ca, đơn, vé, tiền mặt trong két, "Đơn trong ca", "Đóng ca"); ba cột 1 · Suất → 2 · Ghế → 3 · Đơn; nút chính cam "Giữ N ghế · 5 phút" chỉ hiện khi đã chọn ghế.
 
 **Không làm:** gradient, emoji, bóng đổ trên thẻ thường; màu không có nghĩa (thể loại nhiều màu, icon tô màu ngẫu nhiên); pill tròn cho trạng thái; chỉ dùng màu không có chữ; nhiều hơn một nút cam mỗi màn; nút đen nặng cho "Thêm mới"; dải "—" lặp lại cho số 0; ký hiệu "₫"; nhóm sidebar rỗng; thay đổi cụm logo + nút sidebar.
+
+### 3.5. Phong cách "Studio Cinema Pearl" — vát hai góc đối (chốt 15/11/2026)
+
+**Phạm vi:** áp dụng cho cả ba vai trò (khách, Admin, Staff). Mục này **thay** màu, phông và hình khối ở 3.0–3.4; **bố cục, luồng thao tác và bảng nghĩa màu trạng thái ở 3.0 và 3.4 giữ nguyên**. Nguồn: bộ Cinema-Pearl-Agent-Kit do người dùng cung cấp (chỉ lấy phong cách, không lấy bố cục sidebar trái của trang khách, không lấy các nhóm đóng/mở của sidebar Admin). Phác thảo: canvas "CinePrime Admin/Staff — phác thảo", trang "Cinema Pearl — đổi phong cách (15/11)". Trạng thái triển khai mã: xem README.
+
+Token nằm ở một nơi duy nhất: `static/css/cineprime-theme.css`, nạp **trước** mọi stylesheet khác ở cả ba layout. Các file CSS theo vai trò không khai báo lại token màu.
+
+| Token | Giá trị | Vai trò |
+|---|---|---|
+| `--bg` | `#DFE4EC` | Nền trang |
+| `--bg-elev` | `#EAEFF5` | Header, sidebar, footer, dải nền nâng |
+| `--surface` | `#F4F6F9` | Thẻ, ô nhập, bảng (không dùng trắng `#FFFFFF` cho bề mặt) |
+| `--surface-2` / `--card-head` | `#E4E9F1` / `#EBEEF4` | Khối phụ, hàng rê chuột / đầu bảng, đầu thẻ |
+| `--line-soft` / `--line` / `--line-strong` | `#DBE1EA` / `#CBD3DF` / `#AEBACB` | Kẻ trong bảng / viền thẻ / viền ô nhập, nút |
+| `--ink` / `--ink-2` / `--muted` | `#151B26` / `#334155` / `#586477` | Chữ chính / chữ phụ / chú thích |
+| `--faint` | `#7A8699` | Chỉ cho chi tiết không cần đọc (2,9:1 trên nền, không dùng cho chữ nội dung) |
+| `--accent` / `--accent-hover` | `#C83728` / `#AD2D20` | Hành động chính, mục đang chọn, ghế đang chọn |
+| `--accent-ink` / `--accent-on` | `#A8281B` / `#F8FAFC` | Chữ đỏ trên nền sáng, liên kết / chữ trên nền đỏ |
+| `--accent-soft` / `--accent-line` | đỏ 10% / đỏ 34% | Nền và viền của mục đang chọn |
+| `--btn-dark` / `--btn-dark-hover` | `#1E2532` / `#2B3445` | Nút phụ có trọng lượng (Đăng ký, Lọc, Xác nhận) |
+| `--focus-ring` | `#2563EB` | Viền focus bàn phím; cobalt không còn là màu chủ đạo |
+
+- **Màu trạng thái** (ok / info / warn / bad / off / counter / special / food) giữ nghĩa như bảng ở 3.4, chỉ đổi sắc độ cho hợp nền: xem khối "Semantic Tokens" trong `cineprime-theme.css`. Info chuyển từ xanh dương sang slate.
+- **Tên token cũ** (`--brand`, `--blue`, `--orange`, `--navy`, `--canvas`, `--card`, `--paper`, `--soft`...) còn tồn tại dưới dạng alias trong theme để mã cũ chạy được: `--brand`/`--blue` trỏ về đỏ đậm `--accent-ink`, `--orange` trỏ về `--accent`. Mã mới dùng tên theo nghĩa, không dùng alias.
+- **Phông** (tự host trong `static/fonts`, OFL, đủ bộ Latin / Latin mở rộng / tiếng Việt): tiêu đề, tên phim, số liệu dùng **Be Vietnam Pro** 500/600/700; nội dung, biểu mẫu, bảng dùng **Plus Jakarta Sans** 400/500/600/700; mã vé, mã đơn, giờ trong lưới lịch dùng **JetBrains Mono** 500/600. Không gọi phông từ mạng ngoài (CSP `'self'`).
+- **Cỡ chữ:** nội dung 15px/1,6 (bảng vận hành 14–14,5px); thang 12 / 13,5 / 15 / 16 / 18 / 22 / 28px. Các cỡ tiêu đề theo màn ở 3.0 giữ nguyên.
+- **Hình khối:** không bo tròn (`border-radius: 0`, trừ hình tròn thật như chấm, vòng quay chờ). Dấu hiệu nhận diện là **vát 45° ở góc trên trái và dưới phải**, hai góc còn lại vuông; không vát bốn góc. Bốn cỡ: `--cut-xs` 5px (chip, ghế, nhãn tuổi), `--cut-sm` 7px (nút, ô nhập, tab), `--cut-md` 10px (thẻ), `--cut-lg` 14px (hero, khung lớn). Viền 1px; mục đang chọn có viền đỏ, mũ góc dày khoảng 4px và nền `--accent-soft`.
+- **Cách vát:** `clip-path` + hai dải `linear-gradient` cứng (135° và -45°) vẽ cạnh chéo. Đây là hình học, **không** phải gradient trang trí; quy tắc "không gradient" ở 3.0/3.4 vẫn áp dụng cho mọi gradient chuyển màu. Đổi nền phần tử vát bằng `background-color`, không dùng `background` viết gộp (sẽ xoá cạnh chéo). Khối chứa menu thả xuống, hộp thoại hoặc phần tử tràn ra ngoài **không** được `clip-path` trực tiếp: dùng `.cp-bevel-frame` (vẽ khung bằng lớp giả) hoặc để vuông.
+- **Nút:** đỏ `--accent` chữ `--accent-on` cho hành động chính, **tối đa một nút mỗi khối** (thay nút cam chữ đen); slate `--btn-dark` cho hành động phụ có trọng lượng (thay nút xanh dương); viền cho phần còn lại. Cao 44px ở trang khách, 34–40px ở Admin/Staff.
+- **Chip trạng thái:** vát 5px, nền nhạt + chữ đậm cùng tông + viền 1px (thay ô bo 4px ở 3.4). Vẫn luôn có chữ, không chỉ màu.
+- **Logo:** biểu tượng `cineprime-mark.svg` + "Cine" màu `--ink` + "Prime" màu `--accent` (thay xanh `#1459A5` + cam). Bố cục cụm đầu trái (nút ẩn/hiện sidebar, mũi tên lùi/tiến, logo) giữ nguyên.
+- **Focus:** viền focus nằm ngoài bị `clip-path` cắt, nên phần tử vát dùng vòng trong (`box-shadow: inset 0 0 0 1px var(--focus-ring)`) và đổi màu viền sang `--focus-ring`.
+- **Staff:** giữ nguyên luồng soát vé bằng camera quét QR và nhập tay; chỉ đổi màu, phông, hình khối.
+
+#### Lịch chiếu — màu theo phim (chốt 15/11/2026)
+
+Người dùng chọn lấy **lớp hình ảnh** của bảng tuần trong kit Cinema Pearl và giữ nguyên chức năng đã chốt 14/11 (ba mục sidebar, thanh ngữ cảnh, ngăn Thêm suất, hai nút lưu, phím tắt, ô giờ HH:MM). Áp dụng cho cả ba màn Theo ngày, Danh sách, Xếp lịch tuần.
+
+- **Nền của suất = phim.** Tám token `--film-0…7` trong `cineprime-theme.css`: `#3B5B8C` `#2F8F5B` `#7650C8` `#C2622D` `#0F7F86` `#B0407A` `#6B7F1F` `#9A6B12`. Một phim luôn dùng token `mã phim % 8` ở cả ba màn (lớp `.film-N` hoặc biến `--tone`). Hai phim có mã lệch nhau bội số của 8 sẽ trùng màu; khi đó đọc theo tên.
+- Từ `--tone` suy ra ba màu: nền `--tone-bg` (16% màu phim trên `--surface`), viền `--tone-line` (42%), vạch trái và góc vát `--tone-bar` (80% màu phim trộn `--ink`). Không viết mã màu phim ở nơi khác.
+- **Trạng thái đọc ở viền, không ở nền:**
+
+| Trạng thái | Dấu hiệu |
+|---|---|
+| Mở bán | Viền liền màu phim |
+| Nháp | Viền đứt `--muted` |
+| Mới, chưa lưu | Viền `--accent` hai lớp |
+| Đang xem trước | Viền đứt `--line-strong`, nền `--surface` |
+| Đã chiếu | Nền `--surface-2`, chữ `--muted`, vạch trái `--line-strong` |
+| Trùng lịch | Nền `--bad-bg`, viền `--bad-bar`, có dòng lý do |
+| Đang chiếu (Theo ngày) | Viền 2px `--ink` |
+
+- Giờ của suất viết bằng `--font-mono`. Vạch 3px dưới thanh suất (Theo ngày) và thanh "Đã bán" (Danh sách) dùng `--tone-bar`.
+- **Xếp lịch tuần:** cột "Phim để bấm thêm" hiện cả ở chế độ Cả tuần; bấm một phim vừa chọn phim đó để thêm, vừa làm nổi các suất của nó (bấm lần nữa để bỏ làm nổi). Cột này ẩn khi ngăn Thêm suất mở. Tab phòng một dòng, cùng hàng với "Chép ngày" và "+ Thêm suất" (nút thường, vì "Lưu và mở bán" đã là nút đỏ của màn). Đầu cột ngày hai dòng canh trái; hôm nay gạch chân `--accent`.
+- **Theo ngày:** có dải "Phim trong ngày" làm chú giải màu; bấm một phim để lọc theo phim đó.
+- **Danh sách:** tên phim nằm trong nhãn màu phim.
 
 ## 4. Component Specifications
 

@@ -639,3 +639,40 @@ Góp ý sau bản ba tab: "phần thanh giao diện này có thể bỏ → chuy
 - Kiểm chứng: full suite MySQL `cineprime_test` **142 tests, 0 failures/errors/skipped**, log `target/lich-chieu-full.log` (test sidebar: chỉ Lịch chiếu là nhóm, nhóm đóng ở khu khác và mở ở Theo ngày, không còn `hub-tabs`/breadcrumb ở ba màn). JAR cổng 8087 + `cineprime_test`, 1366×768: Theo ngày, Danh sách, Xếp lịch tuần (ngăn đóng và mở) đều cao đúng 768px, không cuộn dọc/ngang; thanh ngữ cảnh Theo ngày và thanh công cụ tuần một hàng; Danh sách hai hàng (thêm ô Tìm). Gõ "2300" → 23:00, "15h20" ghim và dời các suất sau. Có ảnh chụp ba màn.
 - Chưa kiểm: màn rộng hơn với dữ liệu demo nhiều phòng (4 phòng như ảnh người dùng) — trục giờ cuộn trong thẻ khi nhiều phòng, chưa đo trên dữ liệu đó.
 - Không có migration; không áp dụng gì vào DB `cineprime`.
+
+### Lịch chiếu: thêm theo giờ, ngày đã qua, sức chứa, bỏ chú thích — góp ý và làm 15/11/2026
+
+Góp ý: ở "Theo giờ" bấm vào bảng thấy dấu + nhưng không thêm được; suất/ngày đã qua cần có hiển thị; mỗi suất chỉ bán tối đa bằng số ghế của phòng; bỏ các dòng chú thích dài; làm lại nút "Danh sách suất mới"; đặt lại tên các mục trong nhóm Lịch chiếu.
+
+- [x] Theo giờ: bấm cột phòng khi chưa chọn phim mở ngăn Thêm suất với phòng, ngày, giờ (làm tròn 15 phút) điền sẵn; trước đây chỉ báo lỗi "Chọn phim…". Ngày đã qua: con trỏ thường, bấm báo "… đã qua, không thêm suất được".
+- [x] Đã qua: thẻ ngày và đầu cột tuần ghi "đã qua · N suất"; suất đã kết thúc tô xám, nhãn "Đã chiếu" (đang chạy: "Đang chiếu"); chú giải thêm "Đã chiếu"; ở Theo giờ có dòng "… đã qua · chỉ xem".
+- [x] Sức chứa: `ShowtimeBatches.calendarRange` trả `seats` (ghế đang hoạt động) cho từng phòng và `sold`/`seats` cho từng suất (2 truy vấn gom nhóm, không N+1). Thẻ phòng ghi "2D · 60 ghế", suất mở bán ghi "x/60 vé". Giới hạn bán vé vẫn do `inventory` unique (showtime, seat) bảo đảm, không đổi logic đặt vé.
+- [x] Bỏ chú thích: dòng "Bấm + Thêm ở ngày muốn chiếu…" (thanh trạng thái ẩn khi không có gì để báo), đuôi "xếp theo phòng rồi giờ · suất có vé…" ở phân trang, các câu "Chưa lưu cho đến khi bạn bấm…".
+- [x] "Danh sách suất mới": bỏ thanh ngang luôn hiện; thành nút "Danh sách suất mới · N" ở thanh lưu (chỉ hiện khi có suất mới), mở ô nổi phía trên nút, đóng bằng ×, bấm ra ngoài hoặc bấm lại nút.
+- [x] Đổi tên, xếp lại nhóm: **Lịch trong ngày** · **Xếp lịch chiếu** · **Quản lý suất chiếu** (URL giữ nguyên).
+- Kiểm chứng: full suite MySQL `cineprime_test` **142 tests, 0 failures/errors/skipped**, log `target/lich-chieu-1115.log` (thêm assert `seats`/`sold` của lịch tuần và tên ba mục sidebar). JAR cổng 8081 + `cineprime_test` ở 1366×768: bấm cột phòng mở ngăn và thêm được suất, ngày 14/11 hiện đã qua, ô Danh sách suất mới mở đúng trên thanh lưu, console không lỗi.
+- Chưa kiểm: suất có vé thật (`sold` > 0) trên giao diện, dữ liệu nhiều phòng như DB `cineprime`.
+- Không có migration; không áp dụng gì vào DB `cineprime`. Ứng dụng cổng 8080 cần chạy lại để nhận mã mới.
+
+### Đổi phong cách "Studio Cinema Pearl" cho cả ba vai trò — được duyệt và làm 15/11/2026
+
+Người dùng gửi bộ Cinema-Pearl-Agent-Kit và yêu cầu **chỉ lấy phong cách** cho khách, Admin, Staff; giữ nguyên stack và nghiệp vụ. Đã phác thảo trên canvas (trang "Cinema Pearl — đổi phong cách (15/11)") và được duyệt. Quyết định ghi ở UI-Template.md §3.5 và skill `/cineuxui`.
+
+- Đã làm: thêm `static/css/cineprime-theme.css` (token, phông, lớp vát) nạp trước ở `layout.pug`, `operations.pug`, `counter-print.pug`; thêm phông local Plus Jakarta Sans và JetBrains Mono (OFL); 11 file CSS theo vai trò bỏ token màu riêng, đưa màu viết thẳng về token Pearl, bỏ bo góc, gắn vát góc trên trái + dưới phải cho nút, ô nhập, tab, chip, thẻ, ghế; logo đổi sang slate + đỏ. Bố cục trang khách (header ngang 64px), sidebar Admin phẳng với nhóm Lịch chiếu và luồng Staff quét QR bằng camera giữ nguyên; không sửa Java, migration hay JS nghiệp vụ.
+- Thẻ chứa menu hàng (`.panel`, `.mf-card`, `.ops-filters`) vẽ khung vát bằng lớp giả để menu không bị cắt; hộp thoại, menu thả xuống và toast để vuông, giữ bóng.
+- Kiểm chứng 15/11/2026: `mvnw package` với `TEST_DB_URL` trỏ `cineprime_test`: 142 kiểm thử, 0 lỗi, 0 bỏ qua (log `target/pearl-tests-20261115.log`). Xem trực tiếp bản chạy cổng 8081 (schema `cineprime_test`) ở 1366×768: trang chủ, đăng nhập, lịch chiếu của khách; Tổng quan, Đơn hàng, Phim, Lịch trong ngày, Xếp lịch chiếu của Admin; Soát vé của Staff (còn đủ khung camera và nút Bật camera). Trang chủ khách ở 390×844 không tràn ngang; phông tải đúng (Be Vietnam Pro cho tiêu đề, Plus Jakarta Sans cho nội dung).
+- Chưa kiểm chứng: dữ liệu thử chỉ có một phim nên chưa xem hero nhiều slide, trang chi tiết phim, sơ đồ ghế, thanh toán, vé; Admin chưa xem form phim, sơ đồ phòng, banner, lịch tuần có suất; Staff chưa xem màn Bán vé tại quầy và chưa quét QR bằng camera thật; chưa đo tương phản từng cặp màu, chưa soát bàn phím toàn bộ. `app.css` (CSS khách cũ còn nạp ở trang vận hành) vẫn còn vài gradient trang trí cũ. Không có migration, không đổi dữ liệu `cineprime`.
+
+## Lịch chiếu tô màu theo phim — được duyệt và làm 15–16/11/2026
+
+Người dùng chọn lấy lớp hình ảnh của bảng tuần trong kit Cinema Pearl, giữ chức năng đã chốt 14/11 (UI-Template §3.5 "Lịch chiếu — màu theo phim").
+
+Đã làm:
+- Tám token `--film-0…7` chuyển vào `cineprime-theme.css`; một phim dùng token `mã phim % 8` ở cả ba màn. Nền suất là màu phim, trạng thái đọc ở viền.
+- Xếp lịch chiếu: thẻ suất và cột phim tô theo phim; cột phim hiện cả ở chế độ Cả tuần, bấm phim để làm nổi suất của phim đó; tab phòng một dòng cùng hàng với "Chép ngày" và "+ Thêm suất".
+- Lịch trong ngày: thanh suất tô theo phim, thêm dải "Phim trong ngày" (bấm để lọc). Quản lý suất chiếu: tên phim trong nhãn màu, thanh "Đã bán" cùng màu.
+- `AdminReads` thêm lớp `film-N` cho view model; không đổi nghiệp vụ, không có migration.
+
+Đã kiểm chứng (16/11/2026): 142 kiểm thử qua trên MySQL `cineprime_test`, 0 lỗi, 0 bỏ qua (chạy trước khi chỉnh CSS/JS lần cuối; sau đó không đổi Java hay mẫu Pug). Xem trên cổng 8081 ở 1366×768 với dữ liệu demo: ba màn hiện đúng màu theo phim, trang không cuộn, giờ không bị cắt ở bảng tuần, bấm phim làm nổi 8/35 suất, ngăn Thêm suất mở được.
+
+Chưa kiểm chứng: trạng thái nháp, mới chưa lưu, trùng lịch, đã chiếu và đang chiếu trên dữ liệu thật (dữ liệu demo chỉ có suất mở bán); chế độ Theo giờ; lưu suất sau khi đổi giao diện. Khi ngăn Thêm suất mở ở 1366px, cột ngày hẹp nên giờ kết thúc bị cắt.

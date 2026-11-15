@@ -1,10 +1,10 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261114c")
+  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261115q")
   script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   - var keep = '/admin/schedule?cinemaId=' + cinemaId + '&roomId=' + roomId + '&movieId=' + movieId + '&state=' + state + '&date='
-  h1.visually-hidden Lịch chiếu theo ngày
+  h1.visually-hidden Lịch trong ngày
   form.hub-context(method="get" action="/admin/schedule")
     select(name="cinemaId" aria-label="Rạp" data-autosubmit="true")
       each c in adminCinemas
@@ -59,17 +59,25 @@ block admin
           span.sw.open
           | Mở bán
         li
-          span.sw.fill
-          | Đã bán
-        li
           span.sw.draft
           | Nháp
+        li
+          span.sw.past
+          | Đã chiếu
+        li
+          span.sw.fill
+          | Đã bán
         li
           span.sw.clean
           | Dọn phòng
         li
           span.sw.now
           | Bây giờ
+    if filterMovies.size() > 0
+      .tl-films(aria-label="Phim trong ngày, mỗi phim một màu")
+        strong Phim trong ngày
+        each m in filterMovies
+          a.tl-film(class='film-' + (m.id % 8) + (movieId == m.id.toString() ? ' active' : '') href='/admin/schedule?cinemaId=' + cinemaId + '&roomId=' + roomId + '&state=' + state + '&date=' + day + '&movieId=' + (movieId == m.id.toString() ? '' : m.id) title=movieId == m.id.toString() ? 'Bỏ lọc theo phim này' : 'Chỉ xem phim này')= m.name
     if boardRooms.size() == 0
       p.empty Rạp chưa có phòng hoạt động. Tạo phòng ở mục Rạp &amp; phòng trước khi xếp lịch.
     else

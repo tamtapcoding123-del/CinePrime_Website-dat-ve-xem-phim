@@ -1,10 +1,10 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261114c")
+  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261115q")
   script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   - var keep = '/admin/manage/showtimes?cinemaId=' + cinemaId + '&roomId=' + roomId + '&movieId=' + movieId + '&state=' + state + '&q=' + q + '&date='
-  h1.visually-hidden Danh sách suất chiếu
+  h1.visually-hidden Quản lý suất chiếu
   form.hub-context(method="get" action="/admin/manage/showtimes")
     select(name="cinemaId" aria-label="Rạp" data-autosubmit="true")
       each c in adminCinemas
@@ -73,11 +73,12 @@ block admin
                   else
                     input(type="checkbox" disabled title=s.why aria-label=s.why)
                 td.num.st-when= s.when
-                td= s.title
+                td
+                  span.st-film(class=s.film)= s.title
                 td= s.kind
                 td.num
                   span.meter(aria-hidden="true")
-                    i(data-width=s.fill)
+                    i(class=s.film data-width=s.fill)
                   | #{s.sold}
                 td.num.num-col= s.surcharge
                 td
@@ -88,7 +89,7 @@ block admin
     if rows.size() == 0
       .empty Không có suất nào khớp bộ lọc trong ngày này. Bấm + Thêm suất chiếu để xếp lịch.
     nav.ops-pagination.pager(aria-label="Phân trang")
-      span.pager-info Trang #{page + 1} / #{pages} · #{total} suất · xếp theo phòng rồi giờ · suất có vé, đang giữ ghế hoặc đã bắt đầu không chọn được
+      span.pager-info Trang #{page + 1} / #{pages} · #{total} suất
       .actions.pager-arrows
         if hasPrevious
           a.pager-btn(href=keep + day + '&page=' + (page - 1) aria-label="Trang trước") ‹
