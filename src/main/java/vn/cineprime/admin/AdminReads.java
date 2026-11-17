@@ -13,8 +13,8 @@ import static vn.cineprime.domain.Domain.*;
 /** Database-filtered management reads. Never changes booking, payment or pricing state. */
 @Service @Transactional(readOnly=true)
 public class AdminReads {
-    private final Store db; private final Catalog catalog; private final Clock clock;
-    public AdminReads(Store db,Catalog catalog,Clock clock){this.db=db;this.catalog=catalog;this.clock=clock;}
+    private final Store db; private final Catalog catalog; private final Clock clock; private final vn.cineprime.staff.CounterService counter;
+    public AdminReads(Store db,Catalog catalog,Clock clock,vn.cineprime.staff.CounterService counter){this.db=db;this.catalog=catalog;this.clock=clock;this.counter=counter;}
     private String entity(Class<? extends Row> type){return db.entityName(type);}
     private <T> TypedQuery<T> query(String hql,Class<T> type,Map<String,Object> args){var q=db.entityManager().createQuery(hql,type);args.forEach(q::setParameter);return q;}
     private String search(String q){return "%"+q.toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_")+"%";}
@@ -115,7 +115,8 @@ public class AdminReads {
         out.put("boardFrom",from);out.put("boardTo",to);return out;
     }
     private static Map<String,Object> gap(Room r,LocalDate day,int a,int b,int from,double span){int len=b-a;return Map.of("from",hm(a),"to",hm(b),"length",len/60+" giờ"+(len%60==0?"":" "+len%60+" phút"),"left",pct((a-from)/span*100),"width",pct((b-a)/span*100),"link","/admin/showtimes/new?cinemaId="+r.cinemaId+"&roomId="+r.id+"&date="+day+"&time="+hm(a)+"&add=1");}
-    public static final int LIST_SIZE=20;
+    /* One day of one cinema is shown whole and scrolls inside its card (16/11/2026); the cap only guards against a runaway day. */
+    public static final int LIST_SIZE=500;
     /** "Danh sách": shows of one day, 20 per page, grouped by room then start time, with sales and what can be done in bulk. */
     public Map<String,Object> showtimeList(LocalDate day,Long cinema,Long room,Long movie,String q,String state,int requested){
         Map<String,Object> out=new HashMap<>();Instant now=clock.instant();
@@ -165,9 +166,9 @@ public class AdminReads {
         if(cinema!=null){from+=" and s.cinemaId=:cinema";args.put("cinema",cinema);}if(!state.isBlank()){from+=" and s.status=:state";args.put("state",state);}
         if(day!=null){from+=" and s.openedAt>=:from and s.openedAt<:until";args.put("from",day.atStartOfDay(ReportService.ZONE).toInstant());args.put("until",day.plusDays(1).atStartOfDay(ReportService.ZONE).toInstant());}
         var p=page("select s,u.name,c.name",from," order by s.openedAt desc,s.id desc",args,requested);
-        return mapped(p,p.rows().stream().map(row->{Shift s=(Shift)row[0];long cashIn=query("select coalesce(sum(p.amount),0) from "+entity(Payment.class)+" p where p.shiftId=:id and p.provider='CASH' and p.status='SUCCEEDED'",Long.class,Map.of("id",s.id)).getSingleResult();long expected=s.expectedCash!=null?s.expectedCash:s.openingCash+cashIn;
-            Map<String,Object> v=new LinkedHashMap<>();v.put("id",s.id);v.put("staff",row[1]);v.put("cinema",row[2]);v.put("opened",db.date(s.openedAt));v.put("closed",s.closedAt==null?"Đang mở":db.date(s.closedAt));v.put("status",AdminPresentation.text(s.status));v.put("opening",db.cash(s.openingCash));v.put("cashIn",db.cash(expected-s.openingCash));v.put("expected",db.cash(expected));v.put("counted",s.countedCash==null?"—":db.cash(s.countedCash));
-            v.put("difference",s.countedCash==null?"—":(s.countedCash>expected?"+":"")+db.cash(s.countedCash-expected));v.put("mismatch",s.countedCash!=null&&s.countedCash!=expected);v.put("orders",db.count(Order.class,"where e.shiftId=?1 and e.status='PAID'",s.id));v.put("cancelled",db.count(Order.class,"where e.shiftId=?1 and e.cancelledAt is not null",s.id));v.put("note",Objects.toString(s.note,""));return v;}).toList());
+        return mapped(p,p.rows().stream().map(row->{Shift s=(Shift)row[0];var f=counter.figures(s);long expected=f.expected();
+            Map<String,Object> v=new LinkedHashMap<>();v.put("id",s.id);v.put("staff",row[1]);v.put("cinema",row[2]);v.put("opened",db.date(s.openedAt));v.put("closed",s.closedAt==null?"Đang mở":db.date(s.closedAt));v.put("status",AdminPresentation.text(s.status));v.put("opening",db.cash(s.openingCash));v.put("cashIn",db.cash(f.cashIn()));v.put("refunded",f.refunded()==0?"":db.cash(f.refunded()));v.put("expected",db.cash(expected));v.put("counted",s.countedCash==null?"—":db.cash(s.countedCash));v.put("intact",f.intact());v.put("tickets",f.tickets());
+            v.put("difference",s.countedCash==null?"—":(s.countedCash>expected?"+":"")+db.cash(s.countedCash-expected));v.put("mismatch",s.countedCash!=null&&s.countedCash!=expected);v.put("diffLabel",s.countedCash==null?"":s.countedCash>expected?"Thừa tiền mặt":s.countedCash<expected?"Thiếu tiền mặt":"Khớp két");v.put("diffTone",s.countedCash==null?"":s.countedCash>expected?"warn":s.countedCash<expected?"bad":"ok");v.put("orders",f.orders());v.put("cancelled",f.cancelled());v.put("note",Objects.toString(s.note,""));return v;}).toList());
     }
     public Map<String,Object> audit(String q,int requested){
         String from=" from "+entity(Audit.class)+" a left join "+entity(User.class)+" u on u.id=a.actorId where 1=1";Map<String,Object> args=new HashMap<>();

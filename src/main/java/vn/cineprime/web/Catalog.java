@@ -38,7 +38,8 @@ public class Catalog {
     }
     public Map<String,Object> show(Showtime s){
         Map<String,Object> v=db.view(s);Movie m=db.get(Movie.class,s.movieId);Room r=db.get(Room.class,s.roomId);Cinema c=db.get(Cinema.class,r.cinemaId);
-        v.put("movieTitle",m.title);v.put("movieSlug",m.slug);v.put("poster",media.imageOrPlaceholder(m.poster));v.put("cinemaName",c.name);v.put("city",c.city);v.put("roomName",r.name);v.put("when",db.date(s.startsAt));v.put("cinemaId",c.id);v.put("canHold",!clock.instant().plusSeconds(1200).isAfter(s.startsAt));return v;
+        v.put("movieTitle",m.title);v.put("movieSlug",m.slug);v.put("poster",media.imageOrPlaceholder(m.poster));v.put("cinemaName",c.name);v.put("city",c.city);v.put("roomName",r.name);v.put("when",db.date(s.startsAt));v.put("cinemaId",c.id);v.put("canHold",!clock.instant().plusSeconds(1200).isAfter(s.startsAt));
+        v.put("memberTier",s.minTier==null?"":db.first(Tier.class,"where e.code=?1",s.minTier).map(t->t.name).orElse(s.minTier));v.put("saleOpens",s.publicSaleAt!=null&&clock.instant().isBefore(s.publicSaleAt)?db.date(s.publicSaleAt):"");return v;
     }
     public List<Map<String,Object>> shows(Long movieId,Long cinemaId,LocalDate date){
         StringBuilder hql=new StringBuilder("select s,m,r,c from %s s, %s m, %s r, %s c where s.movieId=m.id and s.roomId=r.id and r.cinemaId=c.id and s.status='OPEN' and s.startsAt>?1 and m.active=true and r.active=true and c.active=true".formatted(db.entityName(Showtime.class),db.entityName(Movie.class),db.entityName(Room.class),db.entityName(Cinema.class)));
@@ -53,6 +54,6 @@ public class Catalog {
         // Load related records together into this transaction, rather than querying per show.
         return db.query(hql.append(" order by s.startsAt").toString(),Object[].class,args.toArray()).stream().map(row->show((Showtime)row[0])).toList();
     }
-    public Map<String,Object> order(Order o){Map<String,Object> v=db.view(o);v.put("when",db.date(o.showStartsAt));v.put("totalText",db.money(o.total));v.put("subtotalText",db.money(o.subtotal));v.put("discountText",db.money(o.discount));v.put("deadline",o.expiresAt.toString());v.put("expired",!clock.instant().isBefore(o.expiresAt));v.put("statusLabel",switch(o.status){case "PENDING_PAYMENT"->"Chưa thanh toán";case "PAID"->o.total==0?"Miễn phí hợp lệ":"Đã thanh toán";case "CANCELLED"->"Đã hủy";case "EXPIRED"->"Hết hạn";default->o.status;});return v;}
+    public Map<String,Object> order(Order o){Map<String,Object> v=db.view(o);v.put("when",db.date(o.showStartsAt));v.put("totalText",db.money(o.total));v.put("subtotalText",db.money(o.subtotal));v.put("discountText",db.money(o.discount));v.put("tierDiscountText",db.money(o.tierDiscount));v.put("voucherDiscount",o.discount-o.tierDiscount);v.put("voucherDiscountText",db.money(o.discount-o.tierDiscount));v.put("tierName",o.tierCode==null?"":db.first(Tier.class,"where e.code=?1",o.tierCode).map(t->t.name).orElse(o.tierCode));v.put("deadline",o.expiresAt.toString());v.put("expired",!clock.instant().isBefore(o.expiresAt));v.put("statusLabel",switch(o.status){case "PENDING_PAYMENT"->"Chưa thanh toán";case "PAID"->o.total==0?"Miễn phí hợp lệ":"Đã thanh toán";case "CANCELLED"->"Đã hủy";case "EXPIRED"->"Hết hạn";default->o.status;});return v;}
     public Map<String,Object> ticket(Ticket t){Map<String,Object> v=db.view(t);Order o=db.get(Order.class,t.orderId);v.put("order",order(o));v.put("seat",db.get(Seat.class,t.seatId).label);v.put("when",db.date(t.checkedInAt));return v;}
 }

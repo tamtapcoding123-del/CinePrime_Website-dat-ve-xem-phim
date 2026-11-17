@@ -41,7 +41,7 @@ block admin
     article.kpi-card.tone-info
       .kpi-label
         +kpiIcon("revenue")
-        span Doanh thu
+        span Doanh thu thuần
       strong(class=revenueValue == 0 ? "zero" : "")= revenue
       span.kpi-change= revenueChange
       svg.split-bar(viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label='Online ' + cashflow.onlineShare + '%, tại quầy ' + cashflow.cashShare + '%')
@@ -49,27 +49,33 @@ block admin
         rect.online(width=cashflow.onlineShare height="6")
         rect.counter(x=cashflow.onlineShare width=cashflow.cashShare height="6")
       small Online #{onlineRevenue} · Quầy #{counterRevenue}
-    article.kpi-card.flow-in.tone-ok
+      small Bán #{grossSales} · Hủy −#{refundTotal}
+    article.kpi-card.flow-in(class=cashflow.matched ? 'tone-ok' : 'tone-bad')
       .kpi-label
         +kpiIcon("in")
-        span Tiền vào
-      strong(class=cashflow.inValue == 0 ? "zero" : "")= cashflow.in
-      span.kpi-change MoMo #{cashflow.onlineIn}
-      small Tiền mặt tại quầy #{cashflow.cashIn} · #{cashflow.cashCount} lần thu
-    article.kpi-card.flow-out.tone-bad
-      .kpi-label
-        +kpiIcon("out")
-        span Tiền ra · hoàn tiền
-      strong(class=cashflow.refundValue == 0 ? "zero" : "")= cashflow.refund
-      span.kpi-change #{cashflow.refundCount} đơn quầy hủy, hoàn tiền mặt
-      small Chờ đối soát #{cashflow.held} · chưa ghi doanh thu
+        span Dòng tiền thuần
+      strong(class=cashflow.netValue == 0 ? "zero" : "")= cashflow.net
+      span.kpi-change(class=cashflow.matched ? 'check-ok' : 'check-bad')= cashflow.matched ? '✓ Khớp đơn ↔ giao dịch' : '✗ Lệch ' + cashflow.gap + ' — cần kiểm tra'
+      small Vào #{cashflow.in} · Ra −#{cashflow.refund}
+      small Chờ đối soát #{cashflow.held} · không tính
     article.kpi-card.tone-special
       .kpi-label
         +kpiIcon("ticket")
-        span Vé · Đơn đã thanh toán
+        span Vé · Đơn bán ròng
       strong(class=ticketCount == 0 ? "zero" : "")= ticketCount + " vé · " + orderCount + " đơn"
       span.kpi-change= ticketChange
       small Online #{onlineOrders} đơn · Quầy #{counterOrders} đơn
+      small Bán #{soldTickets} vé · Hủy #{voidTickets} vé
+    article.kpi-card.tone-warn
+      .kpi-label
+        +kpiIcon("out")
+        span Soát vé · theo ngày suất
+      strong(class=admission.issued == 0 ? "zero" : "")= admission.used + " / " + admission.issued + " vào"
+      span.kpi-change Tỉ lệ vào #{admission.rate}
+      svg.split-bar(viewBox="0 0 100 6" preserveAspectRatio="none" role="img" aria-label='Đã vào ' + admission.percent + '%')
+        rect.track(width="100" height="6")
+        rect.online(width=admission.percent height="6")
+      small Chưa vào #{admission.waiting} · Không đến #{admission.noShow} · Hủy #{admission.voided}
   .dash-board
     .dash-lane.dash-main
       section#revenue-overview.panel.chart-panel
@@ -81,7 +87,7 @@ block admin
             span.badge= period == 'day' ? 'Theo giờ' : period == 'year' ? 'Theo tháng' : 'Theo ngày'
         .flow-layout
           div
-            if revenueValue == 0
+            if !hasActivity
               .empty.chart-empty Không phát sinh doanh thu trong phần kỳ đã chốt · 0 đ.
             else
               .chart-scroll
@@ -136,8 +142,13 @@ block admin
             div.net
               dt
                 span Dòng tiền thuần
-                small Bằng doanh thu kỳ · tiền mặt thuần #{cashflow.cashNet}
+                small Tiền mặt thuần #{cashflow.cashNet}
               dd= cashflow.net
+            div(class=cashflow.matched ? 'check ok' : 'check bad')
+              dt
+                span= cashflow.matched ? '✓ Khớp doanh thu thuần' : '✗ Lệch so với doanh thu'
+                small Theo đơn #{revenue} · theo giao dịch #{cashflow.ledger}
+              dd= cashflow.matched ? '0 đ' : cashflow.gap
             div.held
               dt
                 span Chờ đối soát
@@ -147,7 +158,7 @@ block admin
               summary
                 span.disclosure-icon(aria-hidden="true") i
                 span Cách tính
-              p Doanh thu = đơn đã thanh toán (vé + bắp nước − giảm giá) theo lúc thanh toán. Tiền mặt tính theo lúc thu và lúc hoàn. Đơn miễn phí tính vé và đơn, 0 đ. So sánh với #{comparisonRange}. Mã báo cáo #{reportId}.
+              p Doanh thu thuần = đơn bán (vé + bắp nước − giảm giá) theo lúc thanh toán − đơn quầy hủy theo lúc hủy. Kỳ đã chốt không bị đổi khi đơn hủy ở kỳ sau. Tiền mặt tính theo lúc thu và lúc hoàn; dòng kiểm tra tính lại từ bảng giao dịch và phải bằng doanh thu đến từng đồng. Đơn miễn phí tính vé và đơn, 0 đ. So sánh với #{comparisonRange}. Mã báo cáo #{reportId}.
       .dash-pair
         section#new-orders.panel
           .panel-heading
@@ -162,7 +173,7 @@ block admin
       section.panel(data-report-widget="occupancy" data-report-id=reportId)
         .panel-heading
           h2 Lấp đầy theo ngày suất chiếu
-        p.muted Vé chưa vào + đã vào / ghế hoạt động. Theo ngày suất, không theo ngày thanh toán.
+        p.muted Vé chưa vào + đã vào / ghế hoạt động. Theo ngày suất, không theo ngày thanh toán. Cột Đã vào khớp số liệu màn Soát vé của nhân viên.
         .table-wrap
           table.management-table
             thead
@@ -170,6 +181,7 @@ block admin
                 th Phim / Rạp / Phòng
                 th Suất
                 th Vé / Ghế
+                th Đã vào / Vé
             tbody(data-widget-rows)
               each s in occupancyPage.rows
                 tr
@@ -178,6 +190,7 @@ block admin
                     small #{s.cinemaName} · #{s.roomName}
                   td(data-label="Suất")= s.when
                   td(data-label="Vé / Ghế")= s.occupancy
+                  td(data-label="Đã vào / Vé")= s.admitted
         if occupancyPage.rows.size() == 0
           .empty Không có suất phù hợp.
         +widgetPager(occupancyPage)
@@ -191,6 +204,43 @@ block admin
           strong(data-op-amount="shifts")= operations.drawerAmount
           span.live-indicator Trực tiếp · 30 giây
         +operationWidget('shifts', operations.pages.shifts, '/admin/shifts')
+      section#shift-reconciliation.panel
+        .panel-heading
+          h2 Đối soát ca quầy trong kỳ
+          span(class=shifts.balanced ? 'check-badge ok' : 'check-badge bad')= shifts.balanced ? 'Khớp két' : shifts.mismatched + ' ca lệch'
+        if shifts.count == 0
+          .empty Không có ca mở trong kỳ.
+        else
+          dl.flow-table.shift-table(aria-label="Đối soát ca quầy")
+            div
+              dt
+                span #{shifts.count} ca · #{shifts.closed} đã đóng · #{shifts.open} đang mở
+                small #{shifts.orders} đơn · #{shifts.tickets} vé · #{shifts.cancelled} đơn hủy
+            div.in
+              dt
+                span Thu trong ca (đã trừ hoàn)
+                small Tiền đầu ca #{shifts.opening} · đã hoàn #{shifts.refunded}
+              dd + #{shifts.cashIn}
+            div.net
+              dt
+                span Tiền dự kiến trong két
+                small Cùng công thức phiếu tổng kết ca
+              dd= shifts.expected
+            div
+              dt
+                span Ca đã đóng: đếm / dự kiến
+                small Thừa #{shifts.surplus} · Thiếu #{shifts.shortage}
+              dd #{shifts.counted} / #{shifts.closedExpected}
+            div(class=shifts.differenceValue == 0 ? 'check ok' : 'check bad')
+              dt
+                span Chênh lệch ròng
+                small= shifts.broken > 0 ? shifts.broken + ' ca có số chốt khác giao dịch' : 'Số chốt khớp giao dịch'
+              dd= shifts.difference
+          each a in shifts.attention
+            .ranking-row.attention
+              strong= a.label
+              span= a.detail
+        a.more(href='/admin/shifts?cinemaId=' + cinemaId + '&date=' + shifts.day) Xem chi tiết từng ca →
       section#admin-operations.panel(data-cinema=cinemaId)
         .panel-heading
           h2 Việc cần theo dõi

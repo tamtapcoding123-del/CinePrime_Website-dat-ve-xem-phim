@@ -341,6 +341,12 @@
   --warn-fg: #9A4206;
   --warn-line: #F3D19E;
   --warn-bar: #D97706;
+  /* Membership tiers (17/11/2026): one muted ink per tier, used only on tier chips and the ladder. */
+  --tier-silver: #5F6B7D;
+  --tier-gold: #8A6410;
+  --tier-platinum: #3F6283;
+  --tier-diamond: #1F62A8;
+  --tier-vip: #A8281B;
 
   --bad: #B91C1C;
   --bad-bg: #FEECEC;
@@ -1129,8 +1135,51 @@ input:checked + :is(.cp-bevel, .cp-bevel-sm, .cp-bevel-lg, .cp-bevel-card, .cp-b
 
 /* ===== Film colour (UI-Template.md 3.5 "Lịch chiếu — màu theo phim") — start ===== */
 /* One colour per film: token index = movie id % 8, the same on every screen. The fill says which film; state is read from the border. */
-:root{--film-0:#3B5B8C;--film-1:#2F8F5B;--film-2:#7650C8;--film-3:#C2622D;--film-4:#0F7F86;--film-5:#B0407A;--film-6:#6B7F1F;--film-7:#9A6B12}
+:root{--film-0:#2563EB;--film-1:#EA580C;--film-2:#059669;--film-3:#DB2777;--film-4:#CA8A04;--film-5:#7C3AED;--film-6:#0891B2;--film-7:#65A30D}
 .film-0{--tone:var(--film-0)}.film-1{--tone:var(--film-1)}.film-2{--tone:var(--film-2)}.film-3{--tone:var(--film-3)}.film-4{--tone:var(--film-4)}.film-5{--tone:var(--film-5)}.film-6{--tone:var(--film-6)}.film-7{--tone:var(--film-7)}
 /* Derived on the element that carries --tone (a custom property using var() is resolved where it is declared). */
-:is([class*="film-"],.week-chip,.sched-event,.sched-movie,.strip-movie,.sched-film,.series-slot,.series-block){--tone-bg:color-mix(in srgb,var(--tone,var(--ink-2)) 16%,var(--surface));--tone-line:color-mix(in srgb,var(--tone,var(--ink-2)) 42%,var(--surface));--tone-bar:color-mix(in srgb,var(--tone,var(--ink-2)) 80%,var(--ink))}
+:is([class*="film-"],.week-chip,.sched-event,.sched-movie,.strip-movie,.sched-film,.series-slot,.series-block){--tone-bg:color-mix(in srgb,var(--tone,var(--ink-2)) 22%,var(--surface));--tone-line:color-mix(in srgb,var(--tone,var(--ink-2)) 55%,var(--surface));--tone-bar:color-mix(in srgb,var(--tone,var(--ink-2)) 88%,var(--ink))}
 /* ===== Film colour — end ===== */
+
+/* ==================== 5. PEARL × VÉ (UI-Template 3.6, chốt 17/11/2026) ====================
+ * Ticket motifs only where something IS a ticket or a figure: codes, e-tickets, check-in result, KPI stubs.
+ * Tables, forms, sidebars and dialogs stay flat.
+ */
+.ticket-code {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px dashed var(--line-strong);
+  background-color: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Tear line with two half-round notches. Put .cp-tear on the block above the cut; the notches are its
+ * ::before/::after, so that block must not use its own pseudo-elements. The ticket around it must
+ * clip its overflow (a clip-path or overflow:hidden trims the notches to half circles).
+ * --tear-inset: the ticket's horizontal padding + border. --tear-hole: the colour behind the ticket. */
+.cp-tear {
+  position: relative;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed var(--line-strong);
+}
+.cp-tear::before,
+.cp-tear::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background-color: var(--tear-hole, var(--bg));
+  border: 1px solid var(--line);
+  pointer-events: none;
+}
+.cp-tear::before { left: calc(-1 * var(--tear-inset, 17px) - 8px); }
+.cp-tear::after { right: calc(-1 * var(--tear-inset, 17px) - 8px); }

@@ -6,7 +6,7 @@ block content
     if content.dateText
       p.muted Đăng ngày #{content.dateText}
     if content.image
-      img.article-image(src=content.image alt="")
+      img.article-image(class=content.kind == 'OFFER' || content.kind == 'ARTICLE' ? 'is-poster' : '' src=content.image alt="")
     .prose= content.body
     if content.link
       p

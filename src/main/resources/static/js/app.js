@@ -32,10 +32,18 @@ document.querySelectorAll('[data-notice-close]').forEach(button=>{const strip=bu
 const carousel=$('#hero-carousel');
 if(carousel){
   const track=$('.hero-track',carousel),slides=[...track.children],count=slides.length,dots=[...carousel.querySelectorAll('.hero-dot')],toggle=$('[data-hero-toggle]',carousel),counter=$('[data-hero-count]',carousel);
-  const delay=Math.min(10000,Math.max(5000,Number(carousel.dataset.interval)||6000));
+  const delay=Math.min(10000,Math.max(5000,Number(carousel.dataset.interval)||5000)),deck=[...carousel.querySelectorAll('.deck-card')];
   let index=0,timer=null,hovered=false,focused=false,stopped=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Deck rank = how many movie slides come before this one counting forward from the current slide (0 = in front). The card leaving the
+  // front fades out to the left first, then drops in at the back of the stack, so cards never slide across each other.
+  function layDeck(previous){
+    const ranked=deck.map(card=>({card,d:((Number(card.dataset.slide)-index)%count+count)%count})).sort((a,b)=>a.d-b.d);
+    carousel.classList.toggle('is-promo-front',slides[index].classList.contains('is-promo'));
+    ranked.forEach(({card},rank)=>{const was=Number(card.style.getPropertyValue('--o'));if(previous!==undefined&&was===0&&rank>1){card.style.setProperty('--o','-1');setTimeout(()=>{card.classList.add('is-snap');card.style.setProperty('--o',String(rank));card.offsetWidth;card.classList.remove('is-snap');},650);}else card.style.setProperty('--o',String(rank));});
+  }
+  deck.forEach(card=>card.addEventListener('click',()=>{show(Number(card.dataset.slide));schedule();}));
   function show(next){
-    if(count<2)return;index=(next%count+count)%count;
+    if(count<2)return;const previous=index;index=(next%count+count)%count;layDeck(previous);
     slides.forEach((s,i)=>{const on=i===index;s.classList.toggle('is-active',on);s.inert=!on;});
     dots.forEach((d,i)=>d.setAttribute('aria-current',String(i===index)));
     if(counter)counter.textContent=(index+1)+' / '+count;
@@ -56,7 +64,7 @@ if(carousel){
   carousel.addEventListener('touchstart',e=>{startX=e.touches[0].clientX;startY=e.touches[0].clientY;},{passive:true});
   carousel.addEventListener('touchend',e=>{if(startX===null)return;const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;startX=null;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)){show(index+(dx<0?1:-1));schedule();}},{passive:true});
   document.addEventListener('visibilitychange',schedule);
-  syncToggle();schedule();
+  layDeck();syncToggle();schedule();
 }
 document.querySelectorAll('[data-movie-tab]').forEach(button=>button.addEventListener('click',()=>{
   document.querySelectorAll('[data-movie-tab]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-selected',String(b===button));});

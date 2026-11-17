@@ -1,9 +1,9 @@
 extends operations
 include mixins
 block head
-  link(rel="stylesheet" href="/css/staff.css?v=20261115p")
+  link(rel="stylesheet" href="/css/staff.css?v=20261117p")
   script(src="/js/staff-nav.js?v=20261113c")
-  script(src="/js/counter.js?v=20261113c" defer)
+  script(src="/js/counter.js?v=20261116m" defer)
 block brandControls
   +staffNavToggle
 block headerNav
@@ -41,6 +41,16 @@ block content
           b#shift-expected= shift.expected
         .shift-links
           button#orders-open.link(type="button" aria-controls="orders-drawer" aria-haspopup="dialog") Đơn trong ca
+          details#gift-desk.close-shift
+            summary.link Quà thành viên
+            .pop
+              h2 Trao quà thành viên
+              p.hint Tra tài khoản khách bằng SĐT hoặc email; mỗi quà trao một lần và trừ tồn kho.
+              form#gift-search.inline
+                label.sr-only(for="gift-q") Số điện thoại hoặc email tài khoản
+                input#gift-q(autocomplete="off" placeholder="SĐT hoặc email")
+                button.btn(type="submit") Tìm
+              #gift-desk-results(aria-live="polite")
           details#close-shift.close-shift(open=closeCounted ? true : false)
             summary.link Đóng ca
             form.pop(action="/staff/counter/shift/close" method="post")
@@ -144,6 +154,7 @@ block content
                   input#customer-q(autocomplete="off" placeholder="SĐT hoặc email")
                   button.btn(type="submit") Tìm
                 #customer-results
+                #customer-gifts(aria-live="polite")
               h3 Thu tiền mặt
               label.sr-only(for="cash-received") Khách đưa (đồng)
               .inline

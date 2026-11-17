@@ -23,9 +23,9 @@ public class AdminService {
         add("seats","Ghế / Bảo trì",Seat.class,"roomId,label,rowLabel,position,type,coupleGroup,active");
         add("showtimes","Lịch chiếu",Showtime.class,"movieId,roomId,startsAt,language,format,status,surcharge");
         add("prices","Bảng giá",Price.class,"cinemaId,seatType,dayType,fromMinute,toMinute,amount");
-        add("products","Bắp nước / Combo",Product.class,"name,kind,image,description,price,active");
-        add("vouchers","Voucher",Voucher.class,"code,description,kind,value,minimum,maximum,quota,perUser,startsAt,endsAt,active");
-        add("contents","Bài viết / Ưu đãi / Chính sách",Content.class,"kind,title,slug,image,link,body,active,publishedAt");
+        add("products","Bắp nước & lưu niệm",Product.class,"name,kind,image,description,price,stock,upgradeToId,active");
+        add("vouchers","Voucher",Voucher.class,"code,description,audience,scope,kind,value,minimum,maximum,quota,perUser,minTier,pointsCost,validDays,startsAt,endsAt,active");
+        add("contents","Bài viết / Ưu đãi / Chính sách",Content.class,"kind,title,slug,image,summary,link,body,active,publishedAt");
         add("users","Người dùng",User.class,"email,name,phone,role,cinemaId,enabled");
         add("reviews","Duyệt bình luận",Review.class,"visible");
     }
@@ -62,6 +62,7 @@ public class AdminService {
             Object parsed;
             if(f.getType()==boolean.class)parsed=v.equals("true");
             else if(f.getType()==int.class)parsed=Integer.parseInt(v);
+            else if(f.getType()==Integer.class)parsed=v.isEmpty()?null:Integer.valueOf(v);
             else if(f.getType()==long.class)parsed=Long.parseLong(v);
             else if(f.getType()==Long.class)parsed=v.isEmpty()?null:Long.valueOf(v);
             else if(f.getType()==Instant.class)parsed=v.isEmpty()?null:LocalDateTime.parse(v).atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant();
@@ -124,9 +125,16 @@ public class AdminService {
         if(row instanceof Person p)require(!p.name.isBlank(),"Nhập họ tên.");
         if(row instanceof Showtime s){db.get(Movie.class,s.movieId);db.get(Room.class,s.roomId);require(s.startsAt!=null&&s.surcharge>=0,"Giờ chiếu/phụ thu không hợp lệ.");choice(s.status,"DRAFT","OPEN","CANCELLED");}
         if(row instanceof Price p){db.lock(Cinema.class,p.cinemaId);choice(p.seatType,"STANDARD","VIP","COUPLE");choice(p.dayType,"WEEKDAY","WEEKEND");require(p.amount>0&&p.fromMinute>=0&&p.toMinute<=1440&&p.fromMinute<p.toMinute,"Giá hoặc khung phút không hợp lệ.");for(Price old:db.list(Price.class,"where e.cinemaId=?1 and e.seatType=?2 and e.dayType=?3",p.cinemaId,p.seatType,p.dayType))if(!Objects.equals(old.id,p.id)&&p.fromMinute<old.toMinute&&p.toMinute>old.fromMinute)throw new IllegalArgumentException("Trùng khung giá.");}
-        if(row instanceof Product p){require(!p.name.isBlank()&&p.price>=0,"Tên/giá sản phẩm không hợp lệ.");choice(p.kind,"FOOD","DRINK","COMBO");p.image=media.image(p.image);}
-        if(row instanceof Voucher v){v.code=v.code.toUpperCase(Locale.ROOT);choice(v.kind,"FIXED","PERCENT");require(v.code.matches("[A-Z0-9_-]{2,40}")&&v.value>0&&v.minimum>=0&&v.maximum>=0&&v.quota>0&&v.perUser>0&&v.startsAt!=null&&v.endsAt!=null&&v.startsAt.isBefore(v.endsAt),"Thông tin voucher không hợp lệ.");require(!v.kind.equals("PERCENT")||v.value<=100,"Phần trăm không vượt 100.");}
-        if(row instanceof Content c){choice(c.kind,"ARTICLE","OFFER","POLICY","ABOUT","CONTACT","NOTICE");require(!c.title.isBlank()&&c.slug.matches("[a-z0-9-]+"),"Tiêu đề/slug không hợp lệ.");c.image=media.image(c.image);require(c.link.isBlank()||c.link.startsWith("/")&&!c.link.startsWith("//"),"Liên kết nội dung phải nằm trong CinePrime.");}
+        if(row instanceof Product p){require(!p.name.isBlank()&&p.price>=0,"Tên/giá sản phẩm không hợp lệ.");choice(p.kind,"FOOD","DRINK","COMBO","MERCH");p.image=media.image(p.image);
+            // Stock only for merchandise (null = unlimited food/drink); an upgrade points from a combo to a dearer combo.
+            if(!"MERCH".equals(p.kind))p.stock=null;else{if(p.stock==null)p.stock=0;require(p.stock>=0&&p.stock<=1_000_000,"Tồn kho từ 0 đến 1.000.000.");}
+            if(p.upgradeToId!=null){Product big=db.get(Product.class,p.upgradeToId);require("COMBO".equals(p.kind)&&"COMBO".equals(big.kind)&&!big.id.equals(p.id)&&big.price>p.price,"Nâng cấp phải từ combo này sang một combo khác giá cao hơn.");}}
+        if(row instanceof Voucher v){v.code=v.code.toUpperCase(Locale.ROOT);choice(v.kind,"FIXED","PERCENT");require(v.code.matches("[A-Z0-9_-]{2,40}")&&v.value>0&&v.minimum>=0&&v.maximum>=0&&v.quota>0&&v.perUser>0&&v.startsAt!=null&&v.endsAt!=null&&v.startsAt.isBefore(v.endsAt),"Thông tin voucher không hợp lệ.");require(!v.kind.equals("PERCENT")||v.value<=100,"Phần trăm không vượt 100.");
+            choice(v.audience,"PUBLIC","PERSONAL");choice(v.scope,"ORDER","TICKET","COMBO","FREE_TICKET","COMBO_UPGRADE");if(v.minTier!=null&&v.minTier.isBlank())v.minTier=null;if(v.minTier!=null)choice(v.minTier,vn.cineprime.member.TierService.CODES.toArray(String[]::new));
+            require(v.pointsCost>=0&&v.pointsCost<=1_000_000&&(v.pointsCost==0||v.audience.equals("PERSONAL")),"Điểm đổi chỉ dùng cho voucher phát vào ví (PERSONAL), từ 0 đến 1.000.000.");require(v.validDays>=1&&v.validDays<=366,"Hạn dùng sau khi phát từ 1 đến 366 ngày.");
+            require(!v.code.matches("CP[A-Z2-9]{8}"),"Mã dạng CPxxxxxxxx dành cho voucher trong ví khách.");
+            if(v.id!=null&&db.count(UserVoucher.class,"where e.voucherId=?1",v.id)>0)require(v.audience.equals("PERSONAL"),"Voucher đã phát vào ví khách, không chuyển thành mã công khai.");}
+        if(row instanceof Content c){choice(c.kind,"ARTICLE","OFFER","POLICY","ABOUT","CONTACT","NOTICE");require(!c.title.isBlank()&&c.slug.matches("[a-z0-9-]+"),"Tiêu đề/slug không hợp lệ.");if(c.publishedAt==null)c.publishedAt=clock.instant();c.image=media.image(c.image);require(c.image.isBlank()||!Set.of("OFFER","ARTICLE").contains(c.kind)||media.portraitOrUnknown(c.image),"Ảnh của Ưu đãi / Bài viết cần là ảnh dọc kiểu poster (tỉ lệ 2:3, khuyến nghị 600×900px). Ảnh ngang hãy dùng cho Banner trang chủ.");require(c.link.isBlank()||c.link.startsWith("/")&&!c.link.startsWith("//"),"Liên kết nội dung phải nằm trong CinePrime.");}
         if(row instanceof User u){choice(u.role,"ADMIN","STAFF","CUSTOMER");u.email=u.email.toLowerCase(Locale.ROOT);require(u.email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+")&&!u.name.isBlank(),"Thông tin người dùng không hợp lệ.");if(u.role.equals("STAFF"))db.get(Cinema.class,u.cinemaId);else u.cinemaId=null;
             // Lock all admins in ID order, preventing two concurrent demotions of the last administrators.
             List<User> admins=db.list(User.class,"where e.role='ADMIN' and e.enabled=true order by e.id");for(User a:admins)db.lock(User.class,a.id);

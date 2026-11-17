@@ -14,8 +14,8 @@ import static vn.cineprime.domain.Domain.*;
 /** Current operations are independent of the financial report's immutable snapshot. */
 @Service @Transactional(readOnly=true)
 public class OperationsService {
-    private final Store db;private final Clock clock;private final byte[] cursorKey=new byte[32];
-    public OperationsService(Store db,Clock clock){this.db=db;this.clock=clock;new SecureRandom().nextBytes(cursorKey);}
+    private final Store db;private final Clock clock;private final vn.cineprime.staff.CounterService counter;private final byte[] cursorKey=new byte[32];
+    public OperationsService(Store db,Clock clock,vn.cineprime.staff.CounterService counter){this.db=db;this.clock=clock;this.counter=counter;new SecureRandom().nextBytes(cursorKey);}
     private record Position(Instant anchor,long upper,Instant time,long id,int page){}
     public Map<String,Object> read(Long cinemaId){
         var reconciliation=page("reconciliation",cinemaId,"");var failures=page("failures",cinemaId,"");var latest=page("latest",cinemaId,"");var upcoming=page("upcoming",cinemaId,"");var shifts=page("shifts",cinemaId,"");
@@ -65,8 +65,8 @@ public class OperationsService {
         for(Object[] row:records){
             if(payment){Payment p=(Payment)row[0];rows.add(Map.of("id",p.orderId,"recordId",p.id,"label",row[1],"detail",section.equals("reconciliation")?AdminPresentation.text(p.status)+" · "+db.cash(p.amount):"Lần thanh toán #"+p.id+" · "+db.date(p.updatedAt==null?p.createdAt:p.updatedAt)));}
             else if(upcoming){Showtime s=(Showtime)row[0];rows.add(Map.of("id",s.id,"recordId",s.id,"label",row[1],"detail",row[3]+" · "+row[2]+" · "+AdminReads.interval(s.startsAt,s.endsAt)+" · "+(now.isBefore(s.startsAt.minusSeconds(3600))?"Sắp tới":"Trong khung check-in")));}
-            else if(shifts){Shift sh=(Shift)row[0];long cash=db.query("select coalesce(sum(p.amount),0) from "+db.entityName(Payment.class)+" p where p.shiftId=?1 and p.provider='CASH' and p.status='SUCCEEDED'",Long.class,sh.id).getFirst();long sold=db.count(Order.class,"where e.shiftId=?1 and e.status='PAID'",sh.id);
-                rows.add(Map.of("id",sh.id,"recordId",sh.id,"href","/admin/shifts?state=OPEN","label",row[1]+" · "+row[2],"detail","Mở "+db.date(sh.openedAt)+" · "+sold+" đơn · Trong két "+db.cash(Math.addExact(sh.openingCash,cash))));}
+            else if(shifts){Shift sh=(Shift)row[0];var f=counter.figures(sh);
+                rows.add(Map.of("id",sh.id,"recordId",sh.id,"href","/admin/shifts?state=OPEN","label","#"+sh.id+" · "+row[1]+" · "+row[2],"detail","Mở "+db.date(sh.openedAt)+" · "+f.orders()+" đơn · "+f.tickets()+" vé · Trong két "+db.cash(f.expected())));}
             else{Order o=(Order)row[0];boolean counter="COUNTER".equals(o.channel);rows.add(Map.of("id",o.id,"recordId",o.id,"label",o.code+" · "+o.movieTitle,"detail",(counter?"Quầy"+(Objects.toString(row[2],"").isBlank()?"":" ("+row[2]+")"):"Online")+" · "+row[1]+" · "+(o.status.equals("PENDING_PAYMENT")?"Chưa thu tiền":o.status.equals("PAID")&&o.total==0?"Miễn phí hợp lệ":AdminPresentation.text(o.status))+" · "+(o.status.equals("PAID")?"":"Giá trị đơn: ")+db.cash(o.total)));}
         }
         String next="";

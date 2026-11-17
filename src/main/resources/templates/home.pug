@@ -54,8 +54,6 @@ block content
                     p.hero-credit Đạo diễn: #{s.directors}
                 a.hero-media(href=s.href tabindex="-1" aria-hidden="true")
                   img.hero-banner(src=s.image alt="" loading=i > 0 ? 'lazy' : false fetchpriority=i == 0 ? 'high' : false)
-                a.hero-poster(href=s.href tabindex="-1" aria-hidden="true")
-                  img(src=s.poster alt="" loading=i > 0 ? 'lazy' : false)
             else
               if s.href
                 a.hero-promo(href=s.href)
@@ -63,6 +61,14 @@ block content
               else
                 .hero-promo
                   img.hero-banner(src=s.image alt=s.title loading=i > 0 ? 'lazy' : false fetchpriority=i == 0 ? 'high' : false)
+      //- Poster deck: the current film in front, the next films stacked behind it, smaller and darker; moves forward on every change.
+      .hero-deck-wrap(aria-hidden="true")
+        .container
+          .hero-deck
+            each s, i in slides
+              if s.kind == 'MOVIE' && s.poster
+                button.deck-card(type="button" tabindex="-1" data-slide=i)
+                  img(src=s.poster alt="" loading=i > 2 ? 'lazy' : false)
       if slides.size() > 1
         button.hero-side.prev(type="button" data-hero-prev aria-label="Banner trước")
           svg.icon(viewBox="0 0 24 24" aria-hidden="true" focusable="false")
@@ -140,27 +146,31 @@ block content
       +dateStrip()
       .show-list
         +showList(shows)
-  section.container.section
-    .section-heading
-      h2 Ưu đãi cho bạn
-      a.more(href="/offers") Tất cả ưu đãi →
-    .content-grid
-      each c in offers
-        +contentCard(c, 'Ưu đãi')
-    if offers.size() == 0
-      .empty Chưa có ưu đãi mới.
+  //- Ưu đãi + Góc điện ảnh side by side (17/11/2026): two halves of one row, three poster cards each.
+  section.container.section.home-picks
+    .pick-col(aria-labelledby="offers-heading")
+      .section-heading
+        h2#offers-heading Ưu đãi cho bạn
+        a.more(href="/offers") Tất cả ưu đãi →
+      if offers.size() > 0
+        .content-grid.is-home
+          each c in offers
+            +contentCard(c, 'Ưu đãi')
+      else
+        .empty Chưa có ưu đãi mới.
+    .pick-col(aria-labelledby="articles-heading")
+      .section-heading
+        h2#articles-heading Góc điện ảnh
+        a.more(href="/articles") Tất cả bài viết →
+      if articles.size() > 0
+        .content-grid.is-home
+          each c in articles
+            +contentCard(c, 'Bài viết')
+      else
+        .empty Chưa có bài viết mới.
   section.membership
     .container.membership-inner
       div
         h2 Thành viên CinePrime
         p Tích 1 điểm cho mỗi 1.000đ, lưu phim yêu thích và quản lý vé ở một nơi.
       a.button(href="/account") Xem tài khoản
-  section.container.section
-    .section-heading
-      h2 Góc điện ảnh
-      a.more(href="/articles") Tất cả bài viết →
-    .content-grid
-      each c in articles
-        +contentCard(c, 'Bài viết')
-    if articles.size() == 0
-      .empty Chưa có bài viết mới.

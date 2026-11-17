@@ -8,6 +8,12 @@
   /* [data-fit="N"]: the box ends N px above the window bottom and scrolls inside, so the page itself does not scroll. */
   const fit = () => document.querySelectorAll('[data-fit]').forEach(el => { el.style.maxHeight = `${Math.max(220, innerHeight - el.getBoundingClientRect().top - window.scrollY - Number(el.dataset.fit || 0))}px`; });
   fit(); addEventListener('resize', fit);
+  /* Lịch trong ngày: the time pointer under the rooms follows the clock. It starts from the server's HH:MM (Asia/Ho_Chi_Minh) and adds the time spent on the page. */
+  document.querySelectorAll('.tl-cursor[data-now]').forEach(cursor => {
+    const track = cursor.parentElement, from = Number(track.dataset.from), to = Number(track.dataset.to), [h, m] = cursor.dataset.now.split(':').map(Number), start = h * 60 + m, loaded = Date.now(), label = cursor.querySelector('.tl-cursor-time');
+    const tick = () => { const minute = start + Math.floor((Date.now() - loaded) / 60000); if (minute >= to || minute < from) { cursor.closest('.tl-nowrow').hidden = true; return; } cursor.style.left = `${(minute - from) / (to - from) * 100}%`; label.textContent = `${String(Math.floor(minute / 60) % 24).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`; };
+    tick(); setInterval(tick, 15000);
+  });
   const typing = el => !!el?.closest?.('input,select,textarea,[contenteditable="true"]');
   /* N, T, ←, → click the element marked data-hotkey, unless the admin is typing or a dialog is open. */
   document.addEventListener('keydown', e => {

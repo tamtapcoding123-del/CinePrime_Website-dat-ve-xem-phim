@@ -4,12 +4,20 @@ block content
   .container.section
     .account-head
       h1 Xin chào, #{viewer.name}
-      span.points #{balance} điểm
+      span.points
+        a.tier-chip(href="#membership" class='tier-' + standing.tier.code) Hạng #{standing.tier.name}
+        |  #{balance} điểm
+    if memberNotice
+      p.notice(role="status")= memberNotice
+    if memberError
+      p.form-error(role="alert")= memberError
     nav.account-nav(aria-label="Mục tài khoản")
       a(href="#orders") Vé của tôi
       a(href="#profile") Hồ sơ
       a(href="#favorites") Yêu thích
       a(href="#notifications") Thông báo
+      a(href="#membership") Hạng thành viên
+      a(href="#wallet") Ví voucher
       a(href="#points") Điểm thưởng
     section#orders.panel
       h2 Vé & lịch sử đặt vé
@@ -17,7 +25,7 @@ block content
         a.order-row(href='/orders/' + o.id)
           div
             strong= o.movieTitle
-            p #{o.code} · #{o.cinemaName}
+            p #[span.ticket-code= o.code] · #{o.cinemaName}
             small= o.when
           div
             span.badge= o.status
@@ -83,12 +91,89 @@ block content
               button.text-button(type="submit") Đánh dấu đã đọc
       if notices.size() == 0
         .empty Chưa có thông báo.
+    section#membership.panel.member-tier
+      .membership-head
+        div
+          p.eyebrow Hạng thành viên
+          h2
+            span.tier-chip.big(class='tier-' + standing.tier.code)= standing.tier.name
+          if standing.keepUntil != ''
+            p.muted Giữ hạng đến #{standing.keepUntil}
+        .membership-spend
+          p Chi tiêu #{standing.year}:
+            strong  #{standing.spendYear}
+          p.muted Năm #{standing.lastYear}: #{standing.spendLast}
+      if standing.next
+        progress.tier-progress(value=standing.progress max="100" aria-label='Tiến độ lên hạng ' + standing.next.name)
+        p Chi tiêu thêm
+          strong  #{standing.remaining}
+          |  để lên hạng #{standing.next.name} (giảm #{standing.next.ticketPct}% vé, #{standing.next.comboPct}% combo).
+      else
+        p Bạn đang ở hạng cao nhất của CinePrime.
+      if standing.tier.ticketPct + standing.tier.comboPct > 0
+        p.notice Ưu đãi hạng được tự động trừ khi đặt vé: giảm #{standing.tier.ticketPct}% giá vé và #{standing.tier.comboPct}% combo bắp nước. Mã ưu đãi áp dụng trên phần còn lại.
+      if standing.tier.automatic.size() > 0
+        ul.tier-auto
+          each a in standing.tier.automatic
+            li= a
+      .birth-row
+        if birthDate != ''
+          p Ngày sinh: #{birthDate.substring(8, 10)}/#{birthDate.substring(5, 7)}/#{birthDate.substring(0, 4)} · ưu đãi sinh nhật phát vào Ví voucher đầu tháng sinh nhật.
+        else
+          form.birth-form(action="/account/birthdate" method="post")
+            +csrf()
+            label Ngày sinh (chỉ lưu một lần; ưu đãi bắt đầu từ tháng sinh nhật kế tiếp)
+              input(type="date" name="birthDate" max=today required)
+            button.button.secondary(type="submit") Lưu ngày sinh
+      details.tier-table
+        summary Xem quyền lợi các hạng
+        .tier-grid
+          each t in tiers
+            article.tier-card(class=t.code == standing.tier.code ? 'current' : '')
+              span.tier-chip(class='tier-' + t.code)= t.name
+              p.muted #{t.rank == 1 ? 'Khi đăng ký tài khoản' : 'Chi tiêu từ ' + t.minSpendText + '/năm'}
+              ul
+                each b in t.benefits
+                  li= b
+      p.muted Chi tiêu xét hạng là số tiền thực trả của đơn đã thanh toán trong năm (đơn hủy không tính); hạng lấy năm nay hoặc năm trước, năm nào cao hơn.
+    section#wallet.panel
+      h2 Ví voucher
+      p.muted Nhập mã ở bước Bắp nước & mã ưu đãi khi đặt vé. Mỗi đơn dùng một mã; mã được giữ 5 phút cùng ghế và trả lại ví nếu đơn không thanh toán.
+      .wallet-list
+        each w in wallet
+          article.wallet-item(class=w.usable ? 'usable' : 'spent')
+            div
+              strong.mono= w.code
+              p= w.description
+              small #{w.source} · hạn #{w.expires}
+            span.badge= w.state
+        if wallet.size() == 0
+          .empty Ví chưa có voucher. Đổi điểm bên dưới hoặc chờ ưu đãi theo hạng.
+      h3 Đổi điểm lấy voucher
+      p.muted Bạn có #{balance} điểm (1 điểm cho mỗi 1.000đ thực trả).
+      .redeem-grid
+        each r in redeemables
+          form.redeem-card(action='/account/redeem/' + r.id method="post")
+            +csrf()
+            input(type="hidden" name="requestKey" value=requestKey + '-' + r.id)
+            strong #{r.cost} điểm
+            p= r.description
+            small Hạn dùng #{r.validDays} ngày#{r.tierNote != '' ? ' · ' + r.tierNote : ''}
+            button.button.secondary(type="submit" disabled=!r.allowed || !r.affordable)= !r.allowed ? 'Chưa đủ hạng' : r.affordable ? 'Đổi ngay' : 'Chưa đủ điểm'
+        if redeemables.size() == 0
+          .empty Chưa có voucher đổi điểm.
+      if gifts.size() > 0
+        h3 Quà tặng
+        each g in gifts
+          .line
+            span #{g.product}#{g.note != '' ? ' · ' + g.note : ''}
+            strong #{g.state}#{g.waiting ? ' · trước ' + g.expires : ''}
     section#points.panel
-      h2 Lịch sử tích điểm
-      p.muted 1 điểm cho mỗi 1.000đ thực trả, cộng sau giao dịch thành công. Chưa áp dụng đổi điểm.
+      h2 Lịch sử điểm
+      p.muted 1 điểm cho mỗi 1.000đ thực trả, cộng sau giao dịch thành công; đổi điểm lấy voucher ở mục Ví voucher.
       each p in points
         .line
-          span Đơn ##{p.orderId} · #{p.when}
-          strong +#{p.points} điểm
+          span #{p.label} · #{p.when}
+          strong #{p.points > 0 ? '+' : ''}#{p.points} điểm
       if points.size() == 0
-        .empty Chưa có giao dịch tích điểm.
+        .empty Chưa có giao dịch điểm.

@@ -1,0 +1,880 @@
+// Nội dung báo cáo CinePrime — đã viết tới mục 2.4. Chương II §3 và Chương III–VI mới có tiêu đề (để Mục lục đủ).
+// Chỗ cần người dùng cung cấp ghi trong [ ... ]. Sinh Word: xem .claude\skills\cinebaocao\SKILL.md §2.
+@loaiBaoCao: ĐỒ ÁN TỐT NGHIỆP
+@nganh: CÔNG NGHỆ THÔNG TIN
+@chuyenNganh: Lập trình web
+@tieuDe: XÂY DỰNG WEBSITE ĐẶT VÉ XEM PHIM CINEPRIME
+@gvhd: Thầy Hoàng Hà
+@sinhVien: Nguyễn Minh Tâm; Lê Văn Gia Bảo; Trần Gia Huy
+@noiNgay: Đà Nẵng, 11/2026
+@to2: TRƯỜNG CAO ĐẲNG THỰC HÀNH FPT POLYTECHNIC
+
+::bia
+
+#!= LỜI CẢM ƠN
+::co 14
+> Chúng em xin gửi lời cảm ơn chân thành đến thầy cô và nhà trường. Sự hướng dẫn tận tình của thầy Hoàng Hà cùng những kiến thức, kỹ năng được truyền đạt là nền tảng để chúng em hoàn thành đồ án này.
+::trong
+> Chúng em cũng cảm ơn gia đình và bạn bè đã luôn động viên, chia sẻ kiến thức và đồng hành trong suốt quá trình học tập.
+::trong
+::trong
+> **__Chúng em xin gửi lời cảm ơn chân thành nhất!__**
+::co 12
+
+#!= CAM KẾT
+::co 14
+> Thay mặt nhóm, tôi, Nguyễn Minh Tâm - trưởng nhóm xin cam kết:
+% 1. | Báo cáo đồ án tốt nghiệp với đề tài: “Xây dựng website đặt vé xem phim CinePrime” là công trình nghiên cứu của chính các cá nhân trong nhóm dưới sự hướng dẫn trực tiếp của thầy Hoàng Hà.
+% 2. | Chúng tôi đã tự đọc, nghiên cứu và tổng hợp kiến thức để hoàn thành báo cáo này, đảm bảo không sao chép ở bất cứ đâu.
+% 3. | Những lý thuyết trong báo cáo đều sử dụng tài liệu đã nêu ở phần tài liệu tham khảo.
+> Nếu có vi phạm, tôi xin chịu hoàn toàn trách nhiệm.
+::trong
+>> Đại diện nhóm sinh viên thực hiện
+::trong
+::trong
+>> **Nguyễn Minh Tâm**
+::co 12
+
+::muc-luc
+::muc-luc-hinh
+::muc-luc-bang
+
+# PHẦN MỞ ĐẦU
+## 1. PHÂN TÍCH HIỆN TRẠNG
+- Khách xem phim cần một website xem lịch chiếu, chọn ghế theo sơ đồ, thanh toán trực tuyến và nhận vé QR ngay trên điện thoại.
+- Khó khăn của rạp chiếu phim bao gồm:
++ Tranh chấp ghế: nhiều khách cùng chọn một ghế tại cùng thời điểm.
++ Xếp lịch chiếu: nhiều phòng, nhiều phim; phải tránh trùng giờ và chừa thời gian dọn phòng.
++ Thanh toán: phải xác thực kết quả từ cổng thanh toán, không phát vé sai.
++ Soát vé: mỗi vé chỉ vào một lần, đúng rạp, đúng khung giờ.
+## 2. MỤC ĐÍCH
+### 2.1. Mục đích của sản phẩm
+- Xây dựng website đặt vé xem phim trực tuyến cho khách hàng, kèm trang quản trị cho Admin và Staff.
+- Giúp khách đặt vé nhanh, không cần xếp hàng tại quầy.
+- Giúp rạp quản lý phim, lịch chiếu, đơn hàng, doanh thu và soát vé tập trung.
+### 2.2. Mục tiêu hệ thống
+- Cho phép khách tìm phim, xem lịch chiếu, chọn ghế và thanh toán trực tuyến.
+- Đảm bảo một ghế chỉ bán cho một khách, kể cả khi nhiều người đặt cùng lúc.
+- Giúp Admin xếp lịch chiếu theo tuần, quản lý giá, đơn hàng và xem báo cáo.
+- Giúp Staff soát vé bằng mã QR và bán vé tại quầy.
+### 2.3. Tính năng cơ bản của hệ thống
+- Tìm kiếm và xem phim: lọc theo thể loại, ngày, độ tuổi; xem lịch chiếu theo rạp.
+- Đặt vé: chọn ghế thường, VIP, ghế đôi; giữ ghế 5 phút; thêm combo, áp voucher.
+- Thanh toán an toàn: thanh toán qua ví MoMo, xác thực chữ ký của cổng thanh toán.
+- Vé điện tử: mỗi ghế một mã QR; tải vé PDF; nhận email xác nhận.
+- Quản lý tài khoản: đăng ký, đăng nhập, quên mật khẩu, lịch sử đơn, điểm thưởng.
+- Quản trị: phim, rạp, phòng, sơ đồ ghế, giá, lịch chiếu, combo, voucher, người dùng.
+- Staff: check-in vé bằng QR, bán vé tại quầy, quản lý ca thu tiền mặt.
+- Báo cáo: doanh thu, số vé, lấp đầy theo ngày, tuần, tháng, năm; xuất CSV.
+### 2.4. Đối tượng sử dụng
+- Quản trị viên (Admin)
+- Nhân viên (Staff)
+- Khách hàng (Customer)
+### 2.5. Công nghệ dùng để phát triển dự án
+- Ngôn ngữ: Java 25, HTML, CSS, JavaScript, SQL
+- Framework: Spring Boot 4.1 (Spring MVC, Spring Security, Spring Data JPA)
+- Giao diện: Pug4J (render phía máy chủ), CSS và JavaScript thuần
+- Database: MySQL 8, quản lý phiên bản bằng Flyway
+- Thanh toán: MoMo (môi trường thử nghiệm)
+- Thư viện: PDFBox (vé PDF), ZXing (mã QR), Apache POI (Excel)
+- Kiểm thử: JUnit 5, kiểm thử tích hợp trên MySQL
+- Xác thực: Session, CSRF, băm mật khẩu
+## 3. LẬP KẾ HOẠCH DỰ ÁN
+[bang] Lập kế hoạch dự án || 1.3c,4.2,2.9,2.3,2.3,2.4
+|# STT | Hạng mục | Người làm | Bắt đầu | Kết thúc | Kết quả
+|= Phân tích yêu cầu
+| 1 | Phân tích mô hình công nghệ | TamNM | 05/11/2026 | 06/11/2026 | Hoàn thành
+| 2 | Phân tích yêu cầu khách hàng | BaoLVG | 05/11/2026 | 06/11/2026 | Hoàn thành
+| 3 | Phân tích yêu cầu quản trị | HuyTG | 05/11/2026 | 06/11/2026 | Hoàn thành
+|= Thiết kế ứng dụng
+| 1 | Thiết kế sơ đồ use case | BaoLVG | 13/11/2026 | 13/11/2026 | Hoàn thành
+| 2 | Thiết kế sitemap | HuyTG | 13/11/2026 | 13/11/2026 | Hoàn thành
+| 3 | Thiết kế database | TamNM | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 4 | Thiết kế sơ đồ ERD | TamNM | 13/11/2026 | 14/11/2026 | Hoàn thành
+| 5 | Thiết kế Activity Diagram | BaoLVG | 13/11/2026 | 14/11/2026 | Hoàn thành
+| 6 | Thiết kế giao diện | HuyTG | 06/11/2026 | 14/11/2026 | Hoàn thành
+|= Thực hiện dự án
+| 1 | Tạo giao diện | | | |
+| 1.1 | Giao diện người dùng | HuyTG | 06/11/2026 | 14/11/2026 | Hoàn thành
+| 1.2 | Giao diện quản trị và nhân viên | BaoLVG | 06/11/2026 | 14/11/2026 | Hoàn thành
+| 2 | Tạo chức năng | | | |
+| 2.1 | Chức năng trang người dùng | | | |
+| 2.1.1 | Đăng ký, đăng nhập, quên mật khẩu | BaoLVG | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 2.1.2 | Danh sách phim, lịch chiếu | HuyTG | 06/11/2026 | 11/11/2026 | Hoàn thành
+| 2.1.3 | Đặt vé, giữ ghế, combo, voucher | TamNM | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 2.1.4 | Thanh toán MoMo | TamNM, HuyTG | 06/11/2026 | 06/11/2026 | Chưa thử MoMo thật
+| 2.1.5 | Vé QR, vé PDF, lịch sử đơn | BaoLVG | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 2.2 | Chức năng trang quản trị | | | |
+| 2.2.1 | Quản lý phim, thể loại | HuyTG | 06/11/2026 | 11/11/2026 | Hoàn thành
+| 2.2.2 | Quản lý rạp, phòng, sơ đồ ghế, giá | BaoLVG | 06/11/2026 | 12/11/2026 | Hoàn thành
+| 2.2.3 | Xếp lịch chiếu theo tuần, Excel | TamNM | 11/11/2026 | 14/11/2026 | Hoàn thành
+| 2.2.4 | Quản lý đơn hàng, thống kê | HuyTG | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 2.3 | Chức năng nhân viên: check-in | BaoLVG | 06/11/2026 | 06/11/2026 | Hoàn thành
+| 2.4 | Chức năng nhân viên: bán vé tại quầy | TamNM | 12/11/2026 | 12/11/2026 | Hoàn thành
+|= Kiểm thử
+| 1 | Xây dựng và chạy kịch bản kiểm thử | TamNM, BaoLVG, HuyTG | 06/11/2026 | 14/11/2026 | Hoàn thành
+|= Triển khai
+| 1 | Đóng gói sản phẩm (JAR) | TamNM | 14/11/2026 | 14/11/2026 | Hoàn thành
+
+# CHƯƠNG I: CƠ SỞ LÝ THUYẾT
+## 1. MÔ HÌNH CÔNG NGHỆ
+[hinh] D:\0_JAV102\CinePrime_Project\.claude\skills\cinebaocao\hinh-ly-thuyet\client-server.png | Client - Server | 12
+- Client-Server: máy khách (trình duyệt) gửi yêu cầu, máy chủ xử lý và trả kết quả. Ở CinePrime: trình duyệt ↔ ứng dụng Spring Boot ↔ MySQL.
+- Điểm mạnh:
++ Kiểm soát và bảo mật dữ liệu tập trung ở máy chủ.
++ Dễ mở rộng, dễ bảo trì.
+- Điểm yếu:
++ Dễ quá tải khi nhiều yêu cầu cùng lúc.
++ Phụ thuộc vào tài nguyên máy chủ.
+## 2. NGÔN NGỮ JAVA
+- Java là ngôn ngữ lập trình hướng đối tượng, chạy trên máy ảo JVM, độc lập nền tảng. Dự án dùng Java 25.
+- Ưu điểm:
++ Kiểu dữ liệu chặt chẽ, phát hiện lỗi sớm khi biên dịch.
++ Hệ sinh thái thư viện lớn, chạy ổn định trên nhiều hệ điều hành.
++ Hỗ trợ đa luồng, phù hợp xử lý nhiều yêu cầu đồng thời.
+- Nhược điểm:
++ Cú pháp dài hơn một số ngôn ngữ khác.
++ Tốn nhiều bộ nhớ hơn.
+## 3. SPRING BOOT
+- Spring Boot là framework giúp dựng ứng dụng Java nhanh, đóng gói thành một file JAR chạy độc lập. Dự án dùng Spring MVC, Spring Security, Spring Data JPA, Validation và Mail.
+- Ưu điểm:
++ Cấu hình tự động, ít mã khởi tạo.
++ Tích hợp sẵn bảo mật, truy cập dữ liệu, gửi email.
++ Cộng đồng lớn, tài liệu đầy đủ.
+- Nhược điểm:
++ Nhiều tầng trừu tượng, khó nắm cơ chế bên trong lúc đầu.
++ Thời gian khởi động và dung lượng lớn hơn ứng dụng nhẹ.
+## 4. MÔ HÌNH MVC
+- MVC (Model-View-Controller) là mô hình kiến trúc chia ứng dụng thành ba phần:
+[hinh] D:\0_JAV102\CinePrime_Project\.claude\skills\cinebaocao\hinh-ly-thuyet\mvc.png | Mô hình MVC | 11
++ Model: dữ liệu và nghiệp vụ (entity, service).
++ View: giao diện hiển thị (template Pug).
++ Controller: nhận yêu cầu, gọi nghiệp vụ, chọn View trả về.
+- Luồng xử lý:
++ Trình duyệt gửi yêu cầu đến Controller.
++ Controller gọi Service/Model xử lý và lấy dữ liệu.
++ Controller chuyển dữ liệu cho View, View trả HTML về trình duyệt.
+## 5. CƠ SỞ DỮ LIỆU: MYSQL
+- MySQL là hệ quản trị cơ sở dữ liệu quan hệ mã nguồn mở. Dự án dùng MySQL 8 và Flyway để quản lý phiên bản cấu trúc bảng.
+- Ưu điểm:
++ Hiệu suất cao, ổn định, dễ cài đặt.
++ Hỗ trợ giao dịch (transaction) và khóa dòng, đảm bảo toàn vẹn dữ liệu khi nhiều người đặt ghế.
++ Có nhiều công cụ quản trị và sao lưu.
+- Nhược điểm:
++ Khi dữ liệu rất lớn cần tối ưu thêm (chỉ mục, phân tải).
++ Một số tính năng nâng cao hạn chế hơn các hệ quản trị khác.
+## 6. XÁC THỰC VÀ BẢO MẬT
+- Session: sau khi đăng nhập, máy chủ lưu phiên và gửi cookie cho trình duyệt.
+- CSRF: mỗi yêu cầu thay đổi dữ liệu phải kèm token để chặn giả mạo yêu cầu.
+- Mật khẩu được băm trước khi lưu; phân quyền theo vai trò Customer, Admin, Staff ở phía máy chủ.
+- Ưu điểm: máy chủ kiểm soát phiên, có thể thu hồi ngay khi khóa tài khoản hoặc đổi quyền.
+- Nhược điểm: máy chủ phải lưu trạng thái phiên.
+## 7. CỔNG THANH TOÁN MOMO
+- MoMo là ví điện tử. Dự án dùng phương thức captureWallet: máy chủ tạo yêu cầu, khách thanh toán trên MoMo, MoMo gửi kết quả về qua IPN.
+- Mọi yêu cầu và kết quả đều ký HMAC; máy chủ kiểm tra chữ ký, mã đơn, số tiền trước khi xác nhận.
+- Ưu điểm: thanh toán nhanh, có môi trường thử nghiệm (sandbox).
+- Nhược điểm: phụ thuộc dịch vụ bên thứ ba; cần khóa và cấu hình riêng khi chạy thật.
+
+# CHƯƠNG II: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG
+## 1. PHÂN TÍCH NGHIỆP VỤ
+### 1.1. Nghiệp vụ của Quản trị viên
+- Quản lý phim: thêm, sửa, ẩn phim; mỗi phim có ngày khởi chiếu và ngày kết thúc.
+- Quản lý rạp, phòng chiếu, sơ đồ ghế và giá vé theo phòng.
+- Quản lý suất chiếu: xếp lịch theo tuần, nhập/xuất Excel, chặn trùng giờ.
+- Quản lý combo, voucher, điểm thưởng, banner và nội dung.
+- Quản lý người dùng: phân quyền, khóa tài khoản, phân Staff về rạp.
+- Quản lý đơn hàng: tra cứu, đối soát thanh toán, hủy đơn chưa thanh toán.
+- Thống kê: doanh thu, số vé, lấp đầy; xuất CSV; xem nhật ký thao tác.
+### 1.2. Nghiệp vụ của Nhân viên
+- Check-in vé: quét mã QR hoặc nhập mã thủ công.
+- Chỉ xử lý vé thuộc rạp được phân công; mỗi vé chỉ vào một lần.
+- Xem danh sách suất chiếu và vé trong ngày tại rạp của mình.
+- Bán vé tại quầy: mở/đóng ca, chọn ghế, thu tiền mặt, in vé.
+### 1.3. Nghiệp vụ của Khách hàng
+- Xem phim: danh sách, chi tiết, lịch chiếu theo rạp và ngày.
+- Đặt vé: chọn ghế (giữ 5 phút), thêm combo, áp voucher.
+- Thanh toán: qua ví MoMo; nhận vé QR và vé PDF.
+- Tài khoản: đăng ký, đăng nhập, quên mật khẩu, xem lịch sử đơn.
+- Tương tác: yêu thích, đánh giá phim, nhận thông báo nhắc suất chiếu.
+## 2. THIẾT KẾ HỆ THỐNG
+### 2.1. Use case
+- Use case hệ thống
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC01-tong-quat.png | Use case tổng quát
+- Use case quản trị viên
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC02-admin.png | Use case quản trị viên
+- Use case nhân viên
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC03-staff.png | Use case nhân viên
+- Use case khách hàng
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC04-customer.png | Use case khách hàng
+- Use case đặt vé
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC05-dat-ve.png | Use case đặt vé
+- Use case thanh toán
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC06-thanh-toan.png | Use case thanh toán
+- Use case quản lý lịch chiếu
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC07-quan-ly-lich-chieu.png | Use case quản lý lịch chiếu
+- Use case quản lý vé và check-in
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC08-quan-ly-ve-check-in.png | Use case quản lý vé và check-in
+### 2.2. Sơ đồ màn hình (Sitemap)
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\SM01-sitemap.png | Sơ đồ màn hình (Sitemap)
+[chen] D:\0_JAV102\CinePrime_Project\Sơ đồ\ERD\ERD01-toan-bo.docx | Mô hình thực thể quan hệ - ERD
+### 2.4. Activity Diagram
+- Activity “Đăng ký, đăng nhập”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD01-dang-ky-dang-nhap.drawio.png | Activity đăng ký, đăng nhập
+- Activity “Đặt vé”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD02-dat-ve.drawio.png | Activity đặt vé
+- Activity “Thanh toán vé và nhận vé QR”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD03-thanh-toan-ve-qr.drawio.png | Activity thanh toán vé và nhận vé QR
+- Activity “Check-in”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD04-check-in.drawio.png | Activity check-in
+- Activity “Quản lý lịch chiếu”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD05-quan-ly-lich-chieu.drawio.png | Activity quản lý lịch chiếu
+- Activity “Quản lý đơn, hủy đơn”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD06-quan-ly-don-huy-don.drawio.png | Activity quản lý đơn, hủy đơn
+
+## 3. THIẾT KẾ GIAO DIỆN VÀ ĐẶC TẢ
+- Wireframe thiết kế theo phong cách giao diện của website: tông xám ngọc trai, góc vát chéo, nút đỏ cinema cho thao tác chính; ô có dấu X là vị trí ảnh.
+### 3.1. Trang chủ
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF01-trang-chu.png | Giao diện trang chủ | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Trang chủ
+|~ Mô tả | Màn hình chính: banner nổi bật, mua vé nhanh, phim, lịch chiếu, ưu đãi
+|~ Truy cập | Mọi người dùng, không cần đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Đăng nhập, Đăng ký | Button | Đi đến trang đăng nhập, đăng ký tài khoản
+| Menu điều hướng | Link component | Trang chủ, Phim, Góc điện ảnh, Hệ thống rạp, Khuyến mãi
+| Tìm phim | Text input | Tìm phim theo tên
+| Banner nổi bật | Image Component | Phim và ưu đãi nổi bật, tự chuyển slide, có nút trước/sau
+| Mua vé ngay | Button | Đi đến lịch chiếu của phim đang hiển thị
+| Xem trailer | Button | Mở trailer của phim
+| Mua vé nhanh | Select | Chọn lần lượt phim, rạp, ngày, suất rồi bấm Mua vé
+| Đang chiếu, Sắp chiếu | Tab | Chuyển danh sách phim đang chiếu và sắp chiếu
+| Thẻ phim | Card | Poster, tên, tuổi, thời lượng; bấm để xem chi tiết
+| Lịch chiếu | Link component | Dải ngày và các suất chiếu theo ngày
+| Ưu đãi, Góc điện ảnh | Card | Danh sách ưu đãi và bài viết mới
+| Thành viên CinePrime | Banner | Giới thiệu tích điểm, dẫn đến trang tài khoản
+### 3.2. Danh sách phim
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF02-danh-sach-phim.png | Giao diện trang danh sách phim | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Danh sách phim
+|~ Mô tả | Danh sách phim, lọc theo nhiều tiêu chí
+|~ Truy cập | Mọi người dùng
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Tên phim | Text input | Tìm phim theo tên
+| Trạng thái | Select | Đang chiếu, Sắp chiếu, Đã kết thúc
+| Thể loại | Select | Lọc phim theo thể loại
+| Phân loại tuổi | Select | Lọc theo độ tuổi được xem
+| Ngày chiếu | Date input | Chỉ hiện phim có suất trong ngày chọn
+| Tìm phim | Button | Áp dụng bộ lọc
+| Thẻ phim | Card | Poster, tên, tuổi, thời lượng, nút Mua vé
+### 3.3. Chi tiết phim
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF03-chi-tiet-phim.png | Giao diện trang chi tiết phim | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Chi tiết phim
+|~ Mô tả | Thông tin phim, lịch chiếu, đánh giá của khán giả
+|~ Truy cập | Mọi người dùng; yêu thích, đánh giá cần đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Trailer | Button | Phát trailer trên ảnh nền phim
+| Thông tin phim | Text | Tên, tuổi, thời lượng, thể loại, ngày khởi chiếu, đạo diễn, diễn viên
+| Chọn suất chiếu | Button | Cuộn đến mục Lịch chiếu (phim sắp chiếu: Đặt vé trước)
+| Yêu thích | Button | Thêm hoặc bỏ phim khỏi danh sách yêu thích
+| Nhắc tôi khi mở bán | Button | Đăng ký nhận email nhắc phim
+| Rạp, Ngày chiếu | Select, Date input | Lọc suất chiếu của phim
+| Suất chiếu | Button | Giờ chiếu; bấm để sang trang chọn ghế
+| Số sao, Nhận xét | Select, Textarea | Viết đánh giá 1–5 sao (sau khi đã xem phim)
+| Phim đang chiếu | Link component | Gợi ý các phim khác
+### 3.4. Lịch chiếu
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF04-lich-chieu.png | Giao diện trang lịch chiếu | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Lịch chiếu
+|~ Mô tả | Tra cứu suất chiếu theo phim, rạp, ngày
+|~ Truy cập | Mọi người dùng
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Phim, Rạp | Select | Lọc suất chiếu
+| Ngày chiếu | Date input | Chọn ngày cần xem
+| Tìm suất chiếu | Button | Áp dụng bộ lọc
+| Dải ngày | Tab | Chuyển nhanh giữa 7 ngày tới
+| Nhóm theo rạp | Card | Tên rạp, địa chỉ và các suất của từng phim
+| Giờ chiếu | Button | Chuyển sang trang chọn ghế của suất đó
+### 3.5. Chọn ghế
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF05-chon-ghe.png | Giao diện trang chọn ghế | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Chọn ghế
+|~ Mô tả | Chọn ghế trên sơ đồ phòng và giữ ghế
+|~ Truy cập | Khách hàng đã đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Sơ đồ ghế | Seat map | Ghế thường, VIP, ghế đôi; trống, đang chọn, đã bán, bảo trì
+| Ghế | Button | Bấm để chọn; tối đa 8 ghế; ghế đôi chọn cả cặp
+| Chú thích | Text | Giải thích màu theo loại ghế và trạng thái ghế
+| Thông tin suất | Text | Poster, phim, rạp, phòng, giờ chiếu, định dạng
+| Ghế đã chọn, Tạm tính | Text | Danh sách ghế và tổng tiền
+| Xem góc nhìn từ ghế | Button | Xem mô phỏng 3D từ ghế đang chọn
+| Xem phòng 3D | Button | Xem toàn bộ phòng chiếu ở dạng 3D
+| Tiếp tục | Button | Giữ ghế 5 phút và chuyển sang trang đơn hàng
+| Chọn suất khác | Link component | Quay lại lịch chiếu
+### 3.6. Thanh toán và đơn hàng
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF06-don-thanh-toan.png | Giao diện trang đơn hàng và thanh toán | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Đơn hàng và thanh toán
+|~ Mô tả | Chọn combo, áp mã ưu đãi, thanh toán MoMo, nhận vé
+|~ Truy cập | Chủ đơn hàng (khách đã đăng nhập)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Mã đơn, đồng hồ giữ ghế | Text | Hiển thị thời gian còn lại của 5 phút giữ ghế
+| Thông tin suất | Card | Phim, rạp, phòng, giờ chiếu, ghế
+| Số lượng combo | Number input | Chọn số lượng bắp nước từng loại
+| Mã ưu đãi | Text input | Nhập mã hoặc chọn mã trong ví voucher (một mã/đơn)
+| Áp dụng combo / mã ưu đãi | Button | Tính lại hóa đơn trên máy chủ
+| Chi tiết hóa đơn | Text | Vé, combo, giảm giá hạng, voucher, thực trả
+| Thanh toán MoMo | Button | Chuyển sang cổng MoMo sandbox
+| Kiểm tra thanh toán | Button | Hỏi lại trạng thái giao dịch từ MoMo
+| Hủy đơn chưa thanh toán | Button | Hủy đơn và trả ghế
+| Vé điện tử | Card | Sau khi thanh toán: mã QR từng ghế, tải vé PDF
+### 3.7. Đăng nhập
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF07-dang-nhap.png | Giao diện trang đăng nhập | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Đăng nhập
+|~ Mô tả | Đăng nhập bằng email và mật khẩu
+|~ Truy cập | Mọi người dùng chưa đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Email | Text input | Email đã đăng ký
+| Mật khẩu | Password input | Mật khẩu tài khoản
+| Quên mật khẩu? | Link component | Gửi liên kết đặt lại mật khẩu qua email
+| Đăng nhập | Button | Đăng nhập và chuyển trang theo vai trò
+| Đăng ký | Link component | Chuyển sang trang đăng ký
+### 3.8. Đăng ký
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF08-dang-ky.png | Giao diện trang đăng ký | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Đăng ký
+|~ Mô tả | Tạo tài khoản khách hàng
+|~ Truy cập | Mọi người dùng chưa đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Họ tên | Text input | Tên hiển thị, tối đa 100 ký tự
+| Email | Text input | Email đăng nhập, không trùng tài khoản khác
+| Mật khẩu | Password input | Ít nhất 10 ký tự
+| Tạo tài khoản | Button | Tạo tài khoản và đăng nhập
+| Đăng nhập | Link component | Chuyển sang trang đăng nhập
+### 3.9. Tài khoản và vé của tôi
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF09-tai-khoan.png | Giao diện trang tài khoản | 12
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Tài khoản
+|~ Mô tả | Vé, hồ sơ, yêu thích, thông báo, hạng thành viên
+|~ Truy cập | Khách hàng đã đăng nhập
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Hạng thành viên | Label | Hạng hiện tại của khách
+| Menu tài khoản | Tab | Vé của tôi, Hồ sơ, Yêu thích, Thông báo, Hạng thành viên, Ví voucher, Điểm thưởng
+| Dòng đơn hàng | Card | Phim, suất, số ghế, trạng thái, thực trả; bấm để xem vé
+| Họ tên, Điện thoại | Text input | Cập nhật hồ sơ
+| Ảnh đại diện | File input | Tải ảnh JPEG/PNG tối đa 5 MB
+| Lưu hồ sơ | Button | Lưu thay đổi
+| Thanh tiến độ hạng | Progress | Chi tiêu còn thiếu để lên hạng kế tiếp
+### 3.10. Admin - Tổng quan
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF10-admin-tong-quan.png | Giao diện Admin - Tổng quan | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Tổng quan
+|~ Mô tả | Báo cáo doanh thu, vé, đơn và lấp đầy
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Menu bên trái | Sidebar | Tổng quan, Đơn hàng, Vận hành, Quản lý
+| Kỳ báo cáo, Ngày, Rạp | Select, Date input | Chọn kỳ ngày, tuần, tháng, năm và phạm vi rạp
+| Làm mới báo cáo | Button | Tạo lại số liệu theo bộ lọc
+| Xuất CSV | Button | Tải doanh thu dạng CSV
+| Thẻ KPI | Card | Doanh thu, vé bán ra, đơn hàng, tỷ lệ lấp đầy
+| Dòng tiền trong kỳ | Chart, Table | Biểu đồ cột và bảng online/tại quầy
+| Đơn mới, Suất sắp chiếu, Lấp đầy | Panel | Số liệu vận hành trong ngày
+### 3.11. Admin - Danh sách phim
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF11-admin-danh-sach-phim.png | Giao diện Admin - Danh sách phim | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Danh sách phim
+|~ Mô tả | Tra cứu và quản lý phim
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Tìm tên phim | Text input | Tìm theo tên
+| Trạng thái | Select | Lọc Sắp chiếu, Đang chiếu, Đã kết thúc, Ẩn
+| Thêm phim | Button | Mở form thêm phim mới
+| Bảng phim | Table | Poster, tên, thể loại, thời lượng, ngày chiếu, trạng thái
+| Menu ⋯ | Button | Sửa, ẩn/hiện, xóa phim chưa dùng
+| Phân trang | Pagination | Chuyển trang danh sách
+### 3.12. Admin - Thêm/sửa phim
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF12-admin-form-phim.png | Giao diện Admin - Thêm/sửa phim | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Thêm/sửa phim
+|~ Mô tả | Form một trang có xem trước
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Thông tin cơ bản | Card | Tên, đường dẫn, thời lượng, độ tuổi, thể loại (thêm thể loại nhanh)
+| Lịch phát hành | Card | Ngày khởi chiếu và ngày kết thúc bắt buộc; nút 2/4/6/8 tuần
+| Nội dung và đoàn phim | Card | Mô tả, đạo diễn, diễn viên (thêm người nhanh)
+| Hình ảnh và trailer | Card | Kéo thả poster, banner; URL trailer
+| Lưu phim | Button | Kiểm tra dữ liệu ở máy chủ rồi lưu
+| Xem trước | Panel | Poster và thông tin phim như khách sẽ thấy
+### 3.13. Admin - Lịch chiếu tuần
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF13-admin-lich-chieu-tuan.png | Giao diện Admin - Xếp lịch chiếu tuần | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Xếp lịch chiếu
+|~ Mô tả | Xếp suất theo phòng và ngày trong tuần
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Rạp, Tuần | Select, Button | Chọn rạp; chuyển tuần trước/sau, về tuần này
+| Cả tuần, Trong ngày | Tab | Hai kiểu xem: ma trận phòng × ngày hoặc trục giờ trong ngày
+| Phim để bấm thêm | Select | Chọn phim cần xếp
+| Thêm suất | Button | Mở ngăn thêm suất (phòng, giờ, phụ thu)
+| Ô suất | Card | Giờ bắt đầu – kết thúc, phim; bấm để sửa hoặc kéo thả
+| Xuất lịch tuần, Nhập Excel, Tải mẫu trống | Button | Làm việc với file Excel mẫu
+| Chép suất sang ngày khác | Button | Sao chép suất mới của một ngày
+### 3.14. Admin - Phòng và sơ đồ ghế
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF14-admin-phong-so-do-ghe.png | Giao diện Admin - Phòng và sơ đồ ghế | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Phòng và sơ đồ ghế
+|~ Mô tả | Vẽ sơ đồ ghế, đặt giá, theo dõi tồn kho suất
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Bước ①②③ | Tab | Sơ đồ ghế, Giá vé, Tồn kho suất
+| Công cụ sơ đồ | Toolbar | Ghế thường, VIP, đôi, bảo trì, lối đi, kiểm tra
+| Hoàn tác, Làm lại | Button | Ctrl+Z, Ctrl+Y
+| Mẫu phòng | Button | Tạo nhanh bố cục phòng
+| Vùng vẽ ghế | Seat map | Bấm hoặc kéo để tô ghế
+| Xem 3D | Button | Xem phòng chiếu ở dạng 3D
+| Vừa khung, −, +, 100% | Button | Thu phóng sơ đồ
+| Thêm suất chiếu | Link component | Chuyển sang xếp suất của phòng
+### 3.15. Admin - Đơn hàng
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF15-admin-don-hang.png | Giao diện Admin - Đơn hàng | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Đơn hàng
+|~ Mô tả | Tra cứu đơn, thanh toán, đối soát
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Tất cả, Online, Tại quầy | Tab | Lọc theo kênh bán
+| Tìm đơn | Text input | Mã đơn hoặc email khách
+| Trạng thái đơn, Thanh toán | Select | Lọc theo trạng thái
+| Rạp, Ngày tạo đơn | Select, Date input | Lọc theo rạp và ngày
+| Lọc đơn | Button | Áp dụng bộ lọc
+| Bảng đơn | Table | Đơn/khách, kênh, phim/suất, ngày đặt, thực trả, trạng thái
+| Nhật ký giao dịch | Button | Tải CSV giao dịch
+### 3.16. Admin - Hạng thành viên
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF16-admin-thanh-vien-hang.png | Giao diện Admin - Hạng thành viên | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Admin - Hạng thành viên
+|~ Mô tả | Cấu hình quy tắc từng hạng và quà tặng
+|~ Truy cập | Quản trị viên (Admin)
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Danh sách hạng | Tab | Các hạng và số khách ở mỗi hạng
+| Tên hiển thị | Text input | Tên của hạng
+| Chi tiêu tối thiểu / năm | Number input | Ngưỡng chi tiêu để đạt hạng
+| Giảm giá vé, Giảm bắp nước | Number input | Tỷ lệ giảm theo hạng
+| Voucher sinh nhật, hằng năm, lên hạng | Select | Chọn voucher tặng tự động
+| Lưu quy tắc hạng | Button | Lưu; từ chối thang hạng sai
+| Xét lại hạng toàn bộ khách | Button | Tính lại hạng theo chi tiêu
+### 3.17. Staff - Check-in
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF17-staff-check-in.png | Giao diện Staff - Check-in | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Staff - Check-in
+|~ Mô tả | Soát vé bằng mã QR hoặc nhập mã
+|~ Truy cập | Nhân viên (Staff) được phân công rạp
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Suất hôm nay | List | Các suất tại rạp của nhân viên; chuyển ngày
+| Quét QR hoặc gõ mã | Text input | Mã vé hoặc mã đơn
+| Tra cứu | Button | Kiểm tra vé theo suất đang soát
+| Bật camera | Button | Quét mã QR bằng camera
+| Kết quả vé | Card | Ghế, trạng thái, lý do không hợp lệ
+| Xác nhận cho vào | Button | Ghi nhận vé đã dùng (một lần)
+| Vé của suất | Table | Ghế, mã vé, trạng thái, lúc vào; lọc và phân trang
+### 3.18. Staff - Bán vé tại quầy
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Wireframe\WF18-staff-ban-ve-tai-quay.png | Giao diện Staff - Bán vé tại quầy | 13
+> Đặc tả:
+[bang] || 3.4,2.8,9.7
+|~ Giao diện | Staff - Bán vé tại quầy
+|~ Mô tả | Bán vé thu tiền mặt theo ca
+|~ Truy cập | Nhân viên (Staff) được phân công rạp
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| Mở ca, Đóng ca | Button | Mở ca với tiền đầu ca; đóng ca với tiền đếm được
+| Suất | List | Chọn phim và suất đang bán
+| Sơ đồ ghế | Seat map | Chọn ghế của đơn
+| Giữ ghế · 5 phút | Button | Giữ ghế cho đơn
+| Combo | Button | Thêm bớt bắp nước
+| Khách hàng | Text input | Gắn tài khoản bằng số điện thoại hoặc email
+| Thu tiền mặt | Number input | Tiền khách đưa, gợi ý mệnh giá, tiền thối
+| Thu tiền và phát vé | Button | Hoàn tất đơn và in vé
+| Đơn trong ca, Trao quà thành viên | Button | Xem đơn của ca; trao quà theo hạng
+
+# CHƯƠNG III: TRIỂN KHAI MÃ NGUỒN
+## 1. CẤU TRÚC MÃ NGUỒN
+- Mã Java (src/main/java/vn/cineprime):
+[ma]
+vn.cineprime
+├───admin          (quản trị: phim, rạp, phòng, lịch chiếu, báo cáo)
+├───auth           (tài khoản, bảo mật, đăng nhập)
+├───booking        (giữ ghế, combo, voucher, đơn hàng)
+├───domain         (thực thể JPA, Store, dữ liệu mẫu)
+├───media          (tải ảnh, vé QR và PDF)
+├───member         (hạng thành viên, ví voucher, quà tặng)
+├───notification   (email, nhắc lịch, tác vụ định kỳ)
+├───payment        (MoMo)
+├───staff          (check-in, bán vé tại quầy)
+└───web            (trang công khai, cấu hình Pug)
+[/ma]
+- Giao diện và tài nguyên (src/main/resources):
+[ma]
+resources
+├───db/migration   (V1 … V9: Flyway)
+├───templates      (.pug: trang khách, admin/, staff, quầy)
+├───static
+│   ├───css        (cineprime-theme.css, site.css, admin-*.css …)
+│   ├───js         (JavaScript thuần: ghế, thanh toán, camera, lịch chiếu)
+│   ├───fonts      (Be Vietnam Pro, Plus Jakarta Sans)
+│   └───images
+└───application.yml
+[/ma]
+## 2. KẾT NỐI CƠ SỞ DỮ LIỆU
+- Mô tả: Spring Boot kết nối MySQL qua DataSource; địa chỉ, tài khoản, mật khẩu lấy từ biến môi trường, không ghi vào mã nguồn. Flyway tự chạy các file migration khi khởi động; Hibernate chỉ kiểm tra (validate), không tự sửa bảng.
+- Mã nguồn (application.yml):
+[ma]
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/cineprime?connectionTimeZone=UTC&...}
+    username: ${DB_USER:cineprime}
+    password: ${DB_PASSWORD:}
+    hikari:
+      transaction-isolation: TRANSACTION_READ_COMMITTED
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+[/ma]
+## 3. TRIỂN KHAI CÁC CHỨC NĂNG CHÍNH
+- Mã nguồn dưới đây được rút gọn và xuống dòng lại cho dễ đọc; logic giữ nguyên như trong dự án.
+### 3.1. Đăng ký/Đăng nhập
+#### 3.1.1. Đăng ký tài khoản (AccountService.register)
+- Mô tả:
++ Kiểm tra mật khẩu: ít nhất 10 ký tự, tối đa 72 byte.
++ Chuẩn hóa email (bỏ khoảng trắng, chữ thường), kiểm tra đúng dạng và họ tên không rỗng.
++ Nếu email đã tồn tại thì từ chối với thông báo chung (không lộ email nào đã đăng ký).
++ Băm mật khẩu bằng BCrypt rồi lưu tài khoản.
+- Mã nguồn:
+[ma]
+public User register(String email, String name, String password) {
+    passwordValid(password);
+    email = email.trim().toLowerCase(Locale.ROOT);
+    if (!email.matches("[^\\s@]+@[^\\s@]+\\.[^\\s@]+") || email.length() > 254
+            || name.isBlank() || name.length() > 100)
+        throw new IllegalArgumentException("Kiểm tra email và họ tên.");
+    if (db.first(User.class, "where e.email=?1", email).isPresent())
+        throw new IllegalArgumentException(
+            "Không thể đăng ký email này. Hãy đăng nhập hoặc khôi phục mật khẩu.");
+    User u = new User();
+    u.email = email;
+    u.name = name.trim();
+    u.passwordHash = encoder.encode(password);
+    return db.save(u);
+}
+[/ma]
+#### 3.1.2. Đăng nhập và phân quyền (SecurityConfig)
+- Mô tả:
++ Đăng nhập bằng form (email và mật khẩu); mật khẩu so sánh với bản băm BCrypt (độ khó 12).
++ Trang công khai ai cũng xem được; /admin chỉ ADMIN, /staff chỉ STAFF; các trang còn lại cần đăng nhập.
++ CSRF bật cho mọi yêu cầu, chỉ bỏ qua đường nhận thông báo IPN của MoMo (đã có chữ ký riêng).
++ Sau khi đăng nhập chuyển trang theo vai trò: Admin → /admin, Staff → /staff, khách → /account.
+- Mã nguồn:
+[ma]
+@Bean PasswordEncoder passwords() { return new BCryptPasswordEncoder(12); }
+
+http.authorizeHttpRequests(a -> a
+    .requestMatchers("/css/**", "/js/**", "/images/**", "/movies/**", "/showtimes",
+                     "/login", "/register", "/forgot-password" /* … */).permitAll()
+    .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+    .requestMatchers("/staff/**", "/api/staff/**").hasRole("STAFF")
+    .anyRequest().authenticated());
+http.csrf(c -> c.ignoringRequestMatchers("/payments/momo/ipn"));
+
+response.sendRedirect(switch (u.role()) {
+    case "ADMIN" -> "/admin";
+    case "STAFF" -> "/staff";
+    default -> "/account";
+});
+[/ma]
+### 3.2. Đặt vé và giữ ghế
+- Mô tả: Phương thức BookingService.hold giữ ghế cho khách; mọi bước nằm trong một giao dịch, lỗi ở bước nào thì hủy toàn bộ.
++ Chỉ cho chọn 1–8 ghế, không lặp; khóa tài khoản khách, mỗi khách chỉ giữ một đơn tại một thời điểm.
++ Khóa suất chiếu; suất phải đang mở bán và còn trước giờ đóng bán.
++ Ghế đôi phải chọn đủ cả cặp.
++ Khóa từng ghế theo thứ tự cố định; ghế đã bán hoặc đang bị người khác giữ thì từ chối.
++ Tạo đơn, chốt giá vé theo ghế (snapshot) và đặt hạn giữ ghế 300 giây (5 phút) do máy chủ tính.
+- Mã nguồn:
+[ma]
+public Order hold(Long userId, Long showtimeId, List<Long> requested) {
+    if (requested == null || requested.isEmpty() || requested.size() > 8
+            || new HashSet<>(requested).size() != requested.size())
+        throw new IllegalArgumentException("Chọn từ 1 đến 8 ghế, không lặp.");
+    User user = db.lock(User.class, userId);
+    for (Order old : db.list(Order.class,
+            "where e.userId=?1 and e.status='PENDING_PAYMENT'", userId)) {
+        if (now().isBefore(old.expiresAt))
+            throw new IllegalArgumentException("Bạn còn đơn đang giữ ghế.");
+        expireLocked(old);
+    }
+    Showtime show = db.lock(Showtime.class, showtimeId);
+    if (!show.status.equals("OPEN")
+            || now().plusSeconds(1200).isAfter(show.startsAt))
+        throw new IllegalArgumentException("Suất đã ngừng nhận đặt vé.");
+    ...
+    for (Seat seat : seats) {
+        Inventory inv = db.first(Inventory.class,
+            "where e.showtimeId=?1 and e.seatId=?2", show.id, seat.id).orElseThrow();
+        db.lock(Inventory.class, inv.id);
+        if (inv.status.equals("SOLD")
+                || (inv.status.equals("HELD") && now().isBefore(inv.expiresAt)))
+            throw new IllegalArgumentException("Ghế " + seat.label + " đã có người giữ hoặc mua.");
+    }
+    o.expiresAt = now().plusSeconds(300);   // giữ ghế 5 phút
+    ...
+}
+[/ma]
+### 3.3. Thanh toán (Tích hợp MoMo)
+- Mô tả: MomoService.ipn nhận thông báo kết quả từ MoMo (IPN).
++ Kiểm tra mã merchant (partnerCode) đúng cấu hình.
++ Dựng chuỗi chữ ký từ các trường MoMo gửi, tính HMAC-SHA256 bằng khóa bí mật và so sánh với chữ ký nhận được.
++ Tìm giao dịch theo mã đơn MoMo và kiểm tra requestId khớp.
++ Chuyển cho BookingService.paymentResult kiểm tra số tiền và xử lý lặp lại an toàn; thanh toán đến muộn sau khi hết hạn giữ ghế chỉ được ghi nhận để đối soát, không phát vé.
+- Mã nguồn:
+[ma]
+public void ipn(Map<String, Object> data) {
+    if (!configured() || !partner.equals(data.get("partnerCode")))
+        throw new IllegalArgumentException("Merchant không hợp lệ.");
+    String raw = canonical(data, "accessKey", "amount", "extraData", "message",
+        "orderId", "orderInfo", "orderType", "partnerCode", "payType",
+        "requestId", "responseTime", "resultCode", "transId");
+    String expected = sign(secret, raw);
+    String actual = Objects.toString(data.get("signature"), "");
+    if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.US_ASCII),
+                               actual.getBytes(StandardCharsets.US_ASCII)))
+        throw new IllegalArgumentException("Chữ ký không hợp lệ.");
+    Payment p = db.first(Payment.class, "where e.externalOrderId=?1",
+        Objects.toString(data.get("orderId"))).orElseThrow();
+    if (!p.requestId.equals(data.get("requestId")))
+        throw new IllegalArgumentException("Request không khớp.");
+    bookings.paymentResult(p.externalOrderId,
+        Long.parseLong(data.get("amount").toString()),
+        Objects.toString(data.get("transId")),
+        Integer.parseInt(data.get("resultCode").toString()));
+}
+[/ma]
+### 3.4. Check-in vé bằng QR
+- Mô tả: CheckInService kiểm tra điều kiện trước khi cho khách vào rạp.
++ Nhân viên chỉ soát vé thuộc rạp được phân công.
++ Vé phải đúng suất đang soát, ở trạng thái VALID và đơn đã thanh toán (PAID).
++ Chỉ cho vào từ 60 phút trước đến 30 phút sau giờ chiếu.
++ Mỗi vé chỉ dùng một lần: sau khi xác nhận chuyển sang USED, ghi nhân viên và thời điểm.
+- Mã nguồn:
+[ma]
+public Ticket checkIn(Long staffId, Long ticketId, Long selectedShowtime) {
+    Ticket t = db.lock(Ticket.class, ticketId);
+    Showtime s = db.get(Showtime.class, t.showtimeId);
+    permitted(staffId, s);
+    Instant now = clock.instant();
+    Eligibility e = eligibility(t, s, db.get(Order.class, t.orderId), selectedShowtime, now);
+    if (!e.allowed()) throw new StaffProblem(e.code(), e.message());
+    t.status = "USED"; t.checkedInAt = now; t.checkedInBy = staffId;
+    db.audit(staffId, "CHECK_IN", t.code);
+    return t;
+}
+
+if (now.isBefore(s.startsAt.minusSeconds(3600)) || now.isAfter(s.startsAt.plusSeconds(1800)))
+    return new Eligibility(false, "OUTSIDE_WINDOW",
+        "Ngoài khung check-in: từ 60 phút trước đến 30 phút sau giờ chiếu.");
+[/ma]
+### 3.5. Xếp lịch chiếu theo tuần
+- Mô tả: ShowtimeRules dùng chung cho mọi cách thêm suất (form, lịch tuần, Excel).
++ Hai suất trong cùng phòng bị coi là trùng nếu khoảng thời gian chồng nhau, tính cả 15 phút dọn phòng (900 giây) ở hai đầu.
++ Trước khi mở bán, kiểm tra phim, rạp, phòng còn hoạt động; phòng có ghế; ghế đôi đủ cặp; có đúng một mức giá cho mỗi loại ghế tại giờ chiếu.
++ Người ghi dữ liệu phải khóa phòng trước khi kiểm tra trùng để hai Admin không thêm trùng cùng lúc.
+- Mã nguồn:
+[ma]
+public static final int CLEANUP_SECONDS = 900;
+
+public static boolean overlaps(Instant start, Instant end,
+                               Instant otherStart, Instant otherEnd) {
+    return start.isBefore(otherEnd.plusSeconds(CLEANUP_SECONDS))
+        && end.plusSeconds(CLEANUP_SECONDS).isAfter(otherStart);
+}
+
+if (matching.size() != 1)
+    errors.add("Thiếu hoặc trùng giá " + type + " tại giờ suất đang chọn.");
+[/ma]
+
+# CHƯƠNG IV: KIỂM THỬ
+- Ghi chú: các bảng dưới đây gồm hai loại ca. Ca "thủ công" gửi yêu cầu HTTP thật tới ứng dụng chạy bằng file JAR (cổng 8081, schema cineprime_test) ngày 17/11/2026. Ca "tự động" là kiểm thử JUnit trên MySQL thật (không dùng H2), chạy ngày 17/11/2026.
+## 1. Đăng ký
+- Mục tiêu: Đảm bảo người dùng đăng ký được tài khoản với thông tin hợp lệ
+[bang] || 1.1c,3.2,4.0,4.4,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Nhập đầy đủ thông tin hợp lệ (thủ công) | Họ tên: Nguyễn Văn A<br>Email: baocao.a@example.com<br>Mật khẩu: Password@123456 | Tạo tài khoản, chuyển về trang đăng nhập (HTTP 302 /login?registered) | Pass
+| 2 | Email đã tồn tại (thủ công) | Email: baocao.a@example.com | Từ chối: "Không thể đăng ký email này…" (HTTP 400) | Pass
+| 3 | Mật khẩu quá ngắn (thủ công) | Mật khẩu: Pass@123 | Từ chối: "Mật khẩu cần ít nhất 10 ký tự…" (HTTP 400) | Pass
+| 4 | Sai dạng email (thủ công) | Email: abc.com | Từ chối: "Kiểm tra email và họ tên." (HTTP 400) | Pass
+| 5 | Họ tên để trống (thủ công) | Họ tên: (khoảng trắng) | Từ chối: "Kiểm tra email và họ tên." (HTTP 400) | Pass
+| 6 | Gửi form không có mã CSRF (thủ công) | Không kèm _csrf | Chặn yêu cầu (HTTP 403) | Pass
+## 2. Đăng nhập
+- Mục tiêu: Đảm bảo chỉ tài khoản đúng được đăng nhập và phiên bị thu hồi khi tài khoản bị khóa
+[bang] || 1.1c,3.2,4.0,4.4,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Đúng email và mật khẩu (thủ công) | baocao.a@example.com / Password@123456 | Đăng nhập, chuyển đến /account | Pass
+| 2 | Đúng email, sai mật khẩu (thủ công) | Mật khẩu: SaiMatKhau@999 | Không đăng nhập, chuyển về /login?error | Pass
+| 3 | Email không tồn tại (thủ công) | khongtontai@example.com | Chuyển về /login?error | Pass
+| 4 | Để trống email và mật khẩu (thủ công) | (trống) | Chuyển về /login?error | Pass
+| 5 | Đăng nhập sai quá 15 lần trong một khung thời gian (tự động) | Lần thứ 16 | Bị từ chối do giới hạn số lần thử | Pass
+| 6 | Tài khoản bị khóa khi đang đăng nhập (tự động) | Admin khóa tài khoản | Phiên cũ mất hiệu lực ngay | Pass
+| 7 | Mã đặt lại mật khẩu dùng lần hai hoặc hết hạn (tự động) | Dùng lại token | Từ chối; token chỉ dùng một lần | Pass
+## 3. Đặt vé và giữ ghế
+- Mục tiêu: Đảm bảo một ghế chỉ bán cho một khách và hạn giữ ghế đúng 5 phút (kiểm thử tự động)
+[bang] || 1.1c,3.4,4.0,4.2,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Nhiều khách giữ cùng một ghế cùng lúc | Nhiều luồng cùng giữ một ghế | Đúng một người giữ được | Pass
+| 2 | Chọn nhiều ghế, một ghế đã bị giữ | Danh sách nhiều ghế | Không giữ ghế nào (tất cả hoặc không) | Pass
+| 3 | Hết hạn giữ ghế | Đúng mốc 300 giây | Ghế được trả lại, kể cả khi khách đã đóng trình duyệt | Pass
+| 4 | Mua ghế đôi chỉ một ghế | Một ghế của cặp | Từ chối: phải chọn đủ cặp | Pass
+| 5 | Tải lại trang, đổi combo, đổi voucher | Thao tác trên đơn đang giữ | Không kéo dài thời gian giữ | Pass
+| 6 | Sửa giá vé sau khi đã giữ ghế | Admin đổi giá | Đơn giữ nguyên giá đã chốt | Pass
+| 7 | Hai người cùng dùng mã ưu đãi cuối cùng | Voucher còn một lượt | Một người dùng được, lượt trả lại đúng một lần | Pass
+| 8 | Quầy và online cùng giữ một ghế | Hai kênh bán cùng lúc | Đúng một bên thắng | Pass
+## 4. Thanh toán MoMo
+- Mục tiêu: Đảm bảo kết quả thanh toán được xác thực và xử lý đúng một lần (kiểm thử tự động, khóa thử nghiệm, không phải giao dịch thật)
+[bang] || 1.1c,3.4,4.0,4.2,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Chữ ký không hợp lệ hoặc requestId sai | IPN giả mạo | Từ chối, không phát vé | Pass
+| 2 | Số tiền không khớp đơn | IPN sai amount | Không xác nhận thanh toán | Pass
+| 3 | IPN gửi trùng hoặc đảo thứ tự | Hai IPN cho một đơn | Chỉ phát vé, cộng điểm một lần | Pass
+| 4 | Thanh toán thành công đến sau khi hết hạn giữ ghế | IPN muộn | Ghi nhận để đối soát, không phát vé, không lấy lại ghế | Pass
+| 5 | Đơn đã hủy nhưng MoMo báo thành công muộn | IPN sau khi hủy | Đánh dấu cần đối soát | Pass
+| 6 | Đơn tổng tiền 0 đồng (voucher miễn phí) | Voucher làm tổng tiền bằng 0 | Hoàn tất như đơn miễn phí, không gọi cổng | Pass
+| 7 | Chữ ký HMAC-SHA256 với vector chuẩn | Dữ liệu mẫu công bố | Chữ ký tính ra khớp | Pass
+## 5. Check-in
+- Mục tiêu: Đảm bảo mỗi vé chỉ vào một lần, đúng rạp, đúng suất, đúng giờ (kiểm thử tự động)
+[bang] || 1.1c,3.4,4.0,4.2,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Hai nhân viên cùng quét một vé | Quét đồng thời | Chỉ một lần thành công | Pass
+| 2 | Nhân viên khác rạp | Staff rạp khác | Từ chối | Pass
+| 3 | Vé của suất khác | Chọn sai suất | Từ chối: "Vé không đúng suất đang soát." | Pass
+| 4 | Quét ngoài khung giờ | Trước 60 phút hoặc sau 30 phút | Từ chối: "Ngoài khung check-in…" | Pass
+| 5 | Mất phản hồi rồi xác nhận lại | Gửi lại yêu cầu | Vẫn chỉ ghi nhận một lần | Pass
+| 6 | Vé PDF tiếng Việt có mã QR | Tải vé PDF | Hiển thị đủ dấu, đọc được mã QR | Pass
+## 6. Xếp lịch chiếu
+- Mục tiêu: Đảm bảo lịch chiếu không trùng phòng và không phá vỡ vé đã bán (kiểm thử tự động)
+[bang] || 1.1c,3.4,4.0,4.2,2.4c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | Hai suất sát nhau trong một phòng | Cách nhau dưới 15 phút | Báo trùng vì thời gian dọn phòng | Pass
+| 2 | Sửa suất đang có ghế được giữ | Đổi giờ, phòng | Chặn để bảo vệ đơn đang giữ | Pass
+| 3 | Suất ngoài khoảng ngày chiếu của phim | Suất sau ngày kết thúc | Từ chối | Pass
+| 4 | Hai dòng trùng nhau trong cùng lô thêm | Lô nhiều suất | Đánh dấu cả hai dòng, không ghi gì | Pass
+| 5 | Nhập Excel sai mẫu, sai rạp, có công thức | File Excel lỗi | Báo lỗi rõ, không ghi dữ liệu | Pass
+| 6 | Thêm lô suất và sửa suất cùng lúc | Hai yêu cầu đồng thời | Chỉ một yêu cầu thắng | Pass
+## 7. Tổng hợp kiểm thử tự động
+- Kết quả chạy toàn bộ bộ kiểm thử (mvnw test) ngày 17/11/2026 trên MySQL 8.4 schema cineprime_test:
+[bang] Kết quả kiểm thử tự động theo lớp kiểm thử || 1.1c,5.6,1.6c,1.6c,1.6c,1.8c
+|^ STT | Lớp kiểm thử | Số ca | Lỗi | Lỗi hệ thống | Bỏ qua
+| 1 | BookingIntegrationTest (MySQL/HTTP) | 129 | 0 | 0 | 0
+| 2 | ShowtimeExcelTest | 15 | 0 | 0 | 0
+| 3 | AdminFormsTest | 4 | 0 | 0 | 0
+| 4 | MediaServiceTest | 4 | 0 | 0 | 0
+| 5 | MovieLifecycleTest | 3 | 0 | 0 | 0
+| 6 | ReportServiceTest | 3 | 0 | 0 | 0
+| 7 | MomoSignatureTest | 1 | 0 | 0 | 0
+|= Tổng cộng: 159 ca, 0 lỗi, 0 lỗi hệ thống, 0 bỏ qua
+- Chưa kiểm thử: giao dịch MoMo thật (chỉ có khóa thử nghiệm), gửi email qua SMTP thật, quét QR bằng camera thiết bị thật, máy in nhiệt.
+
+# CHƯƠNG V: TRIỂN KHAI
+## 1. Chuẩn bị môi trường
+> B1: Cài JDK 25 và MySQL 8; tạo database cineprime và tài khoản có quyền trên database đó.
+> B2: Đặt biến môi trường cấu hình (không ghi mật khẩu vào mã nguồn):
+[ma]
+$env:JAVA_HOME='C:\Program Files\Java\jdk-25'
+$env:DB_URL='jdbc:mysql://localhost:3306/cineprime?connectionTimeZone=UTC&...'
+$env:DB_USER='cineprime'
+$env:DB_PASSWORD='<mật khẩu>'
+[/ma]
+## 2. Cấu hình và chạy ứng dụng
+> B1: Đóng gói ứng dụng thành file JAR (có chạy kiểm thử):
+[ma]
+.\mvnw.cmd -B -ntp package
+[/ma]
+> B2: Chạy ứng dụng (Flyway tự tạo bảng ở lần đầu; thêm DEMO_SEED=true để có dữ liệu mẫu):
+[ma]
+java -jar target\cineprime-1.0.0.jar
+[/ma]
+> B3: Mở trình duyệt vào địa chỉ http://localhost:8080 để dùng website.
+> Kết quả:
+[hinh] D:\0_JAV102\CinePrime_Project\Báo cáo\Ảnh giao diện\KQ01-trang-chu-chay-that.png | Trang chủ sau khi chạy ứng dụng | 15
+[hinh] D:\0_JAV102\CinePrime_Project\Báo cáo\Ảnh giao diện\KQ02-danh-sach-phim-chay-that.png | Trang danh sách phim | 15
+[hinh] D:\0_JAV102\CinePrime_Project\Báo cáo\Ảnh giao diện\KQ03-dang-nhap-chay-that.png | Trang đăng nhập | 15
+## 3. Triển khai lên Vercel (dự kiến, chưa thực hiện)
+- Vercel hỗ trợ chạy ứng dụng đóng gói bằng Docker (Container runtime), nên Spring Boot được triển khai bằng một Dockerfile; ứng dụng phải lắng nghe cổng do biến PORT cung cấp.
+- Các bước dự kiến:
++ B1: Chuẩn bị MySQL trên dịch vụ ngoài (Vercel không cung cấp MySQL); cập nhật DB_URL, DB_USER, DB_PASSWORD.
++ B2: Viết Dockerfile build file JAR và chạy bằng JDK 25.
++ B3: Khai báo biến môi trường trên Vercel: DB_URL, DB_USER, DB_PASSWORD, khóa MoMo, SMTP, UPLOAD_DIR.
++ B4: Đẩy mã nguồn lên GitHub, kết nối repository với Vercel và deploy.
++ B5: Gắn tên miền, bật HTTPS, cấu hình địa chỉ IPN của MoMo về tên miền thật.
+- Lưu ý: thư mục tải lên (UPLOAD_DIR) cần lưu trữ ngoài vì máy chủ chạy container không giữ dữ liệu lâu dài. Phần này chưa có cấu hình và chưa được kiểm thử, nên không ghi là đã triển khai.
+
+# CHƯƠNG VI: HẠN CHẾ VÀ HƯỚNG PHÁT TRIỂN
+## 1. Hạn chế
+- Chưa thanh toán MoMo thật: mới kiểm thử với khóa thử nghiệm và bộ kiểm thử tự động.
+- Chưa gửi email thật qua SMTP và chưa thử quét QR bằng camera thiết bị thật, máy in nhiệt thật.
+- Chưa triển khai lên Internet; mới chạy và kiểm thử trên máy cục bộ.
+- Chưa có chức năng hoàn tiền; hủy đơn chỉ áp dụng cho đơn chưa thanh toán.
+- Giao diện Admin và Staff chỉ tối ưu cho màn hình máy tính (từ 1366×768).
+## 2. Hướng phát triển tương lai
+- Triển khai lên Vercel kèm MySQL và nơi lưu ảnh tải lên bên ngoài, bật HTTPS.
+- Tích hợp đăng nhập bằng Google và thêm cổng thanh toán VNPay.
+- Hoàn tiền khi hủy đơn đã thanh toán.
+- Mở rộng đổi điểm thưởng thành quà hoặc giảm giá.
+- Gợi ý phim theo sở thích từng khách.
+## 3. Kết luận
+- CinePrime đáp ứng quy trình đặt vé xem phim từ chọn phim, giữ ghế, thanh toán đến soát vé tại rạp, cùng trang quản trị cho Admin và Staff.
+- Dữ liệu ghế, voucher, thanh toán và check-in được bảo vệ bằng giao dịch trên MySQL và đã kiểm thử tự động (159 ca, 0 lỗi).
+- Cần hoàn tất thanh toán MoMo thật, email thật và triển khai Internet trước khi đưa vào sử dụng thực tế.
+
+#! PHỤ LỤC: TÀI LIỆU THAM KHẢO
+- Spring Boot: https://docs.spring.io/spring-boot/
+- Spring Security: https://docs.spring.io/spring-security/reference/
+- Pug4J: https://github.com/neuland/pug4j
+- MySQL: https://dev.mysql.com/doc/
+- Flyway: https://documentation.red-gate.com/flyway
+- MoMo Developers: https://developers.momo.vn/
+- Apache PDFBox: https://pdfbox.apache.org/
+- ZXing: https://github.com/zxing/zxing
+- Vercel Container runtime: https://vercel.com/docs/functions/runtimes/container

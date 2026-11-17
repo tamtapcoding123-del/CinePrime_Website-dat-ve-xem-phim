@@ -245,10 +245,9 @@ body.admin-compact{--shadow:0 8px 24px rgba(20,23,28,.16);
 :is(.admin-compact .button,.admin-compact input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),.admin-compact select,.admin-compact textarea,.admin-compact :is(.hub-tabs,.admin-compact .channel-tabs) a,.admin-compact .nav-item,.admin-compact .nav-child,.admin-compact .icon-button,.admin-compact .account-tabs a){--cut:var(--cut-sm)}
 :is(.admin-compact .kpi-card,.admin-compact :is(.chart-panel,.admin-compact .table-wrap),.admin-compact .notice,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .empty,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact :is(.order-summary>div,.admin-compact .stats-grid .stat-card),.admin-compact .drawer-total,.admin-compact .mf-side section){--cut:var(--cut-md)}
 :is(.admin-compact :is(.status-badge,.admin-compact .channel-badge,.admin-compact .badge),.admin-compact .kpi-icon,.admin-compact .pager-btn,.admin-compact .row-actions .action-btn,.admin-compact .mf-step,.admin-compact .button,.admin-compact input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),.admin-compact select,.admin-compact textarea,.admin-compact :is(.hub-tabs,.admin-compact .channel-tabs) a,.admin-compact .nav-item,.admin-compact .nav-child,.admin-compact .icon-button,.admin-compact .account-tabs a,.admin-compact .kpi-card,.admin-compact :is(.chart-panel,.admin-compact .table-wrap),.admin-compact .notice,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .empty,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact :is(.order-summary>div,.admin-compact .stats-grid .stat-card),.admin-compact .drawer-total,.admin-compact .mf-side section){border-radius:0;clip-path:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut))}
-:is(.admin-compact .button.secondary,.admin-compact .button.danger,.admin-compact input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),.admin-compact select,.admin-compact textarea,.admin-compact :is(.hub-tabs,.admin-compact .channel-tabs) a,.admin-compact .icon-button,.admin-compact .pager-btn,.admin-compact .row-actions .action-btn,.admin-compact :is(.status-badge,.admin-compact .channel-badge,.admin-compact .badge),.admin-compact :is(.chart-panel,.admin-compact .table-wrap),.admin-compact .notice,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact :is(.order-summary>div,.admin-compact .stats-grid .stat-card),.admin-compact .drawer-total,.admin-compact .mf-side section){--bevel-corner:var(--line-strong);--bevel-cap:1px;background-origin:border-box;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px)),linear-gradient(-45deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px))}
-:is(.admin-compact .button:not(.secondary):not(.danger)){--bevel-corner:rgba(21,27,38,.32);--bevel-cap:3px}
-:is(.admin-compact .nav-item.active,.admin-compact .nav-child.active,.admin-compact :is(.hub-tabs a.active,.admin-compact .channel-tabs a[aria-current=page]),.admin-compact .account-tabs a.active){--bevel-corner:var(--accent);--bevel-cap:4px;background-color:var(--accent-tint)!important;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--ink)!important}
-:is(.admin-compact :is(.panel,.admin-compact .mf-card,.admin-compact .ops-filters)){--cut:var(--cut-md);--bevel-corner:var(--line-strong);--bevel-cap:1px;position:relative;isolation:isolate;border-radius:0;border-color:transparent;background-color:transparent;box-shadow:none}
+:is(.admin-compact .button.secondary,.admin-compact .button.danger,.admin-compact input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),.admin-compact select,.admin-compact textarea,.admin-compact :is(.hub-tabs,.admin-compact .channel-tabs) a,.admin-compact .icon-button,.admin-compact .pager-btn,.admin-compact .row-actions .action-btn,.admin-compact :is(.status-badge,.admin-compact .channel-badge,.admin-compact .badge),.admin-compact :is(.chart-panel,.admin-compact .table-wrap),.admin-compact .notice,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact :is(.order-summary>div,.admin-compact .stats-grid .stat-card),.admin-compact .drawer-total,.admin-compact .mf-side section){background-origin:border-box;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px)),linear-gradient(-45deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px))}
+:is(.admin-compact .nav-item.active,.admin-compact .nav-child.active,.admin-compact :is(.hub-tabs a.active,.admin-compact .channel-tabs a[aria-current=page]),.admin-compact .account-tabs a.active){background-color:var(--accent-tint)!important;border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);color:var(--ink)!important}
+:is(.admin-compact :is(.panel,.admin-compact .mf-card,.admin-compact .ops-filters)){--cut:var(--cut-md);position:relative;isolation:isolate;border-radius:0;border-color:transparent;background-color:transparent;box-shadow:none}
 :is(.admin-compact :is(.panel,.admin-compact .mf-card,.admin-compact .ops-filters))::before{content:"";position:absolute;inset:-1px;z-index:-1;pointer-events:none;background-color:var(--frame-bg,var(--surface));clip-path:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut))}
 :is(.admin-compact :is(.panel,.admin-compact .mf-card,.admin-compact .ops-filters))::after{content:"";position:absolute;inset:-1px;z-index:-1;pointer-events:none;border:1px solid var(--frame-line,var(--line));background-origin:border-box;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px)),linear-gradient(-45deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px));clip-path:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut))}
 :is(.admin-compact :is(.status-badge,.admin-compact .channel-badge,.admin-compact .badge),.admin-compact .kpi-icon,.admin-compact .pager-btn,.admin-compact .row-actions .action-btn,.admin-compact .mf-step,.admin-compact .button,.admin-compact input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=hidden]),.admin-compact select,.admin-compact textarea,.admin-compact :is(.hub-tabs,.admin-compact .channel-tabs) a,.admin-compact .nav-item,.admin-compact .nav-child,.admin-compact .icon-button,.admin-compact .account-tabs a,.admin-compact .kpi-card,.admin-compact :is(.chart-panel,.admin-compact .table-wrap),.admin-compact .notice,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .empty,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact :is(.order-summary>div,.admin-compact .stats-grid .stat-card),.admin-compact .drawer-total,.admin-compact .mf-side section):focus-visible{outline:0!important;box-shadow:inset 0 0 0 2px var(--focus-ring)}
@@ -271,4 +270,97 @@ body.admin-compact{font-family:var(--font)}
 .admin-compact :is(.form-savebar,.mf-savebar) .button:not(.secondary):not(.danger),.admin-compact .button.primary{border-color:var(--accent)}
 .admin-compact .kpi-card{background-origin:border-box}
 .admin-compact th{font-family:var(--font)}
+/* Diagonal = border (17/11/2026). The cut is part of the outline: every chamfered box that has a border carries the diagonal,
+   in the same colour and width as its side borders, so the line runs unbroken round both cuts (no darker or thicker caps).
+   Rule: --bevel-corner always names the same token as that state's border-color. Boxes without a border (kpi-icon, mf-step,
+   solid dark/accent buttons) are only cut. */
+:is(.admin-compact .button,.admin-compact .icon-button,.admin-compact .nav-item.active,.admin-compact .nav-child.active,.admin-compact .account-tabs a,.admin-compact .kpi-card,.admin-compact .empty,.admin-compact .action-notice,.admin-compact .form-error,.admin-compact .chart-panel,.admin-compact .table-wrap,.admin-compact .notice){--bevel-cap:1px;background-origin:border-box;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px)),linear-gradient(-45deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px))}
+:is(.admin-compact .chart-panel,.admin-compact .table-wrap,.admin-compact .notice,.admin-compact .catalog-context,.admin-compact .cinema-context,.admin-compact .order-summary>div,.admin-compact .stats-grid .stat-card,.admin-compact .mf-side section,.admin-compact .kpi-card,.admin-compact .empty,.admin-compact .icon-button,.admin-compact :is(.hub-tabs,.channel-tabs) a,.admin-compact .account-tabs a){--bevel-corner:var(--line)}
+:is(.admin-compact :is(.panel,.mf-card,.ops-filters)){--bevel-corner:var(--frame-line,var(--line))}
+.admin-compact :is(input,select,textarea,.pager-btn,.row-actions .action-btn){--bevel-corner:var(--line-strong)}
+.admin-compact .button{--bevel-corner:var(--btn-dark)}
+.admin-compact .button:hover{--bevel-corner:var(--btn-dark-hover)}
+.admin-compact :is(.form-savebar,.mf-savebar) .button:not(.secondary):not(.danger),.admin-compact .button.primary{--bevel-corner:var(--accent)}
+.admin-compact .button.secondary{--bevel-corner:var(--line-strong)}
+.admin-compact .button.secondary:hover{--bevel-corner:var(--ink)}
+.admin-compact .button.danger{--bevel-corner:var(--bad-line)}
+.admin-compact .button.danger:hover{--bevel-corner:var(--bad-fg)}
+.admin-compact :is(input,select,textarea):focus{--bevel-corner:var(--brand)}
+.admin-compact .row-actions .action-btn.primary{--bevel-corner:var(--brand-line)}
+.admin-compact :is(.row-actions .action-btn,.row-actions .action-btn.primary,.pager-btn:not(:disabled)):hover{--bevel-corner:var(--brand)}
+.admin-compact :is(.status-badge,.channel-badge,.badge){--bevel-corner:var(--off-line)}
+.admin-compact .status-badge.tone-ok{--bevel-corner:var(--ok-line)}
+.admin-compact :is(.status-badge.tone-info,.channel-badge.online){--bevel-corner:var(--info-line)}
+.admin-compact .status-badge.tone-warn{--bevel-corner:var(--warn-line)}
+.admin-compact .status-badge:is(.tone-bad,.tone-danger,.tone-error),.admin-compact .form-error{--bevel-corner:var(--bad-line)}
+.admin-compact .channel-badge.counter,.admin-compact .drawer-total{--bevel-corner:var(--counter-line)}
+.admin-compact .action-notice{--bevel-corner:var(--ok-line)}
+/* Selected tab: 1px accent border + 1px inset ring reads as 2px, so the diagonal is 2px. Sidebar item has no border, only the ring. */
+:is(.admin-compact :is(.hub-tabs a.active,.channel-tabs a[aria-current=page]),.admin-compact .account-tabs a.active){--bevel-corner:var(--accent);--bevel-cap:2px}
+:is(.admin-compact .nav-item.active,.admin-compact .nav-child.active){--bevel-corner:var(--accent);--bevel-cap:1px}
+.admin-compact input:autofill{border-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='21' height='21'%3E%3Cpath fill-rule='evenodd' fill='%23AEBACB' d='M7 0H21V14L14 21H0V7ZM7.414 1H20V13.586L13.586 20H1V7.414Z'/%3E%3C/svg%3E") 7/7px/0 stretch}
+/* Area tabs carry background:none!important from the older tab bar, so their diagonals need !important too. */
+.admin-compact :is(.hub-tabs,.channel-tabs) a{background-origin:border-box!important;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px)),linear-gradient(-45deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + var(--bevel-cap)),transparent calc(var(--cut)*.70710678 + var(--bevel-cap) + .6px))!important}
+/* Tables never cut their last columns: headers wrap, the card scrolls sideways only if it still cannot fit. */
+.admin-compact .table-wrap{overflow-x:auto}
+.admin-compact .management-table th{white-space:normal;min-width:64px}
+.admin-compact .management-table th:last-child{white-space:nowrap}
 /* ===== Cinema Pearl chamfer — end ===== */
+
+/* ===== Area header in one row + Rạp & phòng (16/11/2026) =====
+   Heading, tabs, count and the add button share one row (the breadcrumb repeated them). Rạp & phòng: filters on one line,
+   a slim Rạp › Phòng › Ghế trail instead of the "Rạp đang quản lý" card, counts link to the next level, and the list card
+   fits the window so only the table scrolls. Desktop only (≥1366×768). */
+.admin-compact .hub-head{display:flex;align-items:center;flex-wrap:wrap;gap:12px 16px;margin:0 0 12px}
+.admin-compact .hub-head h1{margin:0;font-size:22px;line-height:1.3}
+.admin-compact .hub-head :is(.hub-tabs){margin:0}
+.admin-compact .hub-tools{display:flex;align-items:center;gap:12px;margin-left:auto}
+.admin-compact .hub-tools:empty{display:none}
+.admin-compact .hub-tools .list-count{margin:0;font-size:13px;white-space:nowrap}
+.admin-compact .hub-tools .button{flex:none;white-space:nowrap}
+.admin-compact .count-link{color:var(--brand);font-weight:600;text-decoration:none;white-space:nowrap}
+.admin-compact .count-link:hover{text-decoration:underline}
+.admin-compact .ops-filters.is-inline{flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 12px;margin-bottom:12px}
+.admin-compact .ops-filters.is-inline label{display:flex;align-items:center;gap:8px;flex:1 1 0;min-width:220px;white-space:nowrap}
+.admin-compact .ops-filters.is-inline :is(input,select){flex:1 1 auto;min-width:0;min-height:36px;margin-top:0}
+.admin-compact .ops-filters.is-inline .button{min-height:36px}
+html:has(.hub-fit),body:has(.hub-fit){height:100%;overflow:hidden}
+body.admin-compact:has(.hub-fit) .ops-main{display:flex;flex-direction:column;height:calc(100dvh - 60px);padding-top:16px;padding-bottom:16px;overflow:hidden}
+body.admin-compact:has(.hub-fit) .ops-main>*{flex:none}
+.admin-compact .ops-main>.panel.hub-fit{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.admin-compact .hub-fit .table-wrap{flex:1 1 auto;min-height:0;overflow:auto}
+.admin-compact .hub-fit thead th{position:sticky;top:0;z-index:1}
+
+/* ===== Pearl × Vé (UI-Template 3.6, chốt 17/11/2026) =====
+   Selected = light red fill + dark red text, no red frame. Area tabs are ticket tabs (only the top-left corner cut,
+   the open one is the card colour with a 2px red top line). KPI cards are ticket stubs: the label row is torn off from
+   the figure by a dashed line with two notches; the 3px tone bar goes, the tone stays on the icon. */
+body.admin-compact.operations .ops-sidebar :is(.nav-item.active,.nav-child.active){--bevel-corner:var(--accent-tint);border-color:transparent!important;box-shadow:none!important;color:var(--accent-ink)!important;font-weight:600}
+body.admin-compact.operations .ops-sidebar .nav-item.active .nav-icon{color:var(--accent-ink)}
+body.admin-compact.operations :is(.hub-tabs,.channel-tabs,.account-tabs) a{--bevel-corner:var(--line);border:1px solid var(--line)!important;background-color:var(--surface-2)!important;color:var(--muted);clip-path:polygon(var(--cut) 0,100% 0,100% 100%,0 100%,0 var(--cut))!important;background-origin:border-box!important;background-image:linear-gradient(135deg,var(--bevel-corner) 0,var(--bevel-corner) calc(var(--cut)*.70710678 + 1px),transparent calc(var(--cut)*.70710678 + 1.6px))!important}
+body.admin-compact.operations :is(.hub-tabs,.channel-tabs,.account-tabs) a:hover{background-color:var(--surface)!important;color:var(--ink)}
+body.admin-compact.operations :is(.hub-tabs,.channel-tabs,.account-tabs) a:is(.active,[aria-current=page]){--bevel-corner:var(--line);background-color:var(--surface)!important;border-color:var(--line)!important;box-shadow:inset 0 2px 0 var(--accent)!important;color:var(--ink)!important}
+.admin-compact .kpi-card.kpi-card[class]{border-top:1px solid var(--line)}
+.admin-compact .kpi-card .kpi-label{--tear-inset:17px;--tear-hole:var(--bg);position:relative;padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed var(--line-strong)}
+.admin-compact .kpi-card .kpi-label::before,.admin-compact .kpi-card .kpi-label::after{content:"";position:absolute;bottom:-8px;width:15px;height:15px;border-radius:50%;box-sizing:border-box;background-color:var(--tear-hole);border:1px solid var(--line);pointer-events:none}
+.admin-compact .kpi-card .kpi-label::before{left:calc(-1 * var(--tear-inset) - 8px)}
+.admin-compact .kpi-card .kpi-label::after{right:calc(-1 * var(--tear-inset) - 8px)}
+.admin-compact thead th{border-bottom:1px dashed var(--line-strong)!important}
+.admin-compact :is(.status-badge,.channel-badge,.badge){font-weight:700}
+.admin-compact .ticket-code{font-size:12.5px;background-color:var(--card)}
+/* Màn rộng (17/11/2026): ở 100% cửa sổ ~1920px — khung admin và form không còn chặn 1800px / 1100px, nội dung lấp đầy. */
+.admin-compact .ops-shell{max-width:none}
+.admin-compact .ops-edit-form{max-width:none}
+/* Ca tại quầy: chênh lệch có nhãn Thừa / Thiếu / Khớp két, ghi chú của nhân viên là một khối đọc được. */
+.admin-compact .shift-diff{min-width:170px}
+.admin-compact .shift-diff-label{display:block;font-size:12px;font-weight:600}
+.admin-compact .shift-diff-amount{display:block;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.admin-compact :is(.shift-diff-label,.shift-diff-amount).tone-warn{color:var(--warn-fg)}
+.admin-compact :is(.shift-diff-label,.shift-diff-amount).tone-bad{color:var(--bad-fg)}
+.admin-compact :is(.shift-diff-label,.shift-diff-amount).tone-ok{color:var(--ok-fg)}
+.admin-compact .shift-note{max-width:260px;margin:6px 0 0;padding:4px 8px;border-left:2px solid var(--line-strong);background-color:var(--surface-2);font-size:13px;line-height:1.45;color:var(--ink);white-space:normal}
+.admin-compact .shift-note span{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+/* Nội dung (17/11/2026): tabs by place on the site, poster thumbnail per row. */
+.admin-compact .content-tabs .tab-count{margin-left:8px;font-size:12px;font-weight:600;opacity:.75}
+.admin-compact .record-thumb.is-poster{width:40px;height:60px;object-fit:cover;border:1px solid var(--line);margin-left:10px}
+.admin-compact .record-thumb.is-empty{border-style:dashed;background-color:var(--surface)}

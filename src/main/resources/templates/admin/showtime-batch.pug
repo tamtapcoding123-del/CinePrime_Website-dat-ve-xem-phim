@@ -1,7 +1,7 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-batch.css?v=20261115q")
-  script(src="/js/showtime-batch.js?v=20261115q" defer)
+  link(rel="stylesheet" href="/css/showtime-batch.css?v=20261116c")
+  script(src="/js/showtime-batch.js?v=20261116c" defer)
   script(src="/js/showtime-hub.js?v=20261114c" defer)
 block admin
   #showtime-batch.sched.is-week(data-cinema=batchCinemaId data-room=batchRoomId data-movie=batchMovieId data-date=batchDate)
@@ -36,8 +36,15 @@ block admin
       aside.sched-side(aria-label="Phim đang xếp")
         section.sched-card
           h2 Phim để bấm thêm
-          input#batch-movie-filter(type="search" placeholder="Tìm phim" aria-label="Tìm phim" hidden)
-          #batch-movies.sched-movies(role="radiogroup" aria-label="Phim để bấm thêm")
+          button#batch-movie-button.sched-moviepick(type="button" aria-expanded="false" aria-controls="batch-movie-pop" title="Bấm để xổ danh sách phim; kéo một phim thả vào lịch để thêm suất")
+            span.sched-moviepick-text
+              strong#batch-movie-current Chọn phim
+              small#batch-movie-meta
+            span.sched-moviepick-caret(aria-hidden="true") ▾
+          .sched-pick-list#batch-movie-pop(hidden)
+            input#batch-movie-filter(type="search" placeholder="Tìm phim" aria-label="Tìm phim" autocomplete="off" hidden)
+            #batch-movies.sched-movies(role="listbox" aria-label="Phim để bấm thêm")
+            p.sched-pick-hint Kéo phim thả vào một ngày để thêm suất
       .sched-main
         .sched-workhead
           #batch-room-tabs.sched-rooms(role="group" aria-label="Chọn phòng để xem lịch")
@@ -73,8 +80,7 @@ block admin
           .sched-panel-body
             fieldset
               legend Phòng
-              #batch-add-rooms.sched-chips(role="radiogroup" aria-label="Phòng")
-              select#batch-room(hidden aria-hidden="true" tabindex="-1")
+              select#batch-room.sched-roompick(aria-label="Phòng")
                 option(value="") Chọn phòng
                 each r in batchRooms
                   option(value=r.id data-format=r.format selected=batchRoomId == r.id.toString())= r.name
@@ -90,8 +96,7 @@ block admin
                     span Lần lượt
               ol#batch-add-films.sched-films
               .sched-addfilm
-                select#batch-add-movie(aria-label="Chọn phim để thêm vào danh sách")
-                button#batch-add-film.sched-link(type="button") + Thêm phim
+                button#batch-add-film.sched-link(type="button") + Thêm phim khác
             fieldset
               legend Chiếu vào các ngày
               #batch-add-days.sched-chips

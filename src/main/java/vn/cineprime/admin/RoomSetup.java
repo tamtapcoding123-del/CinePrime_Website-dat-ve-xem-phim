@@ -64,7 +64,12 @@ public class RoomSetup {
     @Transactional public void change(Long actor,Long room,List<SeatInput> changes,List<Long> deletes){
         db.lock(Room.class,room);require(!busy(room),"Phòng có lịch đang khóa sơ đồ. Xem danh sách suất gây khóa.");require(changes!=null&&changes.size()<=600&&deletes!=null&&deletes.size()<=600,"Yêu cầu ghế không hợp lệ.");Set<Long> touched=new HashSet<>();
         for(Long id:deletes){require(touched.add(id),"Lặp ID ghế.");Seat s=db.lock(Seat.class,id);require(s.roomId.equals(room),"Ghế không thuộc phòng.");require(!referenced(id),"Ghế có lịch sử không thể xóa vĩnh viễn; chỉ được ngừng sử dụng.");db.delete(s);}db.entityManager().flush();
-        for(SeatInput input:changes){Seat s=input.id()==null?new Seat():db.lock(Seat.class,input.id());if(input.id()!=null)require(touched.add(input.id())&&s.roomId.equals(room),"Ghế lặp hoặc không thuộc phòng.");copy(s,input,room);db.save(s);}validateCurrent(room);db.audit(actor,"UPDATE_LAYOUT",room.toString());
+        // Two phases (16/11/2026): inserting/deleting a row or column shifts saved seats, so park every moved seat on a unique
+        // placeholder first; otherwise UNIQUE(room,label) and UNIQUE(room,row,position) fail mid-way while seats swap places.
+        Map<Long,Seat> existing=new HashMap<>();
+        for(SeatInput input:changes)if(input.id()!=null){Seat s=db.lock(Seat.class,input.id());require(touched.add(input.id())&&s.roomId.equals(room),"Ghế lặp hoặc không thuộc phòng.");existing.put(input.id(),s);if(!Objects.equals(s.label,Objects.toString(input.label(),"").trim())||!Objects.equals(s.rowLabel,Objects.toString(input.rowLabel(),"").trim())||s.position!=input.position()){s.label="~"+s.id;s.rowLabel="~"+s.id;db.save(s);}}
+        db.entityManager().flush();
+        for(SeatInput input:changes){Seat s=input.id()==null?new Seat():existing.get(input.id());copy(s,input,room);db.save(s);}validateCurrent(room);db.audit(actor,"UPDATE_LAYOUT",room.toString());
     }
     @Transactional public void change(Long actor,Long room,List<SeatInput> changes,List<Long> deletes,String expected){db.lock(Room.class,room);require(expected!=null&&expected.equals(version(room)),"Sơ đồ vừa được cập nhật ở nơi khác. Mở lại sơ đồ để tránh ghi đè; bản xem trước chưa được ghi.");change(actor,room,changes,deletes);}
     public boolean referenced(Long seat){return db.count(Inventory.class,"where e.seatId=?1",seat)>0||db.count(OrderSeat.class,"where e.seatId=?1",seat)>0||db.count(Ticket.class,"where e.seatId=?1",seat)>0;}

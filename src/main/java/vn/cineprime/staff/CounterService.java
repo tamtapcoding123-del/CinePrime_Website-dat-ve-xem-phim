@@ -19,8 +19,8 @@ import static vn.cineprime.domain.Domain.*;
 public class CounterService {
     public static final long CANCEL_WINDOW=900,MAX_CASH=100_000_000L;
     private static final Pattern KEY=Pattern.compile("[A-Za-z0-9-]{8,64}");
-    private final Store db;private final BookingService bookings;private final CheckInService checkin;private final Notifications notices;private final Clock clock;
-    public CounterService(Store db,BookingService bookings,CheckInService checkin,Notifications notices,Clock clock){this.db=db;this.bookings=bookings;this.checkin=checkin;this.notices=notices;this.clock=clock;}
+    private final Store db;private final BookingService bookings;private final CheckInService checkin;private final Notifications notices;private final Clock clock;private final vn.cineprime.member.TierService tiers;private final vn.cineprime.member.WalletService wallet;
+    public CounterService(Store db,BookingService bookings,CheckInService checkin,Notifications notices,Clock clock,vn.cineprime.member.TierService tiers,vn.cineprime.member.WalletService wallet){this.db=db;this.bookings=bookings;this.checkin=checkin;this.notices=notices;this.clock=clock;this.tiers=tiers;this.wallet=wallet;}
     private Instant now(){return clock.instant();}
     private User seller(Long staffId){User u=db.lock(User.class,staffId);if(!u.enabled||!u.role.equals("STAFF"))throw new AccessDeniedException("Tài khoản không có quyền bán vé.");if(u.cinemaId==null)throw new IllegalArgumentException("Bạn chưa được phân công rạp. Liên hệ Admin trước khi bán vé.");return u;}
     public Optional<Shift> openShift(Long staffId){return db.first(Shift.class,"where e.staffId=?1 and e.status='OPEN'",staffId);}
@@ -33,6 +33,23 @@ public class CounterService {
     }
     /** Cash that should be in the drawer: opening float plus successful cash payments (refunded ones are excluded). */
     public long expected(Shift s){return Math.addExact(s.openingCash,db.query("select coalesce(sum(p.amount),0) from "+db.entityName(Payment.class)+" p where p.shiftId=?1 and p.provider='CASH' and p.status='SUCCEEDED'",Long.class,s.id).getFirst());}
+    /**
+     * The single formula for every shift figure shown to Staff (counter bar, shift slip) and Admin (shift list, dashboard).
+     * cashIn = successful cash still kept; refunded = cash handed back on cancelled sales; expected = closing snapshot when closed, otherwise opening + cashIn.
+     * intact is false when a closed shift's snapshot no longer equals its payments (should never happen; shown as a warning).
+     */
+    public record Figures(long opening,long cashIn,long refunded,long refunds,long expected,long orders,long cancelled,long tickets,Long counted,boolean intact){
+        public Long difference(){return counted==null?null:counted-expected;}
+    }
+    @Transactional(readOnly=true)
+    public Figures figures(Shift s){
+        Object[] cash=db.query("select coalesce(sum(case when p.status='SUCCEEDED' then p.amount else 0 end),0),coalesce(sum(case when p.status='REFUNDED' then p.amount else 0 end),0),coalesce(sum(case when p.status='REFUNDED' then 1 else 0 end),0) from "+db.entityName(Payment.class)+" p where p.shiftId=?1 and p.provider='CASH'",Object[].class,s.id).getFirst();
+        long kept=((Number)cash[0]).longValue(),refunded=((Number)cash[1]).longValue(),refunds=((Number)cash[2]).longValue(),live=Math.addExact(s.openingCash,kept);
+        long expected=s.expectedCash!=null?s.expectedCash:live;
+        long orders=db.count(Order.class,"where e.shiftId=?1 and e.status='PAID'",s.id),cancelled=db.count(Order.class,"where e.shiftId=?1 and e.status='CANCELLED' and e.cancelledAt is not null",s.id);
+        long tickets=db.query("select count(t) from %s t, %s o where t.orderId=o.id and o.shiftId=?1 and o.status='PAID' and t.status in ('VALID','USED')".formatted(db.entityName(Ticket.class),db.entityName(Order.class)),Long.class,s.id).getFirst();
+        return new Figures(s.openingCash,kept,refunded,refunds,expected,orders,cancelled,tickets,s.countedCash,expected==live);
+    }
     public Shift close(Long staffId,Long counted,String note){
         User staff=db.lock(User.class,staffId);Shift s=db.lock(Shift.class,openShift(staff.id).orElseThrow(()->new IllegalArgumentException("Bạn không có ca đang mở.")).id);
         for(Order snapshot:db.list(Order.class,"where e.soldBy=?1 and e.channel='COUNTER' and e.status='PENDING_PAYMENT' order by e.showtimeId,e.id",staffId)){
@@ -62,21 +79,22 @@ public class CounterService {
     private void editable(Order o){if(!o.status.equals("PENDING_PAYMENT")||!now().isBefore(o.expiresAt))throw new IllegalArgumentException("Hết thời gian giữ ghế. Hãy chọn ghế lại.");}
     public Order combos(Long staffId,Long id,Map<Long,Integer> quantities){
         User staff=seller(staffId);ownCounterOrder(staffId,id);activeShift(staff);db.lock(Showtime.class,db.get(Order.class,id).showtimeId);Order o=db.lock(Order.class,id);editable(o);
-        for(OrderProduct old:db.list(OrderProduct.class,"where e.orderId=?1",id))db.delete(old);db.entityManager().flush();
-        long subtotal=db.list(OrderSeat.class,"where e.orderId=?1",id).stream().mapToLong(l->l.price).sum();
-        for(var e:new TreeMap<>(quantities).entrySet()){
-            Integer n=e.getValue();if(n==null||n==0)continue;if(n<0||n>20)throw new IllegalArgumentException("Số lượng combo từ 0 đến 20.");
-            Product p=db.get(Product.class,e.getKey());if(!p.active)throw new IllegalArgumentException("Combo "+p.name+" đã ngừng bán.");
-            OrderProduct line=new OrderProduct();line.orderId=id;line.productId=p.id;line.name=p.name;line.quantity=n;line.price=p.price;db.save(line);subtotal=Math.addExact(subtotal,Math.multiplyExact(p.price,(long)n));
-        }
-        o.subtotal=subtotal;o.discount=0;o.total=subtotal;return o;
+        long subtotal=bookings.replaceLines(o,quantities);
+        // Held counter orders carry the walk-in price; the member price is applied at payment, once the customer is attached.
+        o.subtotal=subtotal;o.tierCode=null;o.tierTicketPct=0;o.tierComboPct=0;o.tierDiscount=0;o.discount=0;o.total=subtotal;return o;
     }
     public void release(Long staffId,Long id){User staff=seller(staffId);ownCounterOrder(staffId,id);db.lock(Showtime.class,db.get(Order.class,id).showtimeId);Order o=db.lock(Order.class,id);if(o.status.equals("PENDING_PAYMENT"))bookings.release(o,now().isBefore(o.expiresAt)?"CANCELLED":"EXPIRED");db.audit(staff.id,"COUNTER_RELEASE",o.code);}
 
     /** Cash payment; repeating the same request key after success returns the same sale instead of charging twice. */
-    public Order pay(Long staffId,Long id,Long received,Long customerId,String requestKey){
+    public Order pay(Long staffId,Long id,Long received,Long customerId,String requestKey){return pay(staffId,id,received,customerId,requestKey,null);}
+    /**
+     * expectedTotal is the amount the cashier saw (member price preview); a different server total refuses the sale so nobody is charged a surprise.
+     * Lock order: Staff → Shift → customer → Showtime → Order, the same customer → Showtime order as an online hold.
+     */
+    public Order pay(Long staffId,Long id,Long received,Long customerId,String requestKey,Long expectedTotal){
         if(requestKey==null||!KEY.matcher(requestKey).matches())throw new IllegalArgumentException("Thiếu mã yêu cầu thu tiền. Tải lại trang rồi thử lại.");
         User staff=seller(staffId);ownCounterOrder(staffId,id);Shift shift=activeShift(staff);
+        User customer=null;if(customerId!=null){customer=db.lock(User.class,customerId);if(!customer.role.equals("CUSTOMER")||!customer.enabled)throw new IllegalArgumentException("Tài khoản khách không hợp lệ hoặc đã khóa.");}
         db.lock(Showtime.class,db.get(Order.class,id).showtimeId);Order o=db.lock(Order.class,id);
         String request="cash-"+requestKey;
         if(o.status.equals("PAID")){if(db.first(Payment.class,"where e.orderId=?1 and e.requestId=?2 and e.status='SUCCEEDED'",id,request).isPresent())return o;throw new IllegalArgumentException("Đơn đã được thu tiền.");}
@@ -84,13 +102,15 @@ public class CounterService {
         if(!now().isBefore(show.startsAt))throw new IllegalArgumentException("Đã tới giờ chiếu. Quầy ngừng bán suất này.");
         if(!show.status.equals("OPEN"))throw new IllegalArgumentException("Suất không còn mở bán.");
         if(!Objects.equals(o.shiftId,shift.id))throw new IllegalArgumentException("Ghế được giữ trong ca khác. Hãy chọn ghế lại.");
+        Tier member=customer==null?null:tiers.refresh(customer);tiers.gate(show,member);tiers.price(o,member);
+        if(expectedTotal!=null&&expectedTotal!=o.total)throw new IllegalArgumentException("Tổng tiền theo hạng thành viên đã đổi thành "+db.cash(o.total)+". Kiểm tra lại rồi thu tiền.");
         long cash=money(received,"Tiền khách đưa");if(cash<o.total)throw new IllegalArgumentException("Tiền khách đưa chưa đủ. Còn thiếu "+db.cash(o.total-cash)+".");
-        User customer=null;if(customerId!=null){customer=db.get(User.class,customerId);if(!customer.role.equals("CUSTOMER")||!customer.enabled)throw new IllegalArgumentException("Tài khoản khách không hợp lệ hoặc đã khóa.");}
         List<Inventory> seats=db.list(Inventory.class,"where e.orderId=?1 order by e.seatId",o.id);for(Inventory inv:seats)db.lock(Inventory.class,inv.id);
         if(seats.size()!=db.count(OrderSeat.class,"where e.orderId=?1",o.id)||seats.stream().anyMatch(i->!i.status.equals("HELD")))throw new IllegalArgumentException("Ghế không còn được giữ cho đơn này. Hãy chọn ghế lại.");
-        Payment p=new Payment();p.orderId=o.id;p.provider="CASH";p.requestId=request;p.externalOrderId="CASH-"+o.code;p.amount=o.total;p.received=cash;p.shiftId=shift.id;p.status="SUCCEEDED";p.resultCode=0;p.createdAt=now();p.updatedAt=now();db.save(p);
-        o.frozen=true;if(customer!=null)o.userId=customer.id;bookings.issue(o,seats);
-        if(customer!=null){Point points=new Point();points.userId=customer.id;points.orderId=o.id;points.points=o.total/1000;points.createdAt=now();db.save(points);
+        // One instant for the cash payment and the order's paidAt, so payment-based and order-based reports split periods identically.
+        Instant at=now();Payment p=new Payment();p.orderId=o.id;p.provider="CASH";p.requestId=request;p.externalOrderId="CASH-"+o.code;p.amount=o.total;p.received=cash;p.shiftId=shift.id;p.status="SUCCEEDED";p.resultCode=0;p.createdAt=at;p.updatedAt=at;db.save(p);
+        o.frozen=true;if(customer!=null)o.userId=customer.id;bookings.issue(o,seats);o.paidAt=at;
+        if(customer!=null){Point points=new Point();points.userId=customer.id;points.orderId=o.id;points.points=o.total/1000;points.createdAt=now();db.save(points);tiers.refresh(customer);wallet.afterPayment(customer,o);
             notices.notify(customer,"paid:"+o.id,"Mua vé tại quầy thành công · "+o.code,"Phim: "+o.movieTitle+"\nRạp: "+o.cinemaName+" · "+o.roomName+"\nSuất: "+db.date(o.showStartsAt)+"\nVé đã có trong Vé của tôi trên CinePrime.",true);}
         db.audit(staffId,"COUNTER_SALE",o.code+" · "+o.total+(customer==null?" · khách vãng lai":" · khách #"+customer.id));return o;
     }
@@ -106,9 +126,9 @@ public class CounterService {
         if(now().isAfter(o.paidAt.plusSeconds(CANCEL_WINDOW)))throw new IllegalArgumentException("Đã quá 15 phút kể từ lúc bán, không thể hủy tại quầy. Liên hệ quản lý.");
         List<Ticket> tickets=db.list(Ticket.class,"where e.orderId=?1 order by e.id",id);for(Ticket t:tickets){db.lock(Ticket.class,t.id);if(!t.status.equals("VALID"))throw new IllegalArgumentException("Vé "+t.code+" đã check-in, không thể hủy đơn.");}
         for(Inventory inv:db.list(Inventory.class,"where e.orderId=?1 order by e.seatId",id)){db.lock(Inventory.class,inv.id);inv.status="AVAILABLE";inv.orderId=null;inv.expiresAt=null;}
-        for(Ticket t:tickets)t.status="VOID";
-        for(Payment p:db.list(Payment.class,"where e.orderId=?1 and e.provider='CASH' and e.status='SUCCEEDED'",id)){db.lock(Payment.class,p.id);p.status="REFUNDED";p.updatedAt=now();}
+        for(Ticket t:tickets)t.status="VOID";bookings.restock(id);if(o.userId!=null)wallet.cancelNext(o.userId,id);
+        Instant at=now();for(Payment p:db.list(Payment.class,"where e.orderId=?1 and e.provider='CASH' and e.status='SUCCEEDED'",id)){db.lock(Payment.class,p.id);p.status="REFUNDED";p.updatedAt=at;}
         if(o.userId!=null)db.first(Point.class,"where e.orderId=?1 and e.kind='EARN'",id).ifPresent(earn->{Point back=new Point();back.userId=earn.userId;back.orderId=id;back.kind="REVERSAL";back.points=-earn.points;back.createdAt=now();db.save(back);notices.notify(db.get(User.class,o.userId),"cancel:"+id,"Đơn tại quầy đã hủy · "+o.code,"Đơn "+o.code+" ("+o.movieTitle+") đã được nhân viên hủy và hoàn tiền mặt tại quầy. Điểm của đơn đã được trừ.",false);});
-        o.status="CANCELLED";o.cancelledAt=now();o.cancelledBy=staffId;o.cancelReason=text;db.audit(staffId,"COUNTER_CANCEL",o.code+" · "+text);return o;
+        o.status="CANCELLED";o.cancelledAt=at;o.cancelledBy=staffId;o.cancelReason=text;db.audit(staffId,"COUNTER_CANCEL",o.code+" · "+text);return o;
     }
 }

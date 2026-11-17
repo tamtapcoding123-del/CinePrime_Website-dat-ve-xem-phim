@@ -1,0 +1,120 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-members.css?v=20261117e")
+  script(src="/js/admin-members.js?v=20261117a" defer)
+block hubTools
+  form(action="/admin/tiers/review" method="post")
+    +csrf()
+    button.button.secondary(type="submit" data-confirm="Xét lại hạng cho toàn bộ khách hàng theo chi tiêu?") Xét hạng toàn bộ khách
+block admin
+  form.tier-editor(action="/admin/tiers" method="post" data-tier-editor)
+    +csrf()
+    input(type="hidden" name="tier" value=selectedTier)
+    //- Left: the ladder as a list; right: the chosen tier. Every tier stays in the form (hidden panels still submit), so one save keeps the ladder consistent.
+    aside.tier-list(aria-label="Các hạng")
+      p.tier-list-head Bậc hạng · chi tiêu năm
+      each t in tiers
+        a.tier-item(href='/admin/tiers?tier=' + t.code class=t.code == selectedTier ? 'active' : '' data-tier-tab=t.code aria-current=t.code == selectedTier ? 'true' : false)
+          span.tier-chip(class='tier-' + t.code)= t.name
+          span.tier-item-text
+            strong= t.rank == 1 ? 'Khi đăng ký' : 'Từ ' + t.minSpendText
+            small Vé −#{t.ticketPct}% · Bắp nước −#{t.comboPct}%
+          span.tier-item-count #{t.count} khách
+      p.tier-list-note Hạng lấy chi tiêu năm #{year} hoặc #{year - 1}, năm nào cao hơn. Lên hạng ngay khi đạt mốc; chỉ xuống hạng ở kỳ xét 1/1.
+    .tier-panels
+      each t in tiers
+        section.panel.tier-panel(data-tier-panel=t.code hidden=t.code != selectedTier aria-label='Quy tắc hạng ' + t.name)
+          header.tier-panel-head
+            span.tier-chip.big(class='tier-' + t.code)= t.name
+            div
+              h2 Hạng #{t.name}
+              p.muted
+                a(href='/admin/members?tier=' + t.code) #{t.count} khách đang ở hạng này →
+          .tier-sections
+            fieldset.tier-section
+              legend Điều kiện & giá hội viên
+              .field-row
+                label Tên hiển thị
+                  input(name='name_' + t.code value=t.name required maxlength="100")
+                label Chi tiêu tối thiểu / năm
+                  if t.rank == 1
+                    input(name='minSpend_' + t.code value="0" readonly)
+                    small Hạng khởi đầu, luôn 0 đ
+                  else
+                    span.input-unit
+                      input.num(name='minSpend_' + t.code value=t.minSpend inputmode="numeric" required)
+                      span đ
+              .field-row
+                label Giảm giá vé
+                  span.input-unit
+                    input.num(name='ticketPct_' + t.code value=t.ticketPct inputmode="numeric" required)
+                    span %
+                label Giảm bắp nước
+                  span.input-unit
+                    input.num(name='comboPct_' + t.code value=t.comboPct inputmode="numeric" required)
+                    span %
+              small.muted Áp tự động khi đặt vé online và tại quầy (khi gắn tài khoản). Không áp cho đồ lưu niệm; mã ưu đãi tính trên phần còn lại.
+            fieldset.tier-section
+              legend Quà tự động
+              .gift-rule
+                span.gift-when Tháng sinh nhật
+                select(name='birthdayVoucherId_' + t.code data-voucher-select)
+                  option(value="") Không tặng voucher
+                  each v in personalTemplates
+                    option(value=v.id selected=t.birthdayVoucherId == v.id.toString() data-desc=v.description)= v.code
+                span.input-unit.count
+                  span ×
+                  input.num(name='birthdayVouchers_' + t.code value=t.birthdayVouchers inputmode="numeric" aria-label="Số voucher sinh nhật")
+                small.gift-desc(data-voucher-desc)
+              .gift-rule
+                span.gift-when Mỗi năm (đầu năm)
+                select(name='yearlyVoucherId_' + t.code data-voucher-select)
+                  option(value="") Không tặng voucher
+                  each v in personalTemplates
+                    option(value=v.id selected=t.yearlyVoucherId == v.id.toString() data-desc=v.description)= v.code
+                span.input-unit.count
+                  span ×
+                  input.num(name='yearlyVouchers_' + t.code value=t.yearlyVouchers inputmode="numeric" aria-label="Số voucher mỗi năm")
+                small.gift-desc(data-voucher-desc)
+              .gift-rule
+                span.gift-when Sau mỗi đơn đã trả
+                select(name='nextVoucherId_' + t.code data-voucher-select)
+                  option(value="") Không tặng voucher
+                  each v in personalTemplates
+                    option(value=v.id selected=t.nextVoucherId == v.id.toString() data-desc=v.description)= v.code
+                span.input-unit.count.fixed 1 lần
+                small.gift-desc(data-voucher-desc)
+              .gift-rule
+                span.gift-when Quà sinh nhật
+                select(name='birthdayGiftId_' + t.code)
+                  option(value="") Không tặng quà
+                  each p in merch
+                    option(value=p.id selected=t.birthdayGiftId == p.id.toString())= p.label
+                span.input-unit.count.fixed Nhận tại quầy
+              .gift-rule
+                span.gift-when Đặt vé sớm
+                span.input-unit
+                  input.num(name='earlyAccessHours_' + t.code value=t.earlyAccessHours inputmode="numeric" aria-label="Số giờ đặt sớm")
+                  span giờ trước khi mở bán công khai
+              p.muted
+                | Mẫu voucher sửa ở
+                a(href="/admin/manage/vouchers?state=") Kinh doanh → Voucher
+                |  (loại "Phát vào ví khách"); quà lưu niệm ở
+                a(href="/admin/manage/products") Kinh doanh → Bắp nước & lưu niệm
+                | .
+            fieldset.tier-section
+              legend Khách thấy trong tài khoản
+              .benefit-split
+                label Quyền lợi (mỗi dòng một ý)
+                  textarea(name='benefits_' + t.code maxlength="2000" rows="5")= t.benefitsText
+                .benefit-preview
+                  small Tự động theo cấu hình đã lưu
+                  if t.automatic.size() > 0
+                    ul
+                      each a in t.automatic
+                        li= a
+                  else
+                    p.muted Chưa có quà tự động.
+    .tier-savebar
+      span.muted Lưu một lần cho cả 5 hạng. Đơn đang giữ ghế giữ mức giảm đã chốt.
+      button.button(type="submit") Lưu quy tắc hạng

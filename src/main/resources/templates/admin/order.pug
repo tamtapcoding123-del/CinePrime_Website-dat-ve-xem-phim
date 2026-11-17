@@ -31,8 +31,11 @@ block admin
         span Tạm tính
         strong= order.subtotalText
       .ranking-row
-        span Giảm giá
-        strong= order.discountText
+        span Ưu đãi hạng #{order.tierName != '' ? order.tierName : '—'} (vé #{order.tierTicketPct}% · combo #{order.tierComboPct}%)
+        strong= order.tierDiscountText
+      .ranking-row
+        span Mã ưu đãi
+        strong= order.voucherDiscountText
       .ranking-row
         strong= order.status == 'PAID' ? 'Thực trả' : 'Giá trị đơn · Chưa thu tiền'
         strong= order.totalText
@@ -76,7 +79,7 @@ block admin
     h2 Vé đã phát hành
     each t in tickets.rows
       .ranking-row
-        strong #{t.code} · Ghế #{t.seat}
+        strong #[span.ticket-code= t.code] · Ghế #{t.seat}
         span #{t.statusLabel} · #{t.when}
     if tickets.rows.size() == 0
       p.muted Đơn chưa phát hành vé.

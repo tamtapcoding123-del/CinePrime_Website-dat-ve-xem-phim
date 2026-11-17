@@ -1,0 +1,176 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-members.css?v=20261117e")
+block admin
+  .member-head
+    span.tier-chip.big(class='tier-' + standing.tier.code)= standing.tier.name
+    div
+      h1= member.name
+      p.muted #{member.email} · #{member.phone}#{member.enabled ? '' : ' · Tài khoản đã khóa'}
+    a.button.secondary.back(href='/admin/members?tier=' + standing.tier.code) ← Khách hạng #{standing.tier.name}
+  +memberBar(standing.tier.code, 'members')
+  .member-grid
+    //- Left: who the customer is for the programme, and every action on them in one place.
+    section.panel.member-card
+      .tier-line
+        strong Hạng #{standing.tier.name}
+        if standing.keepUntil != ''
+          span.muted · giữ đến #{standing.keepUntil}
+        a(href='/admin/tiers?tier=' + standing.tier.code) Quyền lợi hạng →
+      if standing.pending
+        p.hint-warn Đang lưu hạng #{standing.storedName}; lần xét tới (đặt vé hoặc job 00:10) sẽ chuyển sang #{standing.tier.name}.
+      if standing.next
+        progress.tier-progress(value=standing.progress max="100" aria-label='Tiến độ lên ' + standing.next.name)
+        small.muted Còn #{standing.remaining} để lên #{standing.next.name}
+      dl
+        dt Chi tiêu #{standing.year}
+        dd= standing.spendYear
+        dt Chi tiêu #{standing.lastYear}
+        dd= standing.spendLast
+        dt Xét hạng (năm cao hơn)
+        dd= standing.qualifying
+        dt Giá hội viên
+        dd Vé −#{standing.tier.ticketPct}% · Bắp nước −#{standing.tier.comboPct}%
+        dt Điểm hiện có
+        dd #{standing.balance} điểm
+        dt Ngày sinh
+        dd= member.birthText
+      .member-actions
+        details
+          summary Phát voucher vào ví
+          form(action='/admin/members/' + member.id + '/voucher' method="post")
+            +csrf()
+            input(type="hidden" name="requestKey" value=requestKey + '-v')
+            label Mẫu voucher (loại phát vào ví)
+              select(name="voucherId" required)
+                option(value="") Chọn mẫu voucher
+                each t in personalTemplates
+                  option(value=t.id)= t.label
+            button.button.secondary(type="submit") Phát voucher
+        details
+          summary Tặng quà lưu niệm
+          form(action='/admin/members/' + member.id + '/gift' method="post")
+            +csrf()
+            input(type="hidden" name="requestKey" value=requestKey + '-g')
+            label Quà (khách nhận tại quầy trong 60 ngày)
+              select(name="productId" required)
+                option(value="") Chọn quà
+                each p in merch
+                  option(value=p.id)= p.label
+            label Lời nhắn cho khách
+              input(name="note" maxlength="500")
+            button.button.secondary(type="submit") Tặng quà
+        details
+          summary Cộng / trừ điểm
+          form(action='/admin/members/' + member.id + '/points' method="post")
+            +csrf()
+            input(type="hidden" name="requestKey" value=requestKey + '-p')
+            label Số điểm (ví dụ 200 hoặc -50; số dư không âm)
+              input(name="delta" inputmode="numeric" required pattern="[+-]?[0-9]{1,7}")
+            label Lý do (bắt buộc)
+              input(name="note" maxlength="500" required)
+            button.button.secondary(type="submit") Điều chỉnh điểm
+        details
+          summary Sửa ngày sinh
+          form(action='/admin/members/' + member.id + '/birthdate' method="post")
+            +csrf()
+            label Ngày sinh (ghi nhật ký; ưu đãi sinh nhật tính từ tháng sinh nhật sau ngày sửa)
+              input(type="date" name="birthDate" value=member.birthDate required)
+            button.button.secondary(type="submit") Lưu ngày sinh
+        details
+          summary Đổi hạng thủ công
+          form(action='/admin/members/' + member.id + '/tier' method="post")
+            +csrf()
+            label Hạng mới (giữ đến kỳ xét 1/1; chi tiêu sau đó vẫn có thể nâng hạng)
+              select(name="code" required)
+                each t in tiers
+                  option(value=t.code selected=t.code == member.tierCode)= t.name
+            label Lý do (bắt buộc)
+              textarea(name="note" maxlength="500" required rows="2")= tierNote ? tierNote : ''
+            button.button.secondary(type="submit" data-confirm='Đổi hạng của ' + member.name + '?') Lưu hạng
+        form(action='/admin/members/' + member.id + '/review' method="post")
+          +csrf()
+          button.button.secondary.small(type="submit") Xét lại hạng theo chi tiêu
+    //- Right: the customer's records, one tab at a time.
+    section.panel
+      div.section-tabs(role="navigation" aria-label="Hồ sơ khách")
+        a(href='?tab=wallet' class=tab == 'wallet' ? 'active' : '') Ví voucher
+          span.tab-badge= wallet.size()
+        a(href='?tab=gifts' class=tab == 'gifts' ? 'active' : '') Quà
+          span.tab-badge= gifts.size()
+        a(href='?tab=points' class=tab == 'points' ? 'active' : '') Sổ điểm
+        a(href='?tab=orders' class=tab == 'orders' ? 'active' : '') Đơn gần đây
+        a(href='?tab=history' class=tab == 'history' ? 'active' : '') Lịch sử hạng
+          span.tab-badge= history.size()
+      if tab == 'wallet'
+        .record-list
+          each w in wallet
+            .record(class=w.usable ? '' : 'spent')
+              div
+                strong.mono= w.code
+                |  #{w.description}
+                br
+                small #{w.source} · phát #{w.issued} · hạn #{w.expires}
+              .record-side
+                span.status-badge(class=w.usable ? 'tone-ok' : 'tone-muted')= w.state
+                if w.revocable
+                  form.inline-form(action='/admin/members/' + member.id + '/wallet/' + w.id + '/revoke' method="post")
+                    +csrf()
+                    button.link-button(type="submit" data-confirm='Thu hồi voucher ' + w.code + '?') Thu hồi
+          if wallet.size() == 0
+            .empty Ví trống. Dùng "Phát voucher vào ví" bên trái hoặc chạy chiến dịch ở Ưu đãi & quà.
+      if tab == 'gifts'
+        .record-list
+          each g in gifts
+            .record
+              div
+                strong= g.product
+                if g.note != ''
+                  |  · #{g.note}
+                br
+                small Hạn nhận #{g.expires}#{g.cinema != '' ? ' · trao tại ' + g.cinema : ''}
+              .record-side
+                span.status-badge(class=g.waiting ? 'tone-warn' : 'tone-muted')= g.state
+                if g.waiting
+                  form.inline-form(action='/admin/members/' + member.id + '/gifts/' + g.id + '/revoke' method="post")
+                    +csrf()
+                    button.link-button(type="submit" data-confirm="Thu hồi quà này?") Thu hồi
+          if gifts.size() == 0
+            .empty Chưa có quà.
+      if tab == 'points'
+        .record-list
+          each p in points
+            .record
+              div
+                strong= p.kind
+                br
+                small #{p.order} · #{p.when}
+              strong(class=p.points.startsWith('-') ? 'points-neg' : 'points-pos')= p.points
+          if points.size() == 0
+            .empty Chưa có giao dịch điểm.
+      if tab == 'orders'
+        .record-list
+          each o in orders
+            .record
+              div
+                a(href='/admin/orders/' + o.id)
+                  strong.mono= o.code
+                |  #{o.movie}
+                br
+                small #{o.channel} · #{o.when} · ưu đãi hạng #{o.tierDiscount}
+              .record-side
+                span.status-badge.tone-neutral= o.status
+                strong= o.total
+          if orders.size() == 0
+            .empty Chưa có đơn.
+      if tab == 'history'
+        .record-list
+          each h in history
+            .record
+              div
+                strong #{h.from} → #{h.to}
+                br
+                small #{h.reason} · #{h.when} · #{h.actor}#{h.note != '' ? ' · ' + h.note : ''}
+              span.muted Chi tiêu xét #{h.spend}
+          if history.size() == 0
+            .empty Chưa đổi hạng lần nào.

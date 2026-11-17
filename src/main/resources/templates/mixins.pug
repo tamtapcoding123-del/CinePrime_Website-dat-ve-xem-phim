@@ -113,6 +113,10 @@ mixin showList(shows)
           strong= s.movieTitle
         p #{s.cinemaName} · #{s.roomName} · #{s.city}
         small #{s.format} · #{s.language}
+        if s.memberTier != ''
+          span.member-flag Suất hội viên #{s.memberTier}+
+        if s.saleOpens != ''
+          span.member-flag Mở bán công khai #{s.saleOpens} · hội viên hạng cao đặt sớm
       if s.canHold
         a.show-time(href='/booking/' + s.id)= s.when
       else
@@ -124,14 +128,16 @@ mixin dateStrip()
         span= d.weekday
         strong= d.day
 mixin contentCard(c, kindLabel)
-  if c.image
-    a.content-card(href='/content/' + c.slug)
-      img.content-image(src=c.image alt="" loading="lazy")
-      h3= c.title
-      if c.dateText
-        span.content-date= c.dateText
-  else
-    a.content-card.is-text(href='/content/' + c.slug)
+  //- Poster card (17/11/2026): 2:3 image on top, bordered text frame below. No image → a typographic cover in the kind colour, so a row never mixes shapes.
+  a.content-card.has-image(href='/content/' + c.slug class='kind-' + c.kind.toLowerCase())
+    if c.image
+      img.content-image(src=c.image alt='' loading='lazy')
+    else
+      .content-image.content-cover(aria-hidden='true')
+        span.cover-kind= kindLabel
+        strong.cover-title= c.title
+        span.cover-mark CINEPRIME
+    .content-body
       span.content-kind= kindLabel
       h3= c.title
       if c.excerpt

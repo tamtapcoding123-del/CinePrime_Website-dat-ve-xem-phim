@@ -292,3 +292,142 @@
 .admin-compact td .channel-badge+small{display:block;margin-top:3px}
 .admin-compact .shift-summary-strip strong.shift-detail{font-size:12px;color:var(--ink-2);font-weight:600;line-height:1.5}
 @media(max-width:1280px){.admin-compact .flow-layout{grid-template-columns:minmax(0,1fr) 260px}}
+
+/* ===== Room setup (16/11/2026): column numbers, row/column menu, "Thông tin ✓" step, room pop-up ===== */
+.seat-workspace #seat-surface .col-head{margin-bottom:2px}
+.seat-workspace #seat-surface .col-name{height:22px;padding:0;border:0;border-radius:0;background-color:transparent;color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+.seat-workspace #seat-surface .col-name:hover{background-color:var(--info-bg);color:var(--blue)}
+.seat-workspace #seat-surface .col-name:focus-visible{outline:3px solid var(--orange);outline-offset:1px}
+.grid-menu{position:fixed;z-index:60;min-width:200px;padding:6px;background-color:var(--card);border:1px solid var(--line-strong);border-radius:0;box-shadow:0 12px 32px rgba(17,24,39,.18)}
+.grid-menu[hidden]{display:none}
+.grid-menu-title{margin:2px 8px 4px;font-size:13px;font-weight:700;color:var(--ink)}
+.grid-menu-label{margin:8px 8px 2px;font-size:11px;font-weight:600;color:var(--muted)}
+.grid-menu-item{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;padding:0 8px;border:0;border-radius:0;background-color:transparent;font:inherit;font-size:13px;color:var(--ink);text-align:left;cursor:pointer}
+.grid-menu-item:hover,.grid-menu-item:focus-visible{background-color:var(--canvas);outline:none}
+.grid-menu-item.danger{color:var(--bad-fg)}
+.grid-menu-item.danger:hover,.grid-menu-item.danger:focus-visible{background-color:var(--bad-bg)}
+.grid-menu-item[class*=kind-]::before{content:"";flex:none;width:12px;height:12px;border:1px solid var(--line-strong)}
+.grid-menu-item.kind-standard::before{background-color:var(--card-head)}
+.grid-menu-item.kind-vip::before{background-color:var(--info-bg);border-color:var(--blue)}
+.grid-menu-item.kind-couple::before{background-color:var(--accent-soft);border-color:var(--accent)}
+.grid-menu-item.kind-maintenance::before{background-color:var(--line-strong)}
+.seat-workspace .workspace-tabs>button.step-done{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;font-size:13px;color:var(--ink-2)}
+.seat-workspace .workspace-tabs>button.step-done .step-no{background-color:var(--ok-bg);border-color:var(--ok-line);color:var(--ok-fg)}
+.admin-form-dialog .dialog-context{display:flex;align-items:baseline;gap:8px;margin:0 0 12px;font-size:13px;color:var(--muted)}
+.admin-form-dialog .dialog-context strong{font-size:14px;color:var(--brand)}
+
+/* ===== Seat map toolbar + "+" handles (16/11/2026) =====
+   Tools sit in one row above the map (the left column is gone), so the map is wider and nothing needs scrolling at 1366×768. */
+.seat-workspace .workspace[data-step=seats] .workspace-body{grid-template-columns:minmax(0,1fr) 290px;grid-template-rows:auto minmax(0,1fr)}
+.seat-workspace .workspace[data-step=seats].tools-closed .workspace-body{grid-template-columns:minmax(0,1fr)}
+.seat-workspace .workspace[data-step=seats] .workspace-palette{grid-column:1;grid-row:1;flex-direction:row;align-items:center;flex-wrap:wrap;overflow:visible;padding:6px;gap:6px}
+.seat-workspace .workspace[data-step=seats] .workspace-canvas{grid-column:1;grid-row:2}
+.seat-workspace .workspace[data-step=seats] .workspace-tools{grid-column:2;grid-row:1 / 3}
+.seat-workspace .workspace[data-step=seats] #layout-counts{display:none}
+.seat-workspace .workspace-palette .palette-tools{flex-direction:row;flex-wrap:wrap;gap:4px}
+.seat-workspace .workspace-palette .palette-tool{min-height:36px;padding:4px 10px;font-size:13px;white-space:nowrap}
+.seat-workspace .workspace-palette .palette-tool[aria-pressed=true]{padding:3px 9px}
+.seat-workspace .workspace-palette .palette-group{flex-direction:row;align-items:center;gap:4px;border-top:0;border-left:1px solid var(--line);padding:0 0 0 6px}
+.seat-workspace .workspace-palette .palette-pair{display:flex;gap:4px}
+.seat-workspace .workspace-palette .palette-group button:not(.palette-tool){min-height:36px;padding:4px 10px;white-space:nowrap}
+.seat-workspace .workspace-palette :is(#layout-undo,#layout-redo){min-width:36px;font-size:16px}
+#setup-seat-map .grid-add{display:grid;place-items:center;padding:0;border:1px dashed var(--line-strong);border-radius:0;background-color:var(--card);color:var(--blue);font-size:14px;font-weight:700;line-height:1;cursor:pointer;opacity:0;transition:opacity .12s}
+#setup-seat-map .grid-add:hover{background-color:var(--info-bg);border-style:solid;border-color:var(--blue)}
+#setup-seat-map .grid-add:focus-visible{opacity:1;outline:3px solid var(--orange);outline-offset:1px}
+#setup-seat-map .row-add{width:24px;height:36px;justify-self:center}
+#setup-seat-map .seat-row:hover>.row-add,#setup-seat-map .seat-row:hover>.ins-row,#setup-seat-map .col-head:hover>.add-col-edge{opacity:1}
+#setup-seat-map .ins-row{position:relative;z-index:2;width:20px;height:16px;justify-self:center;align-self:start;transform:translateY(calc(-50% - 3px));font-size:12px}
+#setup-seat-map .ins-col{position:relative;z-index:2;width:16px;height:20px;justify-self:start;align-self:center;transform:translateX(calc(-50% - 3px));font-size:12px}
+#setup-seat-map .col-name:hover+.ins-col,#setup-seat-map .ins-col:hover{opacity:1}
+#setup-seat-map .add-col-edge{width:24px;height:22px;justify-self:center}
+#setup-seat-map .seat-row>*{grid-row:1}
+#setup-seat-map .row-foot{margin-top:4px}
+#setup-seat-map .add-row-end{height:30px;opacity:1;font-size:12px;font-weight:600}
+.seat-workspace .layout-locked #setup-seat-map .grid-add{display:none}
+#setup-seat-map .col-corner{grid-column:1}
+/* Seats step: zoom floats over the map's bottom-right corner instead of taking a row. */
+.seat-workspace .workspace[data-step=seats] .workspace-canvas{position:relative}
+.seat-workspace .workspace[data-step=seats] .canvas-toolbar{position:absolute;right:10px;bottom:44px;z-index:3;min-height:0;padding:4px;gap:4px;background-color:var(--card);border:1px solid var(--line-strong)}
+.seat-workspace .workspace[data-step=seats] .canvas-toolbar>button{min-height:32px;min-width:32px;padding:2px 8px}
+.seat-workspace .workspace[data-step=seats] .canvas-toolbar>.canvas-hint{display:none}
+
+/* ===== Giá vé: one grid edited in place (16/11/2026) ===== */
+.seat-workspace .price-board{padding:16px;overflow:auto}
+.price-board-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+.price-board-head .price-scope{margin:0;font-size:14px;color:var(--ink-2)}
+.price-board-head .price-scope strong{color:var(--brand)}
+.price-grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.price-grid th,.price-grid td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}
+.price-grid thead th{background-color:var(--card-head);font-size:12px;font-weight:600;color:var(--muted)}
+.price-grid thead th:first-child,.price-grid tbody th{width:170px}
+.price-grid tbody th strong{display:block;font-size:14px;color:var(--ink)}
+.price-grid tbody th small{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--muted)}
+.price-grid tr.is-unused th strong,.price-grid tr.is-unused .price-input{color:var(--muted)}
+.price-grid tr.is-unused td{background-color:var(--canvas)}
+.pg-cell.has-gap,.pg-cell.is-missing{background-color:var(--warn-bg,var(--canvas))}
+.price-line,.price-gap,.price-empty,.price-split{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.price-time{font-size:13px;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.price-input{min-height:32px;padding:0 8px;border:1px solid var(--line-strong);border-radius:0;background-color:var(--card);font:inherit;font-size:14px;color:var(--ink);font-variant-numeric:tabular-nums}
+.price-input:hover{border-color:var(--blue)}
+.price-input:focus{outline:2px solid var(--blue);outline-offset:0}
+.price-amount{width:120px;text-align:right;font-weight:600}
+.price-time-input{width:64px;min-height:28px;padding:0 6px;border:1px solid var(--line-strong);border-radius:0;font:inherit;font-size:13px;font-variant-numeric:tabular-nums}
+.price-unit{font-size:13px;color:var(--muted)}
+.price-pair{flex-basis:100%;font-size:12px;color:var(--muted)}
+.price-remove{width:24px;height:24px;padding:0;border:1px solid var(--line);border-radius:0;background-color:var(--card);color:var(--muted);cursor:pointer}
+.price-remove:hover{border-color:var(--bad-line);color:var(--bad-fg);background-color:var(--bad-bg)}
+.price-link{padding:2px 0;border:0;background:none;color:var(--blue);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.price-link:hover{text-decoration:underline}
+.price-warn{font-size:12px;font-weight:600;color:var(--bad-fg)}
+.price-split .button{min-height:28px;padding:0 10px}
+.price-help{margin:0 0 12px;padding-left:18px;font-size:13px;line-height:1.55;color:var(--ink-2)}
+.price-help li{margin-bottom:6px}
+
+/* ===== Seat colours in the admin seat map (16/11/2026): one clear colour per kind, no hatching =====
+   Thường = white/grey · VIP = amber · Ghế đôi = violet · Bảo trì = solid dark grey, name struck through. Customer pages keep theirs. */
+.seat-workspace #seat-surface .seat.standard{background-image:none;background-color:var(--card);border:1px solid var(--line-strong);color:var(--ink)}
+.seat-workspace #seat-surface .seat.vip{background-image:none;background-color:var(--warn-bg);border:1px solid var(--warn-bar);color:var(--warn-fg);font-weight:700}
+.seat-workspace #seat-surface .seat.couple{background-image:none;background-color:var(--special-bg);border:1px solid var(--special-bar);color:var(--special-fg);font-weight:700}
+.seat-workspace #seat-surface .seat.maintenance{background-image:none;background-color:var(--muted);border:1px solid var(--ink-2);color:var(--card);text-decoration:line-through}
+.seat-workspace .swatch.standard,.grid-menu-item.kind-standard::before{background-image:none;background-color:var(--card);border:1px solid var(--line-strong)}
+.seat-workspace .swatch.vip,.grid-menu-item.kind-vip::before{background-image:none;background-color:var(--warn-bg);border:1px solid var(--warn-bar)}
+.seat-workspace .swatch.couple,.grid-menu-item.kind-couple::before{background-image:none;background-color:var(--special-bg);border:1px solid var(--special-bar)}
+.seat-workspace .swatch.maintenance,.grid-menu-item.kind-maintenance::before{background-image:none;background-color:var(--muted);border:1px solid var(--ink-2)}
+.seat-workspace .workspace-legends>.standard:before{background-color:var(--card)!important;border:1px solid var(--line-strong);box-sizing:border-box}
+.seat-workspace .workspace-legends>.vip:before{background-color:var(--warn-bg)!important;border:1px solid var(--warn-bar);box-sizing:border-box}
+.seat-workspace .workspace-legends>.couple:before{background-color:var(--special-bg)!important;border:1px solid var(--special-bar);box-sizing:border-box}
+.seat-workspace .workspace-legends>.maintenance:before{background:none!important;background-color:var(--muted)!important;border:1px solid var(--ink-2);box-sizing:border-box}
+.seat-workspace .workspace-legends{font-size:12px}
+/* Tình trạng bán vé: the sale state wins over the seat kind. */
+.seat-workspace #seat-surface .seat.held{background-color:var(--info-line);border-color:var(--blue);color:var(--ink);text-decoration:none}
+.seat-workspace #seat-surface .seat.sold{background-color:var(--ink-2);border-color:var(--ink);color:var(--card);text-decoration:none}
+/* 16/11/2026 · reconciliation checks: order books vs payment rows, shift drawer vs count */
+.admin-compact .dash-kpis .kpi-card>small+small{margin-top:0}
+.admin-compact .dash-kpis .kpi-change.check-ok{color:var(--ok-fg);font-weight:600}
+.admin-compact .dash-kpis .kpi-change.check-bad{color:var(--bad-fg);font-weight:700}
+.admin-compact .dash-kpis .tone-warn .split-bar .online{fill:var(--warn-bar)}
+.admin-compact .flow-table .check.ok{background-color:var(--ok-bg)}.admin-compact .flow-table .check.ok dt span,.admin-compact .flow-table .check.ok dd{color:var(--ok-fg)}
+.admin-compact .flow-table .check.bad{background-color:var(--bad-bg)}.admin-compact .flow-table .check.bad dt span,.admin-compact .flow-table .check.bad dd{color:var(--bad-fg)}
+.admin-compact .check-badge{display:inline-flex;align-items:center;min-height:22px;padding:0 8px;font-size:11px;font-weight:700;border:1px solid currentColor}
+.admin-compact .check-badge.ok{color:var(--ok-fg);background-color:var(--ok-bg)}.admin-compact .check-badge.bad{color:var(--bad-fg);background-color:var(--bad-bg)}
+.admin-compact .shift-table{margin-bottom:8px}
+.admin-compact #shift-reconciliation .ranking-row.attention{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:6px 10px;border-left:3px solid var(--bad-bar);background-color:var(--bad-bg);margin-bottom:6px}
+.admin-compact #shift-reconciliation .ranking-row.attention span{font-size:11px;color:var(--bad-fg)}
+.admin-compact #shift-reconciliation .more{display:inline-block;margin-top:4px}
+/* Thành viên (16/11/2026): one muted colour per tier, used only on the tier chip. */
+.tier-chip{display:inline-flex;align-items:center;padding:2px 10px;border:1px solid currentColor;font-size:12px;font-weight:700;line-height:1.6;white-space:nowrap;background-color:var(--bg-soft,#f4f6fa)}
+.tier-chip.big{font-size:15px;padding:4px 14px}
+.tier-chip.tier-SILVER{color:var(--tier-silver)}.tier-chip.tier-GOLD{color:var(--tier-gold)}.tier-chip.tier-PLATINUM{color:var(--tier-platinum)}.tier-chip.tier-DIAMOND{color:var(--tier-diamond)}.tier-chip.tier-VIP{color:var(--tier-vip)}
+.order-summary.tier-summary{grid-template-columns:repeat(5,minmax(0,1fr))}.tier-summary a.tier-chip{text-decoration:none}.tier-summary .current{outline:2px solid var(--accent-line);outline-offset:-2px}
+.tier-progress{width:100%;height:8px;accent-color:var(--accent);margin:10px 0 4px}
+.tier-rules input{width:100%;min-width:0}.tier-rules input.pct{max-width:72px}.tier-rules textarea{width:100%;min-width:220px;font:inherit;font-size:13px}
+.tier-rules td{vertical-align:top}.tier-rules .actions{margin:10px 0 18px}
+.stack-form{display:grid;gap:10px}.stack-form textarea{width:100%;font:inherit}
+.tier-config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+.tier-config{margin:0;border:1px solid var(--line)}.tier-config legend{display:flex;align-items:center;gap:10px;padding:0 6px}.tier-count{font-size:12px}
+.tier-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}.tier-fields label{display:grid;gap:3px;font-size:12px}.tier-fields .wide{grid-column:1/-1}
+.tier-fields input,.tier-fields select,.tier-fields textarea{width:100%;min-width:0;font:inherit;font-size:13px}
+.show-access{display:flex;gap:8px;align-items:center}.show-access select{min-width:150px}
+.inline-form{display:inline}.link-button{background:none;border:0;padding:0 0 0 8px;color:var(--accent-ink);cursor:pointer;font:inherit;font-size:12px;text-decoration:underline}
+.ranking-row .mono{font-family:ui-monospace,Consolas,monospace}
+.admin-form-dialog .dialog-media .media-hint{display:block;margin-top:6px;font-size:13px;line-height:1.5;color:var(--muted)}

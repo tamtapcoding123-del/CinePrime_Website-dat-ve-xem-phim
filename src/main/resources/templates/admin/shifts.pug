@@ -3,7 +3,7 @@ block admin
   .page-heading
     div
       h1 Ca nhân viên tại quầy
-      p.muted Nhân viên tự mở / đóng ca ở màn bán vé. Tiền mặt dự kiến = tiền đầu ca + tiền mặt thu trong ca, đã trừ đơn hủy. Ca đã đóng giữ số liệu lúc đóng.
+      p.muted Nhân viên tự mở / đóng ca ở màn bán vé. Tiền mặt dự kiến = tiền đầu ca + tiền mặt thu trong ca, đã trừ đơn hủy (cùng công thức với phiếu tổng kết ca của nhân viên). Ca đã đóng giữ số liệu lúc đóng.
   .order-summary.shift-summary-strip(aria-label="Ca đang mở")
     div
       small Ca đang mở
@@ -54,18 +54,29 @@ block admin
             td
               span= s.opened
               small= s.closed
-            td #{s.orders} · #{s.cancelled}
-            td= s.opening
-            td= s.cashIn
-            td= s.expected
-            td= s.counted
             td
-              if s.mismatch
-                strong.form-error= s.difference
+              span #{s.orders} · #{s.cancelled}
+              small #{s.tickets} vé
+            td= s.opening
+            td
+              span= s.cashIn
+              if s.refunded
+                small Đã hoàn #{s.refunded}
+            td
+              span= s.expected
+              if !s.intact
+                small.form-error Số chốt khác giao dịch
+            td= s.counted
+            td.shift-diff
+              if s.diffLabel
+                span.shift-diff-label(class='tone-' + s.diffTone)= s.diffLabel
+                strong.shift-diff-amount(class='tone-' + s.diffTone)= s.difference
               else
-                span= s.difference
+                span.muted —
               if s.note
-                small Ghi chú: #{s.note}
+                p.shift-note
+                  span Ghi chú của nhân viên
+                  | #{s.note}
     if rows.size() == 0
       .empty Chưa có ca phù hợp.
     +pagination()

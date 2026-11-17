@@ -1,7 +1,7 @@
 extends operations
 include mixins
 block head
-  link(rel="stylesheet" href="/css/staff.css?v=20261115p")
+  link(rel="stylesheet" href="/css/staff.css?v=20261117p")
   script(src="/js/staff-nav.js?v=20261113c")
   script(src="/js/vendor/zxing-browser.min.js" defer)
 block brandControls
@@ -111,7 +111,7 @@ block content
               tr
                 td.seat-cell= t.seat
                 td.codes
-                  span.mono= t.code
+                  span.mono.ticket-code= t.code
                   span.mono.dim= t.orderCode
                 td
                   span.state(class=t.status == 'USED' ? 'used' : t.status == 'VOID' ? 'void' : 'valid')= t.status == 'USED' ? 'Đã vào' : t.status == 'VOID' ? 'Vô hiệu' : 'Chưa vào'

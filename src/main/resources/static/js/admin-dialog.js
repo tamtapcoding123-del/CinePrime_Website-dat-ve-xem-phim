@@ -30,6 +30,9 @@
     const title=one('[name="title"]',form),slug=one('[name="slug"]',form);
     if(title&&slug&&!editing){let manual=false;slug.addEventListener('input',()=>manual=true);title.addEventListener('input',()=>{if(!manual)slug.value=slugify(title.value);});}
     form.addEventListener('submit',submit);
+    // Thêm phòng: describe the default layout the seat map will start from (4 | lối đi | 4, last two rows couple seats).
+    const rows=one('[data-template-rows]',form),summary=one('[data-template-summary]',form);
+    if(rows&&summary){const describe=()=>{const n=Number(rows.value);if(!Number.isInteger(n)||n<2||n>20){summary.textContent='Chọn từ 2 đến 20 hàng (A–T).';return;}summary.textContent=`Mẫu: 4 ghế · lối đi · 4 ghế, hàng A–${String.fromCharCode(64+n)}, hai hàng cuối là ghế đôi · ${n*8} ghế (${8} cặp đôi). Sửa tiếp được trên sơ đồ.`;};rows.addEventListener('input',describe);describe();}
     const first=all('input:not([type="hidden"]):not([type="file"]),select,textarea',form).find(el=>!el.disabled&&el.offsetParent!==null);(first||one('[data-dialog-close]',shell))?.focus();
   }
   function showError(text){const box=one('[data-dialog-error]',dialog);if(!box)return;box.textContent=text;box.hidden=!text;}
@@ -81,6 +84,9 @@
   // The browser restores focus to whatever was focused before showModal(); put it back on the button that opened the pop-up.
   dialog.addEventListener('close',()=>{dialog.replaceChildren();form=null;media=null;const back=opener;setTimeout(()=>{if(back&&back.isConnected)back.focus();},0);});
   window.addEventListener('beforeunload',e=>{if(dialog.open&&dirty){e.preventDefault();e.returnValue='';}});
+  // "?add=1" (e.g. "+ Phòng" on a cinema, or "Lưu và tạo phòng") opens the add pop-up of the list straight away.
+  const params=new URLSearchParams(location.search);
+  if(params.get('add')==='1'){const add=one('[data-list-add][data-dialog-form]');params.delete('add');history.replaceState(null,'',location.pathname+(params.size?'?'+params:''));if(add)open(add.dataset.dialogForm,add);}
   document.addEventListener('click',e=>{
     const trigger=e.target.closest('[data-dialog-form]');if(!trigger||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;
     e.preventDefault();trigger.closest('details[open]')?.removeAttribute('open');open(trigger.dataset.dialogForm,trigger);

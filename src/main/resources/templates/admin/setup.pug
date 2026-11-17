@@ -6,13 +6,16 @@ block admin
         strong= setup.cinemaName
         h1= setup.roomName
       span#setup-saved-counts Đã lưu: #{setup.activeSeats} ghế · #{setup.pairs} cặp
-      a.button.secondary.workspace-finish(href='/admin/manage/rooms?cinemaId=' + setup.cinemaId) Hoàn tất
     nav.workspace-tabs(aria-label="Các bước thiết lập phòng")
+      //- 16/11/2026: step 1 is the room's own info (already saved, so ✓); it reopens the Thêm/Sửa phòng pop-up.
+      button.step-done(type="button" data-dialog-form='/admin/manage/rooms/dialog?id=' + setup.roomId + '&from=setup&returnTo=%2Fadmin%2Fmanage%2Frooms%3FcinemaId%3D' + setup.cinemaId title="Sửa tên, định dạng, trạng thái phòng")
+        span.step-no ✓
+        | Thông tin
       button(type="button" data-workspace-tab="seats" aria-pressed=step == 'seats')
-        span.step-no 1
+        span.step-no 2
         | Sơ đồ ghế
       button(type="button" data-workspace-tab="prices" aria-pressed=step == 'prices')
-        span.step-no 2
+        span.step-no 3
         | Giá vé
       button.monitor-tab(type="button" data-workspace-tab="inventory" aria-pressed=step == 'inventory' title="Theo dõi ghế trống / đang giữ / đã bán của từng suất chiếu trong phòng")
         span.label-long Tình trạng bán vé
@@ -20,42 +23,34 @@ block admin
       button#tools-toggle(type="button" aria-expanded="true" aria-controls="workspace-tools") Chi tiết ▾
       a.workspace-finish(href='/admin/showtimes/new?cinemaId=' + setup.cinemaId + '&roomId=' + setup.roomId) Thêm suất chiếu (tùy chọn) ↗
     .workspace-body
-      aside#seat-palette.workspace-palette(aria-label="Hộp công cụ sơ đồ")
-        p.palette-hint Chọn một loại, rồi bấm hoặc kéo qua các ghế. Bấm chữ hàng để tô cả hàng.
+      //- 16/11/2026: one horizontal toolbar above the map (no left column, no +/− Hàng/Cột buttons; rows, columns and seats
+      //- are added with the "+" handles around the map, removed with Xóa ghế or the row/column menu).
+      aside#seat-palette.workspace-palette(aria-label="Công cụ sơ đồ" title="Chọn một loại rồi bấm hoặc kéo qua các ghế. Rê chuột vào một hàng để thấy nút + thêm ghế, thêm hàng, thêm cột.")
         .palette-tools(role="toolbar" aria-label="Công cụ tô ghế")
           button.palette-tool(type="button" data-tool="STANDARD" aria-pressed="true")
             span.swatch.standard
-            | Ghế thường
+            | Thường
           button.palette-tool(type="button" data-tool="VIP" aria-pressed="false")
             span.swatch.vip
-            | Ghế VIP
+            | VIP
           button.palette-tool(type="button" data-tool="COUPLE" aria-pressed="false")
             span.swatch.couple
             | Ghế đôi
           button.palette-tool(type="button" data-tool="MAINTENANCE" aria-pressed="false")
             span.swatch.maintenance
             | Bảo trì
-          button.palette-tool(type="button" data-tool="AISLE" aria-pressed="false")
+          button.palette-tool(type="button" data-tool="AISLE" aria-pressed="false" title="Bấm hoặc kéo qua ghế để xóa; ô trống thành lối đi. Phím Delete xóa ghế đang chọn.")
             span.swatch.aisle
-            | Lối đi (bỏ ghế)
+            | Xóa ghế
           button.palette-tool(type="button" data-tool="INSPECT" aria-pressed="false")
             span.swatch.inspect
             | Xem / đổi tên
         .palette-group
-          span.palette-label Hoàn tác
           .palette-pair
-            button#layout-undo(type="button" aria-label="Hoàn tác (Ctrl + Z)" title="Hoàn tác (Ctrl + Z)" disabled) ↶ Hoàn tác
-            button#layout-redo(type="button" aria-label="Làm lại (Ctrl + Y)" title="Làm lại (Ctrl + Y)" disabled) ↷ Làm lại
+            button#layout-undo(type="button" aria-label="Hoàn tác (Ctrl + Z)" title="Hoàn tác (Ctrl + Z)" disabled) ↶
+            button#layout-redo(type="button" aria-label="Làm lại (Ctrl + Y)" title="Làm lại (Ctrl + Y)" disabled) ↷
         .palette-group
-          span.palette-label Kích thước
-          .palette-pair
-            button#grid-add-row(type="button") + Hàng
-            button#grid-remove-row(type="button") − Hàng
-            button#grid-add-col(type="button") + Cột
-            button#grid-remove-col(type="button") − Cột
-          output#grid-size.palette-size
-        .palette-group
-          button#template-open(type="button") Mẫu phòng có sẵn
+          button#template-open(type="button") Mẫu phòng
           button.seat3d-open(type="button" data-seat3d="layout") Xem 3D
       section.workspace-canvas(aria-label="Vùng quan sát sơ đồ")
         p#layout-lock.workspace-lock(hidden=!setup.busy role="status")
@@ -92,8 +87,14 @@ block admin
             p#canvas-empty-text Phòng chưa có ghế.
             button#canvas-template.button(type="button") Chọn mẫu phòng
             a#canvas-add-show.button(hidden href='/admin/showtimes/new?cinemaId=' + setup.cinemaId + '&roomId=' + setup.roomId) Thêm suất chiếu ↗
-        #price-board.price-board(hidden aria-label="Tổng quan giá vé")
-          p.notice Giá áp dụng chung cho các phòng trong rạp này và được kiểm tra theo giờ suất khi mở bán.
+        //- 16/11/2026: one price grid, edited in place (seat type × Thứ 2–6 / Thứ 7, CN). No list, filters or paging.
+        #price-board.price-board(hidden aria-label="Bảng giá vé")
+          .price-board-head
+            p.price-scope
+              | Giá áp dụng cho cả 
+              strong= setup.cinemaName
+              |  (mọi phòng của rạp), tính theo giờ bắt đầu suất chiếu.
+            button#price-copy.button.secondary(type="button") Chép giá Thứ 2–6 sang Thứ 7, CN
           #price-board-grid
             p.muted Đang đọc giá…
         .workspace-legends
@@ -129,51 +130,13 @@ block admin
               button#seat-apply.button(type="submit") Áp dụng vào bản xem trước
               button#seat-editor-delete.button.danger-soft(type="button") Bỏ ghế / cặp này
         section.workspace-pane(data-pane="prices" hidden=step != 'prices')
-          .price-pane-heading
-            h2 Khung giá
-            button#price-add.button.secondary(type="button") + Thêm giá
-          .workspace-fields
-            label Lọc loại ghế
-              select#price-filter-type
-                option(value="") Tất cả loại ghế
-                option(value="STANDARD") Ghế thường
-                option(value="VIP") VIP
-                option(value="COUPLE") Ghế đôi
-            label Lọc loại ngày
-              select#price-filter-day
-                option(value="") Tất cả ngày
-                option(value="WEEKDAY") Thứ 2–6
-                option(value="WEEKEND") Thứ 7, CN
-          #price-list(aria-label="Giá hiện có")
-          nav.workspace-pager
-            span#price-page
-            button#price-prev(type="button" disabled) Trước
-            button#price-next(type="button" disabled) Sau
-            button#price-refresh(type="button") Đọc lại
-          p#price-list-status.muted(role="status")
-          h3#price-form-title Thêm khung giá
-          form#workspace-price-form
-            .workspace-fields
-              label Loại ghế
-                select#price-type(required)
-                  option(value="STANDARD") Ghế thường
-                  option(value="VIP") VIP
-                  option(value="COUPLE") Ghế đôi
-              label Loại ngày
-                select#price-day(required)
-                  option(value="WEEKDAY") Thứ 2–6
-                  option(value="WEEKEND") Thứ 7, CN
-              label Giờ bắt đầu
-                input#price-from(value="00:00" placeholder="HH:mm" required pattern="([01][0-9]|2[0-3]):[0-5][0-9]")
-              label Giờ kết thúc
-                input#price-to(value="24:00" placeholder="HH:mm hoặc 24:00" required pattern="(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)")
-            label Giá mỗi ghế vật lý (VND)
-              input#price-amount(type="text" inputmode="numeric" pattern="[0-9]+" required autocomplete="off")
-            output#price-money-preview Nhập số nguyên đồng.
-            p#price-form-message(role="status")
-            .actions
-              button#price-save.button(type="submit") Lưu giá
-              button#price-new.button.secondary(type="button") Thêm mới
+          h2 Cách nhập giá
+          ul.price-help
+            li Bấm vào số tiền để sửa, nhấn Enter để lưu, Esc để bỏ.
+            li Ô chưa có giá: bấm “+ Nhập giá”.
+            li Muốn suất trước/sau một giờ có giá khác: bấm “+ Chia khung giờ” rồi nhập giờ chia. Sửa mốc giờ ngay trên dòng; bấm × để gộp lại.
+            li Ghế đôi: giá tính cho mỗi ghế, cả cặp bằng hai lần.
+          p#price-status.muted(role="status")
         section.workspace-pane(data-pane="inventory" hidden=step != 'inventory')
           h2 Tình trạng bán vé
           p.muted Màn theo dõi, không thay đổi sơ đồ hay giá. Chọn một suất chiếu để xem ghế nào còn trống, đang được giữ hoặc đã bán.
@@ -197,35 +160,39 @@ block admin
     dialog#template-dialog.cine-dialog(aria-labelledby="template-title")
       h2#template-title Chọn mẫu phòng
       p.muted Mẫu chỉ tạo bản xem trước. Bạn vẫn tô lại từng ghế trước khi lưu.
+      //- Default (chốt 16/11/2026): 4 ghế · lối đi giữa · 4 ghế, hai hàng cuối toàn ghế đôi. 4 ghế/bên chỉ là mẫu, không phải giới hạn.
       .template-presets(role="radiogroup" aria-label="Cỡ phòng")
-        button.template-preset(type="button" data-rows="6" data-cols="10" aria-pressed="true")
+        button.template-preset(type="button" data-rows="6" data-side="3" aria-pressed="false")
           strong Nhỏ
-          span 6 hàng × 10 ghế
-        button.template-preset(type="button" data-rows="10" data-cols="14" aria-pressed="false")
-          strong Vừa
-          span 10 hàng × 14 ghế
-        button.template-preset(type="button" data-rows="14" data-cols="20" aria-pressed="false")
+          span 6 hàng · 3 | 3
+        button.template-preset(type="button" data-rows="8" data-side="4" aria-pressed="true")
+          strong Chuẩn
+          span 8 hàng · 4 | 4
+        button.template-preset(type="button" data-rows="12" data-side="4" aria-pressed="false")
           strong Lớn
-          span 14 hàng × 20 ghế
+          span 12 hàng · 4 | 4
       .workspace-fields
-        label Số hàng (1–20)
-          input#template-rows(type="number" min="1" max="20" value="6")
-        label Ghế mỗi hàng (2–29)
-          input#template-cols(type="number" min="2" max="29" value="10")
+        label Số hàng (2–20)
+          input#template-rows(type="number" min="2" max="20" value="8")
+        label Ghế mỗi bên lối đi (1–14)
+          input#template-side(type="number" min="1" max="14" value="4")
+        label Số hàng ghế đôi ở cuối (0–2)
+          input#template-couple-rows(type="number" min="0" max="2" value="2")
       label.check
-        input#template-vip(type="checkbox" checked)
+        input#template-aisle(type="checkbox" checked)
+        span Chừa một lối đi ở giữa
+      label.check
+        input#template-vip(type="checkbox")
         span Các hàng giữa là ghế VIP
-      label.check
-        input#template-couple(type="checkbox" checked)
-        span Hàng cuối là ghế đôi
-      label.check
-        input#template-aisle(type="checkbox")
-        span Chừa lối đi ở giữa
       p#template-preview.muted
       p#template-error.form-error(hidden role="alert")
       .actions
         button#template-apply.button(type="button") Tạo bản xem trước
         button#template-cancel.button.secondary(type="button") Đóng
+    //- Row / column menu, opened from a row letter or a column number on the map (fixed position, outside the zoomed surface).
+    #grid-menu.grid-menu(role="menu" hidden)
+      p#grid-menu-title.grid-menu-title
+      #grid-menu-items
     dialog#blocker-dialog.cine-dialog(aria-labelledby="blocker-title")
       h2#blocker-title Suất gây khóa sơ đồ
       p.muted Sơ đồ mở lại khi các suất này đã kết thúc. Bấm một suất để mở trang sửa suất.
@@ -239,7 +206,7 @@ block admin
         button#blocker-close.button.secondary(type="button") Đóng
     dialog#finish-dialog.cine-dialog(aria-labelledby="finish-title")
       h2#finish-title Còn thay đổi chưa lưu
-      p Những phần đã lưu được giữ. Bản xem trước sơ đồ hoặc nội dung giá đang nhập chưa được lưu.
+      p#finish-body Những phần đã lưu được giữ. Bản xem trước sơ đồ hoặc nội dung giá đang nhập chưa được lưu.
       .actions
         button#finish-stay.button(type="button") Quay lại để lưu
         button#finish-discard.button.secondary(type="button") Bỏ thay đổi chưa lưu và kết thúc

@@ -3,7 +3,7 @@ include form-fields
 //- Fragment loaded into a <dialog> on the list page by /js/admin-dialog.js. No page chrome.
 .dialog-shell(class='dialog-' + key)
   header.dialog-head
-    h2#admin-dialog-title #{rowId ? 'Sửa' : 'Thêm'} · #{resourceLabel}
+    h2#admin-dialog-title= key == 'rooms' ? (rowId ? 'Sửa phòng' : 'Thêm phòng') : (rowId ? 'Sửa' : 'Thêm') + ' · ' + resourceLabel
     button.dialog-close(type="button" data-dialog-close aria-label="Đóng")
       svg(viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false")
         path(d="M6 6l12 12M18 6L6 18")
@@ -14,11 +14,30 @@ include form-fields
     if rowId
       input(type="hidden" name="id" value=rowId)
     .dialog-content
-      if key == 'contents'
+      if key == 'rooms'
+        //- 16/11/2026: Thêm/Sửa phòng is a pop-up; a new room goes straight into the seat map with the default layout built.
+        input(type="hidden" name="cinemaId" value=dialogCinemaId)
+        if !rowId || fromSetup
+          input(type="hidden" name="next" value="continue")
+        p.dialog-context Rạp
+          strong= dialogCinemaName
+        .dialog-fields
+          each f in fields
+            if f.name == 'name' || f.name == 'format'
+              +dialogField(f, required.contains(f.name))
+            else if f.name == 'active' && rowId
+              +dialogField(f, false)
+          if !rowId
+            input(type="hidden" name="active" value="true")
+            .form-field(data-field="templateRows")
+              label(for="dlg-templateRows") Số hàng ghế
+              input#dlg-templateRows(type="number" name="templateRows" min="2" max="20" value="8" required data-template-rows)
+              small(data-template-summary) Mẫu: 4 ghế · lối đi · 4 ghế, hai hàng cuối là ghế đôi. Sửa tiếp được trên sơ đồ.
+      else if key == 'contents'
         .dialog-grid
           .dialog-col
             each f in fields
-              if f.name == 'kind' || f.name == 'title' || f.name == 'body'
+              if f.name == 'kind' || f.name == 'title' || f.name == 'summary' || f.name == 'body'
                 +dialogField(f, required.contains(f.name))
           .dialog-col
             each f in fields
@@ -44,6 +63,11 @@ include form-fields
           if key == 'genres' && rowId
             a.dialog-link(href='/admin/manage/genres/edit?id=' + rowId) Xem phim đang dùng thể loại này →
     footer.dialog-actions
-      span.dialog-state(role="status") #{rowId ? 'Chỉnh sửa rồi bấm Lưu.' : 'Điền thông tin rồi bấm Thêm.'}
+      span.dialog-state(role="status")= rowId ? 'Chỉnh sửa rồi bấm Lưu.' : key == 'rooms' ? 'Đặt tên rồi bấm Tạo và xếp ghế.' : 'Điền thông tin rồi bấm Thêm.'
       button.button.secondary(type="button" data-dialog-close) Hủy
-      button.button(type="submit")= rowId ? 'Lưu thay đổi' : 'Thêm mới'
+      if key == 'rooms'
+        if rowId && !fromSetup
+          a.button.secondary(href='/admin/setup/rooms/' + rowId) Sơ đồ ghế →
+        button.button.primary(type="submit")= rowId ? 'Lưu thay đổi' : 'Tạo và xếp ghế →'
+      else
+        button.button(type="submit")= rowId ? 'Lưu thay đổi' : 'Thêm mới'

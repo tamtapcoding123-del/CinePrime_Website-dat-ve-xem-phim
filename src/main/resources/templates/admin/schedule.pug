@@ -1,11 +1,11 @@
 extends layout
 block head
-  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261115q")
-  script(src="/js/showtime-hub.js?v=20261114c" defer)
+  link(rel="stylesheet" href="/css/showtime-hub.css?v=20261116c")
+  script(src="/js/showtime-hub.js?v=20261116c" defer)
 block admin
   - var keep = '/admin/schedule?cinemaId=' + cinemaId + '&roomId=' + roomId + '&movieId=' + movieId + '&state=' + state + '&date='
   h1.visually-hidden Lịch trong ngày
-  form.hub-context(method="get" action="/admin/schedule")
+  form.hub-context.hub-list(method="get" action="/admin/schedule")
     select(name="cinemaId" aria-label="Rạp" data-autosubmit="true")
       each c in adminCinemas
         option(value=c.id selected=cinemaId == c.id.toString())= c.name
@@ -16,24 +16,23 @@ block admin
         input(type="date" name="date" value=day required aria-label="Chọn ngày chiếu" data-autosubmit="true")
       a.button.secondary.hub-step(href=keep + nextDay aria-label="Ngày sau (phím →)" title="Ngày sau · phím →" data-hotkey="ArrowRight") →
       a.button.secondary(href=keep + todayDay title="Phím T" data-hotkey="t") Hôm nay
-    span.hub-sep(aria-hidden="true")
-    select(name="movieId" aria-label="Phim" data-autosubmit="true")
-      option(value="") Tất cả phim
-      each m in filterMovies
-        option(value=m.id selected=movieId == m.id.toString())= m.name
-    select#schedule-room(name="roomId" aria-label="Phòng" data-autosubmit="true")
-      option(value="") Tất cả phòng
-      each r in adminRooms
-        option(value=r.id selected=roomId == r.id.toString())= r.name
-    select(name="state" aria-label="Trạng thái" data-autosubmit="true")
-      option(value="") Mở bán và nháp
-      option(value="OPEN" selected=state == 'OPEN') Mở bán
-      option(value="DRAFT" selected=state == 'DRAFT') Nháp
-      option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
-    noscript
-      button.button(type="submit") Lọc
-    span.hub-grow
-    a.button.primary(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n" title="Phím N")
+    .hub-filters(role="group" aria-label="Lọc suất chiếu")
+      select(name="movieId" aria-label="Phim" data-autosubmit="true")
+        option(value="") Tất cả phim
+        each m in filterMovies
+          option(value=m.id selected=movieId == m.id.toString())= m.name
+      select#schedule-room(name="roomId" aria-label="Phòng" data-autosubmit="true")
+        option(value="") Tất cả phòng
+        each r in adminRooms
+          option(value=r.id selected=roomId == r.id.toString())= r.name
+      select(name="state" aria-label="Trạng thái" data-autosubmit="true")
+        option(value="") Mở bán và nháp
+        option(value="OPEN" selected=state == 'OPEN') Mở bán
+        option(value="DRAFT" selected=state == 'DRAFT') Nháp
+        option(value="CANCELLED" selected=state == 'CANCELLED') Đã huỷ
+      noscript
+        button.button(type="submit") Lọc
+    a.button.primary.hub-add(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&roomId=' + roomId + '&movieId=' + movieId + '&add=1' data-hotkey="n" title="Phím N")
       | + Thêm suất
       kbd N
   section.panel.tl(aria-label="Trục giờ theo phòng")
@@ -87,8 +86,6 @@ block admin
           .tl-ruler
             each h in boardHours
               span.tl-hour(data-left=h.left)= h.label
-            if showNow
-              span.tl-nowtag.num(data-left=nowLeft)= nowLabel
         each r in boardRooms
           .tl-row(class=r.active ? '' : 'inactive')
             .tl-room
@@ -111,8 +108,13 @@ block admin
                   a.tl-empty(href=r.addLink) Chưa có suất. Bấm để thêm suất cho phòng này.
                 else
                   span.tl-empty Phòng đã ngừng hoạt động.
-              if showNow
-                span.tl-now(data-left=nowLeft)
+        //- 16/11/2026: the current time is a small pointer under the rooms, not a line across the shows.
+        if showNow
+          .tl-nowrow(aria-hidden="true")
+            span.tl-corner
+            .tl-nowtrack(data-from=boardFrom data-to=boardTo)
+              span.tl-cursor(data-left=nowLeft data-now=nowLabel)
+                span.tl-cursor-time.num= nowLabel
     .tl-foot
       if attention.size() == 0
         span.status-badge.tone-ok Ổn

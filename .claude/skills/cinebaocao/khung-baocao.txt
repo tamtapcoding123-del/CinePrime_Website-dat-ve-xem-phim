@@ -1,0 +1,367 @@
+// =====================================================================================
+// KHUNG BÁO CÁO CINEPRIME — sắp xếp theo đúng bản mẫu Mau-Bao-Cao-JAV102.pdf
+// Cách dùng: chép file này thành "Báo cáo\bao-cao.txt", thay mọi <<...>> bằng nội dung thật
+// (nguồn ghi trong dòng // ngay trên mỗi phần), rồi chạy tao-baocao.ps1. Dòng // bị bỏ qua.
+// Cú pháp: cu-phap.md. Không để sót <<...>> khi giao (lệnh soát ở SKILL.md §5).
+// =====================================================================================
+@loaiBaoCao: <<BÁO CÁO DỰ ÁN | ĐỒ ÁN TỐT NGHIỆP — hỏi người dùng>>
+@nganh: CÔNG NGHỆ THÔNG TIN
+@chuyenNganh: <<Lập trình web — hỏi người dùng>>
+@monHoc: <<JAV102 — xóa dòng này nếu bìa không ghi môn>>
+@tieuDe: XÂY DỰNG WEBSITE ĐẶT VÉ XEM PHIM CINEPRIME
+@gvhd: <<HỌ TÊN GIẢNG VIÊN>>
+@sinhVien: Nguyễn Minh Tâm; Lê Văn Gia Bảo; Trần Gia Huy
+@noiNgay: <<Đà Nẵng>>, <<11/2026>>
+// @to2 mặc định "TRƯỜNG CAO ĐẲNG FPT POLYTECHNIC" (mẫu ghi "TRƯỜNG CAO ĐẲNG THỰC HÀNH FPT POLYTECHNIC") — đổi nếu người dùng muốn
+
+::bia
+
+// ---------------- Trang trước nội dung (cỡ 14 như mẫu) ----------------
+#!= LỜI CẢM ƠN
+::co 14
+> <<Đoạn 1: cảm ơn thầy cô, nhà trường, giảng viên hướng dẫn (3–6 dòng).>>
+::trong
+> <<Đoạn 2: cảm ơn gia đình, bạn bè (3–6 dòng).>>
+::trong
+::trong
+> **__<<Chúng em xin gửi lời cảm ơn chân thành nhất!>>__**
+::co 12
+
+#!= CAM KẾT
+::co 14
+> <<Thay mặt nhóm, tôi, Nguyễn Minh Tâm – trưởng nhóm xin cam kết: | (làm cá nhân: "Tôi, Họ tên, xin cam kết:")>>
+% 1. | Báo cáo <<dự án>> với đề tài: “Xây dựng website đặt vé xem phim CinePrime” là công trình nghiên cứu của <<chính các cá nhân trong nhóm>> dưới sự hướng dẫn trực tiếp của giảng viên <<HỌ TÊN>>.
+% 2. | <<Chúng tôi>> đã tự đọc nghiên cứu, dịch tài liệu và tổng hợp các kiến thức đã làm nên báo cáo này và đảm bảo không sao chép ở bất cứ đâu.
+% 3. | Những lý thuyết trong báo cáo đều sử dụng tài liệu đã liệt kê ở phần tài liệu tham khảo.
+> Nếu có vi phạm, tôi xin chịu hoàn toàn trách nhiệm.
+::trong
+>> <<Đại diện nhóm sinh viên thực hiện>>
+::trong
+::trong
+>> **Nguyễn Minh Tâm**
+::co 12
+
+::muc-luc
+::muc-luc-hinh
+::muc-luc-bang
+
+// ================================ PHẦN MỞ ĐẦU ================================
+# PHẦN MỞ ĐẦU
+## 1. PHÂN TÍCH HIỆN TRẠNG
+// Nguồn: Plan.md §1–§2, README "Logic nghiệp vụ". Viết theo giọng mẫu: nhu cầu khách → khó khăn của rạp.
+- <<Nhu cầu: khách muốn xem lịch chiếu, chọn ghế theo sơ đồ, thanh toán trực tuyến và nhận vé QR ngay trên điện thoại.>>
+- Khó khăn của rạp chiếu phim bao gồm:
++ <<Tranh chấp ghế: nhiều khách cùng chọn một ghế cùng lúc, cần giữ ghế có thời hạn.>>
++ <<Xếp lịch suất chiếu: nhiều phòng, nhiều phim, phải tránh trùng giờ và chừa thời gian dọn phòng.>>
++ <<Thanh toán an toàn: xác thực kết quả từ cổng thanh toán, không phát vé khi giữ ghế đã hết hạn.>>
++ <<Soát vé tại cửa: mỗi vé chỉ vào một lần, đúng rạp, đúng khung giờ.>>
+## 2. MỤC ĐÍCH
+### 2.1. Mục đích của sản phẩm
+- <<…>>
+### 2.2. Mục tiêu hệ thống
+- <<…>>
+### 2.3. Tính năng cơ bản của hệ thống
+// Nguồn: Plan.md §2 (Customer/Admin/Staff). Mỗi dòng "Tên tính năng: mô tả". Chỉ ghi tính năng đã có.
+- <<Tìm kiếm và xem phim: …>>
+- <<Đặt vé và giữ ghế 5 phút: …>>
+- <<Thanh toán MoMo: …>>
+- <<Vé điện tử QR và PDF: …>>
+- <<Check-in và bán vé tại quầy: …>>
+- <<Quản trị phim, rạp, phòng, sơ đồ ghế, lịch chiếu tuần: …>>
+- <<Báo cáo thống kê doanh thu: …>>
+### 2.4. Đối tượng sử dụng
+- Quản trị viên (Admin)
+- Nhân viên (Staff)
+- Khách hàng (Customer)
+### 2.5. Công nghệ dùng để phát triển dự án
+// Nguồn: README "Mô hình công nghệ" + pom.xml. Không thêm công nghệ không có trong dự án.
+- Ngôn ngữ: Java 25, HTML, CSS, JavaScript, SQL
+- Framework: Spring Boot 4.1 (Spring MVC, Spring Security, Spring Data JPA/Hibernate, Validation, Mail)
+- Giao diện: Pug4J (render phía máy chủ), CSS và JavaScript thuần
+- Database: MySQL 8, quản lý phiên bản bằng Flyway
+- Thanh toán: MoMo (môi trường thử nghiệm)
+- Thư viện: PDFBox (vé PDF), ZXing (tạo và quét mã QR), Apache POI (Excel lịch chiếu), imageio-webp (ảnh WEBP)
+- Kiểm thử: JUnit 5, kiểm thử tích hợp trên MySQL, kiểm thử thủ công
+- Xác thực: Session, CSRF, băm mật khẩu
+## 3. LẬP KẾ HOẠCH DỰ ÁN
+// Nguồn: ngày trong Plan.md §8 và git log (05/11/2026 → nay). Người làm: hỏi người dùng (viết tắt kiểu MyNT).
+// Hàng nhóm dùng "|=", hàng con "| 1 |", kết quả chỉ ghi "Hoàn thành" khi đã xong thật.
+[bang] Lập kế hoạch dự án || 1.3c,4.4,2.6,2.2,2.2,2.3
+|# STT | Hạng mục | Người làm | Bắt đầu | Kết thúc | Kết quả
+|= Phân tích yêu cầu
+| 1 | Phân tích mô hình công nghệ | <<>> | <<05/11/2026>> | <<>> | Hoàn thành
+| 2 | Phân tích yêu cầu khách hàng | <<>> | <<>> | <<>> | Hoàn thành
+| 3 | Phân tích yêu cầu quản trị | <<>> | <<>> | <<>> | Hoàn thành
+|= Thiết kế ứng dụng
+| 1 | Thiết kế sơ đồ use case | <<>> | <<>> | <<>> | Hoàn thành
+| 2 | Thiết kế sitemap | <<>> | <<>> | <<>> | Hoàn thành
+| 3 | Thiết kế database | <<>> | <<>> | <<>> | Hoàn thành
+| 4 | Thiết kế sơ đồ ERD | <<>> | <<>> | <<>> | Hoàn thành
+| 5 | Thiết kế Activity Diagram | <<>> | <<>> | <<>> | Hoàn thành
+| 6 | Thiết kế giao diện | <<>> | <<>> | <<>> | Hoàn thành
+|= Thực hiện dự án
+| 1 | Tạo giao diện | | | |
+| 1.1 | Giao diện người dùng | <<>> | <<>> | <<>> | Hoàn thành
+| 1.2 | Giao diện quản trị và nhân viên | <<>> | <<>> | <<>> | Hoàn thành
+| 2 | Tạo chức năng | | | |
+| 2.1 | Chức năng trang người dùng | | | |
+| 2.1.1 | Đăng ký, đăng nhập, quên mật khẩu | <<>> | <<>> | <<>> | Hoàn thành
+| 2.1.2 | Danh sách, tìm kiếm, chi tiết phim | <<>> | <<>> | <<>> | Hoàn thành
+| 2.1.3 | Đặt vé, giữ ghế, combo, voucher | <<>> | <<>> | <<>> | Hoàn thành
+| 2.1.4 | Thanh toán MoMo | <<>> | <<>> | <<>> | <<Hoàn thành hoặc Chưa kiểm thử thật>>
+| 2.1.5 | Vé QR, vé PDF, lịch sử đơn | <<>> | <<>> | <<>> | Hoàn thành
+| 2.2 | Chức năng trang quản trị | | | |
+| 2.2.1 | Quản lý phim, thể loại, người tham gia | <<>> | <<>> | <<>> | Hoàn thành
+| 2.2.2 | Quản lý rạp, phòng, sơ đồ ghế, giá | <<>> | <<>> | <<>> | Hoàn thành
+| 2.2.3 | Xếp lịch chiếu theo tuần, Excel | <<>> | <<>> | <<>> | Hoàn thành
+| 2.2.4 | Quản lý đơn hàng, đối soát | <<>> | <<>> | <<>> | Hoàn thành
+| 2.2.5 | Thống kê doanh thu | <<>> | <<>> | <<>> | Hoàn thành
+| 2.3 | Chức năng nhân viên: check-in, bán vé tại quầy | <<>> | <<>> | <<>> | Hoàn thành
+|= Kiểm thử
+| 1 | Xây dựng và chạy kịch bản kiểm thử | <<>> | <<>> | <<>> | Hoàn thành
+|= Triển khai
+| 1 | Đóng gói sản phẩm (JAR) | <<>> | <<>> | <<>> | Hoàn thành
+
+// ================================ CHƯƠNG I ================================
+// Mỗi mục: đoạn định nghĩa → "- Ưu điểm:" + các "+" → "- Nhược điểm:" + các "+" (đúng khuôn mẫu).
+// Hình minh họa lý thuyết (Client-Server, MVC) là TÙY CHỌN: chỉ chèn khi người dùng có ảnh hoặc vẽ bằng draw.io.
+# CHƯƠNG I: CƠ SỞ LÝ THUYẾT
+## 1. MÔ HÌNH CÔNG NGHỆ
+[hinh] D:\0_JAV102\CinePrime_Project\.claude\skills\cinebaocao\hinh-ly-thuyet\client-server.png | Client - Server | 12
+- <<Client-Server: định nghĩa, áp dụng cho CinePrime (trình duyệt ↔ ứng dụng Spring Boot ↔ MySQL).>>
+- Điểm mạnh:
++ <<…>>
+- Điểm yếu:
++ <<…>>
+## 2. NGÔN NGỮ JAVA
+<<Lịch sử ngắn, đặc điểm.>>
+- Ưu điểm:
++ <<…>>
+- Nhược điểm:
++ <<…>>
+## 3. SPRING BOOT
+<<Spring Boot, Spring MVC, Spring Security, Spring Data JPA.>>
+- Ưu điểm:
++ <<…>>
+- Nhược điểm:
++ <<…>>
+## 4. MÔ HÌNH MVC
+[hinh] D:\0_JAV102\CinePrime_Project\.claude\skills\cinebaocao\hinh-ly-thuyet\mvc.png | Mô hình MVC | 11
+- <<MVC là gì; Model = entity/Domain + Store, View = template .pug, Controller = @Controller.>>
+- Luồng xử lý trong MVC
++ <<Request → Controller → Service/Model → View (Pug) → HTML trả về trình duyệt.>>
+## 5. CƠ SỞ DỮ LIỆU: MYSQL
+- <<MySQL; Flyway quản lý migration; Hibernate ddl-auto validate.>>
+- Ưu điểm:
++ <<…>>
+- Nhược điểm:
++ <<…>>
+## 6. XÁC THỰC VÀ BẢO MẬT: SESSION, CSRF
+// Mẫu dùng JWT; CinePrime dùng session + CSRF + băm mật khẩu (SecurityConfig.java) → viết đúng công nghệ thật.
+- <<…>>
+## 7. CỔNG THANH TOÁN MOMO
+- <<captureWallet, IPN, truy vấn trạng thái, chữ ký HMAC-SHA256; môi trường sandbox.>>
+
+// ================================ CHƯƠNG II ================================
+# CHƯƠNG II: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG
+## 1. PHÂN TÍCH NGHIỆP VỤ
+// Nguồn: README "Phân tích nghiệp vụ" 5.1–5.3. Mỗi dòng "Tên nghiệp vụ: mô tả".
+### 1.1. Nghiệp vụ của Quản trị viên
+- <<…>>
+### 1.2. Nghiệp vụ của Nhân viên
+- <<…>>
+### 1.3. Nghiệp vụ của Khách hàng
+- <<…>>
+## 2. THIẾT KẾ HỆ THỐNG
+### 2.1. Use case
+- Use case tổng quát
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC01-tong-quat.png | Use case tổng quát
+- Use case quản trị viên
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC02-admin.png | Use case quản trị viên
+- Use case nhân viên
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC03-staff.png | Use case nhân viên
+- Use case khách hàng
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC04-customer.png | Use case khách hàng
+- Use case đặt vé
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC05-dat-ve.png | Use case đặt vé
+- Use case thanh toán
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC06-thanh-toan.png | Use case thanh toán
+- Use case quản lý lịch chiếu
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC07-quan-ly-lich-chieu.png | Use case quản lý lịch chiếu
+- Use case quản lý vé và check-in
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\UC08-quan-ly-ve-check-in.png | Use case quản lý vé và check-in
+### 2.2. Sơ đồ màn hình (Sitemap)
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Usecase\SM01-sitemap.png | Sơ đồ màn hình (Sitemap)
+// 2.3 lấy NGUYÊN file Word của /cineerd (heading "2.3.", ảnh ERD, đoạn giới thiệu, 27+ bảng "Thực thể …").
+// Muốn tên mục giống mẫu ("Mô hình thực thể quan hệ - ERD") thì sinh lại Word ERD với word.tieuDe tương ứng.
+[chen] D:\0_JAV102\CinePrime_Project\Sơ đồ\ERD\ERD01-toan-bo.docx
+### 2.4. Activity Diagram
+- Activity “Đăng ký, đăng nhập”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD01-dang-ky-dang-nhap.drawio.png | Activity đăng ký, đăng nhập
+- Activity “Đặt vé”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD02-dat-ve.drawio.png | Activity đặt vé
+- Activity “Thanh toán vé và nhận vé QR”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD03-thanh-toan-ve-qr.drawio.png | Activity thanh toán vé và nhận vé QR
+- Activity “Check-in”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD04-check-in.drawio.png | Activity check-in
+- Activity “Quản lý lịch chiếu”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD05-quan-ly-lich-chieu.drawio.png | Activity quản lý lịch chiếu
+- Activity “Quản lý đơn, hủy đơn”
+[hinh] D:\0_JAV102\CinePrime_Project\Sơ đồ\Activity-Diagrams\AD06-quan-ly-don-huy-don.drawio.png | Activity quản lý đơn, hủy đơn
+## 3. THIẾT KẾ GIAO DIỆN VÀ ĐẶC TẢ
+// Mỗi màn: ảnh chụp (Báo cáo\Ảnh giao diện\GDxx-*.png, chụp theo SKILL.md §4) → "Đặc tả:" → bảng đặc tả.
+// Mục trong bảng = thành phần THẬT trên màn (đọc template .pug tương ứng). Loại: Link component, Button, Text input, Select, Checkbox, Image Component, Table, Dialog…
+### 3.1. Trang chủ
+[hinh] D:\0_JAV102\CinePrime_Project\Báo cáo\Ảnh giao diện\GD01-trang-chu.png | Giao diện trang chủ
+> Đặc tả:
+[bang] || 3.6,2.8,9.6
+|~ Giao diện | Trang chủ
+|~ Mô tả | <<Màn hình chính: banner, phim đang/sắp chiếu…>>
+|~ Truy cập | <<Mọi người dùng, không cần đăng nhập>>
+|= Đặc tả giao diện
+|# Mục | Loại component | Mô tả
+| <<Đăng nhập, đăng ký>> | Link component | <<Đi đến trang đăng nhập/đăng ký>>
+| <<Banner phim>> | Image Component | <<…>>
+// Các màn còn lại theo đúng khối trên (ảnh → Đặc tả → bảng). Đường dẫn để chụp ở cột cuối:
+// 3.2 Danh sách phim (/movies) · 3.3 Chi tiết phim (/movies/{slug}) · 3.4 Lịch chiếu (/showtimes) · 3.5 Rạp chiếu (/cinemas)
+// 3.6 Chọn ghế (/booking/{id}) · 3.7 Đơn hàng và thanh toán (/orders/{id}) · 3.8 Đăng nhập/Đăng ký (/login, /register)
+// 3.9 Tài khoản – vé của tôi (/account) · 3.10 Admin – Tổng quan (/admin) · 3.11 Admin – Quản lý phim (/admin/manage/movies)
+// 3.12 Admin – Lịch chiếu tuần (/admin/schedule) · 3.13 Admin – Phòng và sơ đồ ghế (/admin/setup/rooms/{id})
+// 3.14 Admin – Đơn hàng (/admin/orders) · 3.15 Staff – Check-in (/staff) · 3.16 Staff – Bán vé tại quầy (/staff/counter)
+// (Người dùng có thể bớt màn; giữ đánh số liên tục.)
+
+// ================================ CHƯƠNG III ================================
+# CHƯƠNG III: TRIỂN KHAI MÃ NGUỒN
+## 1. CẤU TRÚC MÃ NGUỒN
+// Cây thư mục thật (tree src/main) rút gọn tới mức package/thư mục, đặt trong [ma]. Mẫu chia Front-End/Back-End; CinePrime là một ứng dụng → chia "Mã Java" và "Giao diện (resources)".
+- Mã nguồn Java:
+[ma]
+src/main/java/vn/cineprime
+├───admin          (quản trị: CRUD, lịch chiếu, báo cáo)
+├───auth           (tài khoản, bảo mật)
+├───booking        (giữ ghế, đơn hàng)
+├───domain         (entity, Store, dữ liệu mẫu)
+├───media          (upload, vé QR/PDF)
+├───notification   (email, nhắc lịch)
+├───payment        (MoMo)
+├───staff          (check-in, bán vé tại quầy)
+└───web            (trang công khai, cấu hình Pug)
+[/ma]
+- Giao diện và tài nguyên:
+[ma]
+<<src/main/resources: templates (.pug), static/css, static/js, db/migration — soát bằng lệnh tree>>
+[/ma]
+## 2. KẾT NỐI CƠ SỞ DỮ LIỆU
+- Mô tả: <<Kết nối MySQL bằng Spring Boot DataSource; URL, tài khoản, mật khẩu lấy từ biến môi trường; Flyway chạy migration khi khởi động.>>
+- Mã nguồn:
+// Chép từ src/main/resources/application.yml — CHỈ phần datasource/flyway/jpa, giữ nguyên ${...}, KHÔNG điền mật khẩu thật.
+[ma]
+<<spring.datasource … trích từ application.yml>>
+[/ma]
+## 3. TRIỂN KHAI CÁC CHỨC NĂNG CHÍNH
+// Mỗi chức năng: "- Mô tả:" + các bước "+" (nhánh con "*") → "- Mã nguồn:" + [ma] trích ĐÚNG đoạn trong code (rút gọn, ≤ ~40 dòng/khối, không bí mật).
+### 3.1. Đăng ký/Đăng nhập
+#### 3.1.1. Đăng ký tài khoản
+- Mô tả:
++ <<…>>
+- Mã nguồn:
+[ma]
+<<AccountService / AccountController>>
+[/ma]
+#### 3.1.2. Đăng nhập và phân quyền
+- Mô tả:
++ <<SecurityConfig: form login, CSRF, phân quyền ADMIN/STAFF/CUSTOMER, authVersion…>>
+- Mã nguồn:
+[ma]
+<<SecurityConfig>>
+[/ma]
+### 3.2. Đặt vé và giữ ghế
+- Mô tả:
++ <<Khóa suất chiếu/ghế theo thứ tự cố định (Store.lock), kiểm tra 5 phút trước đóng bán, tối đa 8 ghế, ghế đôi theo cặp, giữ 5 phút.>>
+- Mã nguồn:
+[ma]
+<<BookingService>>
+[/ma]
+### 3.3. Thanh toán (Tích hợp MoMo)
+- Mô tả:
++ <<Tạo yêu cầu captureWallet, ký HMAC-SHA256; nhận IPN: kiểm tra chữ ký, merchant, mã đơn, số tiền; idempotent; thành công muộn → đối soát, không phát vé.>>
+- Mã nguồn:
+[ma]
+<<MomoService>>
+[/ma]
+### 3.4. Check-in vé bằng QR
+- Mô tả:
++ <<CheckInService: đúng rạp của nhân viên, 60 phút trước → 30 phút sau giờ chiếu, mỗi QR dùng một lần.>>
+- Mã nguồn:
+[ma]
+<<CheckInService>>
+[/ma]
+### 3.5. Xếp lịch chiếu theo tuần
+- Mô tả:
++ <<ShowtimeRules: chặn trùng phòng, thời gian dọn phòng, trong khoảng ngày chiếu của phim; nhập/xuất Excel.>>
+- Mã nguồn:
+[ma]
+<<ShowtimeRules / ShowtimeBatches>>
+[/ma]
+
+// ================================ CHƯƠNG IV ================================
+// Mỗi chức năng: "- Mục tiêu:" → bảng 5 cột. Ca kiểm thử lấy từ test thật (BookingIntegrationTest…) hoặc đã thử tay trên cineprime_test.
+// Pass/Fail chỉ ghi Pass khi đã chạy thật; chưa thử thì KHÔNG đưa vào bảng (hoặc ghi "Chưa kiểm thử").
+# CHƯƠNG IV: KIỂM THỬ
+## 1. Đăng ký
+- Mục tiêu: <<Đảm bảo người dùng đăng ký được tài khoản với thông tin hợp lệ>>
+[bang] || 1.2c,3.2,4.2,4.8,1.8c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | <<…>> | <<Email: example@gmail.com<br>Mật khẩu: …>> | <<Hiển thị thông báo "…">> | <<Pass>>
+## 2. Đăng nhập
+- Mục tiêu: <<…>>
+[bang] || 1.2c,3.2,4.2,4.8,1.8c
+|^ STT | Tình huống kiểm thử | Dữ liệu nhập | Kết quả mong đợi | Pass/Fail
+| 1 | <<…>> | <<…>> | <<…>> | <<Pass>>
+## 3. Đặt vé và giữ ghế
+// ví dụ ca thật: hai người cùng giữ một ghế; giữ quá 8 ghế; ghế đôi lẻ; hết 5 phút; còn dưới 5 phút trước đóng bán.
+## 4. Thanh toán MoMo
+// ca thật trong test: sai chữ ký, sai số tiền, IPN trùng, thành công muộn. Ghi rõ là kiểm thử tự động với khóa test, không phải giao dịch thật.
+## 5. Check-in
+// ca thật: QR sai, QR đã dùng, ngoài khung giờ, khác rạp.
+## 6. Xếp lịch chiếu
+// ca thật: trùng phòng, thiếu thời gian dọn, ngoài khoảng ngày chiếu.
+## 7. Tổng hợp kiểm thử tự động
+// Đọc target/surefire-reports: tổng số test, failures, errors, skipped, ngày chạy, MySQL version. Không cộng lượt chạy lại.
+- <<Kết quả: … tests, 0 failures, 0 errors, 0 skipped (ngày …).>>
+
+// ================================ CHƯƠNG V ================================
+// Mẫu ghi mua tên miền/VPS. CinePrime CHƯA deploy (Vercel dự kiến, hoãn) → chương này mô tả chạy local/đóng gói JAR từng bước "B1:, B2:" kèm ảnh chụp,
+// KHÔNG viết như đã triển khai lên Internet. Bước dạng "> B1: …", ảnh "[hinh] … | Kết quả …".
+# CHƯƠNG V: TRIỂN KHAI
+## 1. CHUẨN BỊ MÔI TRƯỜNG
+> B1: <<Cài JDK 25, MySQL 8…>>
+> B2: <<Tạo database cineprime, tài khoản…>>
+## 2. CẤU HÌNH VÀ CHẠY ỨNG DỤNG
+> B1: <<Đặt biến môi trường DB_URL, DB_USER, DB_PASSWORD (không ghi giá trị thật)>>
+> B2: <<.\mvnw.cmd -B -ntp package>>
+> B3: <<java -jar target\cineprime-1.0.0.jar>>
+// [hinh] … | Kết quả chạy ứng dụng
+## 3. HƯỚNG TRIỂN KHAI LÊN INTERNET
+- <<Dự kiến, chưa thực hiện: …>>
+
+// ================================ CHƯƠNG VI ================================
+# CHƯƠNG VI: HẠN CHẾ VÀ HƯỚNG PHÁT TRIỂN
+## 1. Hạn chế
+// Nguồn: README/Plan — những gì chưa kiểm chứng thật (MoMo thật, email SMTP thật, camera thiết bị, deploy, máy in nhiệt…).
+- <<…>>
+## 2. Hướng phát triển tương lai
+// Nguồn: Plan.md §1 lộ trình sau: Google Login, VNPay, hoàn tiền, đổi điểm, gợi ý cá nhân…
+- <<…>>
+## 3. Kết luận
+- <<…>>
+
+#! PHỤ LỤC: TÀI LIỆU THAM KHẢO
+- Spring Boot: https://docs.spring.io/spring-boot/
+- Spring Security: https://docs.spring.io/spring-security/reference/
+- Pug4J: https://github.com/neuland/pug4j
+- MySQL: https://dev.mysql.com/doc/
+- Flyway: https://documentation.red-gate.com/flyway
+- MoMo Developers: https://developers.momo.vn/
+- Apache PDFBox: https://pdfbox.apache.org/
+- ZXing: https://github.com/zxing/zxing

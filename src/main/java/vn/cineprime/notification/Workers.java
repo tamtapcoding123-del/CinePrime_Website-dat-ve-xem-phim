@@ -16,10 +16,10 @@ import static vn.cineprime.domain.Domain.*;
 @Component
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="cineprime.jobs-enabled",havingValue="true",matchIfMissing=true)
 public class Workers {
-    private final Store db;private final BookingService bookings;private final Notifications notices;private final JavaMailSender sender;private final Clock clock;private final TransactionTemplate tx;
+    private final Store db;private final BookingService bookings;private final Notifications notices;private final JavaMailSender sender;private final Clock clock;private final TransactionTemplate tx;private final vn.cineprime.member.TierService tiers;private final vn.cineprime.member.WalletService wallet;
     @Value("${cineprime.mail-enabled}") boolean mailEnabled;
     @Value("${cineprime.mail-from}") String from;
-    public Workers(Store db,BookingService bookings,Notifications notices,JavaMailSender sender,Clock clock,PlatformTransactionManager tm){this.db=db;this.bookings=bookings;this.notices=notices;this.sender=sender;this.clock=clock;this.tx=new TransactionTemplate(tm);}
+    public Workers(Store db,BookingService bookings,Notifications notices,JavaMailSender sender,Clock clock,PlatformTransactionManager tm,vn.cineprime.member.TierService tiers,vn.cineprime.member.WalletService wallet){this.db=db;this.bookings=bookings;this.notices=notices;this.sender=sender;this.clock=clock;this.tx=new TransactionTemplate(tm);this.tiers=tiers;this.wallet=wallet;}
     @Scheduled(fixedDelay=15000,initialDelay=15000) public void expiry(){
         for(Order o:db.list(Order.class,"where e.status='PENDING_PAYMENT' and e.expiresAt<=?1",clock.instant()))try{bookings.expire(o.id);}catch(RuntimeException ignored){/* Next pass retries; transaction rolls back on races. */}
     }
@@ -35,6 +35,10 @@ public class Workers {
                 notices.notify(u,"movie:"+s.id,"Phim bạn chờ đã mở bán",m.title+" đã có lịch chiếu. Khám phá và đặt vé tại CinePrime.",s.email);s.sent=true;
             }
         });
+    }
+    /** Nightly member run, each step per customer in its own transaction: tier review, birth-month vouchers/gift, yearly vouchers. Issues are keyed, so a re-run adds nothing; failures retry next night. */
+    @Scheduled(cron="0 10 0 * * *",zone="Asia/Ho_Chi_Minh") public void tierReview(){
+        for(Long id:db.query("select u.id from "+db.entityName(User.class)+" u where u.role='CUSTOMER' order by u.id",Long.class)){try{tiers.review(id);}catch(RuntimeException ignored){}try{wallet.birthday(id);}catch(RuntimeException ignored){}try{wallet.yearly(id);}catch(RuntimeException ignored){}}
     }
     @Scheduled(fixedDelay=15000,initialDelay=20000) public void sendMail(){
         if(!mailEnabled)return;

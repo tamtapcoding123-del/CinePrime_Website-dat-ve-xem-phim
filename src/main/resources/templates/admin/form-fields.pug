@@ -16,7 +16,9 @@ mixin dialogField(field, isRequired)
           each option in field.options
             option(value=option.value selected=field.value == option.value)= option.label
       else if field.type == 'textarea'
-        textarea(id='dlg-' + field.name name=field.name rows=field.name == 'body' ? '10' : '4' maxlength=field.name == 'body' ? '20000' : '255' required=isRequired)= field.value
+        textarea(id='dlg-' + field.name name=field.name rows=field.name == 'body' ? '10' : field.name == 'summary' ? '3' : '4' maxlength=field.name == 'body' ? '20000' : '255' required=isRequired)= field.value
+        if field.name == 'summary'
+          small Hiện ngay dưới ảnh trên thẻ "Ưu đãi cho bạn" / "Góc điện ảnh" ở trang chủ. Để trống thì lấy đoạn đầu của nội dung.
       else if field.media
         input(id='field-' + field.name type="hidden" name=field.name value=field.value)
         .media-field.dialog-media(data-target='field-' + field.name data-kind=field.name data-video="false")
@@ -26,6 +28,8 @@ mixin dialogField(field, isRequired)
             button.text-button(type="button" data-upload-retry hidden) Thử lại
             button.text-button(type="button" data-upload-cancel hidden) Bỏ lựa chọn mới
           span.upload-status(role="status") Ảnh tự tải khi chọn. Đợi tải xong rồi Lưu.
+          if key == 'contents' && field.name == 'image'
+            small.media-hint Ưu đãi và Bài viết dùng ảnh dọc kiểu poster (tỉ lệ 2:3, khuyến nghị 600×900px): ảnh nằm trên, khung nội dung nằm dưới trên thẻ trang chủ. Ảnh ngang hãy đưa vào Banner trang chủ.
           if field.value
             img.media-preview(src=field.value alt="Ảnh hiện tại")
       else

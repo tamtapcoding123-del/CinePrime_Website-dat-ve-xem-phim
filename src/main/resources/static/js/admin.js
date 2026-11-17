@@ -76,7 +76,7 @@
           }else{
             const row=document.createElement('tr');
             if(widget.dataset.reportWidget==='chart'){td(row,item.label);td(row,item.amount);td(row,item.onlineAmount??'—');td(row,item.counterAmount??'—');}
-            else{const cell=td(row,'','Phim / Rạp / Phòng'),title=document.createElement('strong'),detail=document.createElement('small');title.textContent=item.movieTitle;detail.textContent=`${item.cinemaName} · ${item.roomName}`;cell.append(title,detail);td(row,item.when,'Suất');td(row,item.occupancy,'Vé / Ghế');}
+            else{const cell=td(row,'','Phim / Rạp / Phòng'),title=document.createElement('strong'),detail=document.createElement('small');title.textContent=item.movieTitle;detail.textContent=`${item.cinemaName} · ${item.roomName}`;cell.append(title,detail);td(row,item.when,'Suất');td(row,item.occupancy,'Vé / Ghế');td(row,item.admitted,'Đã vào / Vé');}
             fragment.append(row);
           }
         }

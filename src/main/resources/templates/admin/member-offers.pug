@@ -1,0 +1,105 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-members.css?v=20261117e")
+  script(src="/js/admin-members.js?v=20261117a" defer)
+block admin
+  +memberBar('', 'members')
+  .offer-grid
+    section.panel
+      h2 Phát theo hạng
+      form(action="/admin/member-offers/campaign" method="post" data-campaign)
+        +csrf()
+        each t in memberOverview.ladder
+          span(hidden data-tier-count=t.code data-count=t.count)
+        ol.campaign-steps
+          li
+            .step-body
+              h3 Ai nhận
+              label Từ hạng (khách đang hoạt động)
+                select(name="minTier")
+                  option(value="") Mọi hạng
+                  each t in tierOptions
+                    option(value=t.code)= t.name + ' trở lên'
+          li
+            .step-body
+              h3 Nhận gì (chọn một hoặc nhiều)
+              .pair
+                label Voucher vào ví
+                  select(name="voucherId")
+                    option(value="") Không phát voucher
+                    each v in personalTemplates
+                      option(value=v.id data-desc=v.description)= v.label
+                label Mỗi khách
+                  input.num(name="count" value="1" inputmode="numeric" required)
+              label Quà lưu niệm (nhận tại quầy trong 60 ngày)
+                select(name="productId")
+                  option(value="") Không tặng quà
+                  each p in merch
+                    option(value=p.id)= p.label
+              label Thông báo (gửi riêng khi không kèm voucher/quà; là lời nhắn kèm quà nếu có quà)
+                textarea(name="message" rows="2" maxlength="2000")
+          li
+            .step-body
+              h3 Mã chiến dịch
+              label Không dấu, ví dụ TET-2027. Chạy lại cùng mã chỉ phát cho khách chưa nhận.
+                input(name="campaign" required maxlength="40" pattern="[A-Za-z0-9_-]{3,40}")
+        p.reach(data-reach aria-live="polite") Chọn hạng và nội dung để xem số khách nhận.
+        button.button(type="submit" data-confirm="Phát chiến dịch cho các khách đủ điều kiện?") Phát chiến dịch
+    section.panel
+      .panel-title-row
+        h2 Mẫu voucher phát vào ví
+        a.button.secondary.small(href="/admin/manage/vouchers/edit") + Thêm mẫu
+      p.muted Loại "Phát vào ví khách" ở Kinh doanh → Voucher. Có điểm đổi thì khách tự đổi trong tài khoản; hạng dùng mẫu ở tab Hạng & quyền lợi.
+      .record-list.template-list
+        each t in templates
+          .record
+            div
+              strong.mono= t.code
+              |  #{t.description}
+              br
+              small #{t.scope} · đổi điểm #{t.points}#{t.active ? '' : ' · đang tắt'}
+            span.usage
+              | Chưa dùng
+              b= t.open
+              | · Đã dùng
+              b= t.used
+            a.link-button(href='/admin/manage/vouchers/edit?id=' + t.id) Sửa
+        if templates.size() == 0
+          .empty Chưa có mẫu voucher phát vào ví.
+  .offer-grid.gifts
+    section.panel
+      h2 Quà tại quầy
+      div.section-tabs(role="navigation" aria-label="Trạng thái quà")
+        a(href="/admin/member-offers?giftState=WAITING" class=giftState == 'WAITING' ? 'active' : '') Chờ nhận
+          if memberOverview.waitingGifts > 0
+            span.tab-badge= memberOverview.waitingGifts
+        a(href="/admin/member-offers?giftState=HANDED_OVER" class=giftState == 'HANDED_OVER' ? 'active' : '') Đã trao
+        a(href="/admin/member-offers?giftState=REVOKED" class=giftState == 'REVOKED' ? 'active' : '') Đã thu hồi
+        a(href="/admin/member-offers?giftState=ALL" class=giftState == 'ALL' ? 'active' : '') Tất cả
+      .record-list
+        each g in rows
+          .record
+            div
+              a(href='/admin/members/' + g.userId + '?tab=gifts')
+                strong= g.customer
+              |  · #{g.product}
+              br
+              small #{g.email} · #{g.reason}
+            span.status-badge(class=g.revocable ? 'tone-warn' : 'tone-muted')= g.state
+        if rows.size() == 0
+          .empty Không có quà ở trạng thái này.
+      +pagination()
+      p.muted Nhân viên trao quà ở Bán vé tại quầy → Quà thành viên (tra khách theo SĐT/email).
+    section.panel
+      .panel-title-row
+        h2 Kho lưu niệm
+        a.button.secondary.small(href="/admin/manage/products?state=MERCH") Quản lý
+      each p in merch
+        .stock-row(class=p.low ? 'low' : '')
+          a(href='/admin/manage/products/edit?id=' + p.id)= p.name
+          span
+            strong Tồn #{p.stock}
+            span.muted #{p.active ? ' · đang bán' : ' · chỉ làm quà'}
+      if merch.size() == 0
+        .empty Chưa có sản phẩm lưu niệm.
+      p.muted Tồn kho dùng chung cho bán kèm vé và trao quà; tồn từ 5 trở xuống hiện màu cam.

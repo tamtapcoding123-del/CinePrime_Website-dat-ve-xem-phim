@@ -1,7 +1,7 @@
 extends operations
 include mixins
 block head
-  link(rel="stylesheet" href="/css/staff.css?v=20261115p")
+  link(rel="stylesheet" href="/css/staff.css?v=20261117p")
   script(src="/js/staff-nav.js?v=20261113c")
   script(src="/js/counter-print.js?v=20261113c" defer)
 block brandControls
@@ -31,11 +31,14 @@ block content
           th(scope="row") Đơn đã bán · đã huỷ
           td.num #{shift.orders} · #{shift.cancelled}
         tr
-          th(scope="row") Vé còn hiệu lực
+          th(scope="row") Vé đã bán (chưa huỷ, gồm đã vào)
           td.num= shift.tickets
         tr
           th(scope="row") Tiền đầu ca
           td.num= shift.openingCash
+        tr
+          th(scope="row") Đã hoàn tiền mặt (đơn huỷ)
+          td.num= shift.refunded
         tr
           th(scope="row") Tiền mặt thu trong ca (đã trừ đơn huỷ)
           td.num= shift.cashIn

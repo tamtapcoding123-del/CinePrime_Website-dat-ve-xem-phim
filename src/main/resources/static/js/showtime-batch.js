@@ -12,6 +12,7 @@
   const uuid=()=>crypto.randomUUID(),small=matchMedia('(max-width:620.98px)'),stacked=matchMedia('(max-width:850.98px)');
   let rooms=[...$('room').options].filter(o=>o.value).map(o=>({id:o.value,name:o.textContent,format:o.dataset.format,active:true})),movies=[];
   const durations=new Map();
+  const movieOf=id=>movies.find(m=>String(m.id)===String(id));
   const title=id=>movies.find(m=>String(m.id)===String(id))?.title||[...$('line-movie').options].find(o=>o.value===String(id))?.textContent||`Phim #${id}`;
   const roomName=id=>rooms.find(r=>String(r.id)===String(id))?.name||`Phòng #${id}`;
   /* Each film keeps one colour (tokens --film-0…7 in cineprime-theme.css, index = movie id % 8) on all three Lịch chiếu screens. */
@@ -172,14 +173,31 @@
       tab.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}`),node('small',[day<today()?'đã qua':'',calendar?`${saved} ${day<today()?'suất':'đã lưu'}`:'',fresh.length?`${fresh.length} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')||'—'));box.append(tab);
     }
   }
+  /* Film column (16/11/2026): the list is rolled up under one combobox button; opened, each film is picked by a click or dragged onto the calendar. */
+  const FILM='application/x-cineprime-movie';let filmDrag='';
   function renderMovies(){
     const box=$('movies'),q=$('movie-filter').value.trim().toLowerCase(),list=movies.filter(m=>m.active&&m.status!=='ENDED');box.replaceChildren();$('movie-filter').hidden=list.length<=6;
+    const pick=$('movie-button'),current=movieOf(movieId);pick.style.setProperty('--tone',current?tone(current.id):'var(--line-strong)');pick.classList.toggle('is-empty',!current);
+    $('movie-current').textContent=current?current.title:loading?'Đang tải phim…':'Chọn phim';$('movie-meta').textContent=current?`${current.duration} phút${focusMovie===String(current.id)?' · đang làm nổi':''}`:`${list.length} phim`;
+    if(focusMovie){const all=button('Hiện lại mọi phim',()=>{focusMovie='';renderMovies();renderStrip();renderMain();},'sched-movie-all');box.append(all);}
     for(const m of list.filter(m=>!q||m.title.toLowerCase().includes(q)||String(m.id)===movieId)){
-      const on=String(m.id)===movieId,item=button('',()=>{const id=String(m.id);if(mode==='week')focusMovie=on&&focusMovie===id?'':id;movieId=id;renderMovies();renderMain();state();},`sched-movie${on?' active':''}`);if(mode==='week')item.title=on&&focusMovie===String(m.id)?'Bấm lần nữa để hiện lại mọi phim':'Chọn phim này để thêm suất và làm nổi các suất của nó';
-      item.setAttribute('role','radio');item.setAttribute('aria-checked',String(on));item.style.setProperty('--tone',tone(m.id));
+      const on=String(m.id)===movieId,item=button('',()=>{const id=String(m.id);if(mode==='week')focusMovie=on&&focusMovie===id?'':id;movieId=id;closeMoviePick();renderMovies();renderStrip();renderMain();state();},`sched-movie${on?' active':''}`);
+      item.setAttribute('role','option');item.setAttribute('aria-selected',String(on));item.style.setProperty('--tone',tone(m.id));
+      item.draggable=true;item.addEventListener('dragstart',e=>{if(locked()){e.preventDefault();return;}filmDrag=String(m.id);e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData(FILM,filmDrag);e.dataTransfer.setData('text/plain',m.title);root.classList.add('is-carrying');setTimeout(()=>{if(filmDrag)$('movie-pop').classList.add('is-dragging');},0);});
+      item.addEventListener('dragend',()=>{filmDrag='';$('movie-pop').classList.remove('is-dragging');root.classList.remove('is-carrying');clearGhost();root.querySelectorAll('.drop-on').forEach(el=>el.classList.remove('drop-on'));});
       item.append(node('strong',m.title),node('small',`${m.duration} phút${m.status==='COMING_SOON'?' · Sắp chiếu':''}`));box.append(item);
     }
-    if(!box.children.length)box.append(node('p',!calendar?(loading?'Đang tải phim…':'Chưa tải được phim.'):list.length?'Không có phim khớp.':'Chưa có phim đang hoạt động.','sched-empty'));
+    if(!box.querySelector('.sched-movie'))box.append(node('p',!calendar?(loading?'Đang tải phim…':'Chưa tải được phim.'):list.length?'Không có phim khớp.':'Chưa có phim đang hoạt động.','sched-empty'));
+  }
+  /* The open list keeps the film column's width and ends above the save bar, so it never covers the calendar. */
+  function placeMoviePick(){const pop=$('movie-pop');if(pop.hidden)return;const card=$('movie-button').closest('.sched-card').getBoundingClientRect(),btn=$('movie-button').getBoundingClientRect(),foot=root.querySelector('.sched-footer').getBoundingClientRect().top,top=btn.bottom+4;pop.style.left=`${card.left}px`;pop.style.top=`${top}px`;pop.style.width=`${card.width}px`;pop.style.maxHeight=`${Math.max(180,Math.min(innerHeight-12,foot-8)-top)}px`;}
+  function openMoviePick(){if(locked())return;$('movie-pop').hidden=false;$('movie-pop').classList.remove('is-dragging');placeMoviePick();$('movie-button').setAttribute('aria-expanded','true');$('movie-filter').value='';renderMovies();setTimeout(()=>($('movie-filter').hidden?$('movies').querySelector('.active,.sched-movie'):$('movie-filter'))?.focus(),0);}
+  function closeMoviePick(focus){if($('movie-pop').hidden)return;$('movie-pop').hidden=true;$('movie-button').setAttribute('aria-expanded','false');if(focus)$('movie-button').focus();}
+  /* A film dropped on a day of the week table opens Thêm suất for that room and day with that film. */
+  function filmTarget(el,onDrop){
+    el.addEventListener('dragover',e=>{if(!filmDrag)return;e.preventDefault();e.dataTransfer.dropEffect='copy';el.classList.add('drop-on');});
+    el.addEventListener('dragleave',e=>{if(filmDrag&&!el.contains(e.relatedTarget))el.classList.remove('drop-on');});
+    el.addEventListener('drop',e=>{if(!filmDrag)return;e.preventDefault();el.classList.remove('drop-on');const id=filmDrag;filmDrag='';root.classList.remove('is-carrying');$('movie-pop').classList.remove('is-dragging');movieId=id;onDrop(id,e);});
   }
   /* Room list above the calendar: in the week view each room is its own calendar; the label carries that room's count for the week. */
   function renderRoomTabs(){
@@ -226,7 +244,7 @@
       const th=node('th',undefined,`${when}${bad?' bad':''}`.trim()),open=button('',()=>setMode('day',day),'week-day');th.scope=rows?'row':'col';open.title='Xem ngày này theo giờ, mọi phòng';
       open.append(node('strong',`${short[d]} ${day.slice(8)}/${day.slice(5,7)}`),node('small',[day===today()?'hôm nay':'',day<today()?'đã qua':'',all.length?`${all.length} suất`:day<today()?'':'chưa có suất',fresh?`${fresh} mới`:'',bad?`${bad} lỗi`:''].filter(Boolean).join(' · ')));th.append(open);
       const td=node('td',undefined,when),cell=node('div',undefined,'week-cell');
-      if(day>=today()&&room.active)dropZone(td,()=>({date:day}),'');
+      if(day>=today()&&room.active){dropZone(td,()=>({date:day}),'');filmTarget(td,()=>{focusMovie='';closeMoviePick();openAdd(room.id,day);});}
       for(const item of shown){
         if(item.ghost){const ghostChip=node('div',undefined,'week-chip ghost');ghostChip.style.setProperty('--tone',tone(item.movieId));const inner=node('div',undefined,'chip-body');inner.append(node('b',`${item.startsAt.slice(11,16)} – ${item.endsAt.slice(11,16)}`),node('span',`Dự kiến · ${item.movieTitle}`));ghostChip.append(inner);ghostChip.title='Suất dự kiến trong bảng Nhiều suất nối tiếp, chưa thêm vào lịch';cell.append(ghostChip);continue;}
         const row=item.row,value=row&&checked(row.rowKey),wrong=!!value?.errors.length,over=!row&&ended(item),label=row?'Mới, chưa lưu':[over?'Đã chiếu':running(item)?'Đang chiếu':item.locked?'Có vé hoặc lượt giữ ghế, không dời được':item.status==='OPEN'?'Đang bán vé':'Nháp, chưa bán',tickets(item)].filter(Boolean).join(' · ');
@@ -270,7 +288,6 @@
   const panelMode=()=>root.querySelector('input[name=batch-add-mode]:checked')?.value||'many';
   const panelOrder=()=>root.querySelector('input[name=batch-add-order]:checked')?.value||'mix';
   const panelDays=()=>[...$('add-days').querySelectorAll('input:checked')].map(input=>input.value).sort();
-  const movieOf=id=>movies.find(m=>String(m.id)===String(id));
   /* A day is outside a film's release window when it is before its first day or after its last day. */
   const outside=(day,id)=>{const m=movieOf(id);return !!m&&((m.releaseDate&&day<m.releaseDate)||(m.endDate&&day>m.endDate));};
   /* Film of slot i: one film fills the day; several alternate (Xen kẽ) or run one after another with a count each (Lần lượt). */
@@ -295,24 +312,24 @@
     return out;
   }
   const seriesRows=()=>panel.open?panel.result.flatMap(d=>d.list.filter(x=>!x.off&&!x.reason).map(x=>x.row)):[];
-  function renderRooms(){
-    const box=$('add-rooms');box.replaceChildren();
-    for(const r of rooms.filter(r=>r.active)){const on=String(r.id)===panelRoom(),chip=button(r.name,()=>pickPanelRoom(String(r.id)),`sched-chip${on?' on':''}`);chip.setAttribute('role','radio');chip.setAttribute('aria-checked',String(on));chip.title=r.format;box.append(chip);}
-  }
+  /* The room of the panel is one compact select (16/11/2026); the calendar follows it. */
+  function renderRooms(){panel.room=panelRoom();}
   function renderFilms(){
     const box=$('add-films');box.replaceChildren();const many=panel.films.length>1&&panelMode()!=='one',seq=many&&panelOrder()==='seq';
     panel.films.forEach((f,i)=>{
       const m=movieOf(f.id),li=node('li',undefined,'sched-film');li.style.setProperty('--tone',tone(f.id));
-      const info=node('div');info.append(node('strong',m?.title||`Phim #${f.id}`),node('small',[`${m?.duration||'?'} phút`,m?.endDate?`chiếu đến ${dateLabel(m.endDate)}`:'',m?.status==='COMING_SOON'?'Sắp chiếu':''].filter(Boolean).join(' · ')));
+      /* The film of each row is chosen in the row itself, so the name on screen is always the film that gets the shows (fix 16/11/2026). */
+      const pick=node('select',undefined,'sched-film-pick');pick.setAttribute('aria-label',`Phim thứ ${i+1}`);
+      for(const x of usable().filter(x=>String(x.id)===String(f.id)||!panel.films.some(o=>String(o.id)===String(x.id)))){const o=node('option',x.title);o.value=String(x.id);pick.append(o);}
+      pick.value=String(f.id);pick.onchange=async()=>{const old=f.id;f.id=pick.value;if(!await changePlan()){f.id=old;renderPanel();}};
+      const info=node('div');info.append(pick,node('small',[`${m?.duration||'?'} phút`,m?.endDate?`chiếu đến ${dateLabel(m.endDate)}`:'',m?.status==='COMING_SOON'?'Sắp chiếu':''].filter(Boolean).join(' · ')));
       li.append(node('span',String(i+1),'sched-film-no'),info);
       if(seq){const step=node('span',undefined,'sched-step');step.append(button('−',()=>{f.count=Math.max(1,f.count-1);renderPanel();},'sched-step-btn'),node('b',String(f.count)),button('+',()=>{f.count=Math.min(20,f.count+1);renderPanel();},'sched-step-btn'));step.children[0].setAttribute('aria-label',`Bớt một suất ${m?.title||''}`);step.children[2].setAttribute('aria-label',`Thêm một suất ${m?.title||''}`);li.append(step);}
       if(i>0){const up=button('↑',()=>{panel.films.splice(i-1,0,panel.films.splice(i,1)[0]);changePlan();},'sched-mini');up.setAttribute('aria-label',`Đưa ${m?.title||''} lên trước`);li.append(up);}
       if(panel.films.length>1){const drop=button('×',()=>{panel.films.splice(i,1);changePlan();},'sched-mini');drop.setAttribute('aria-label',`Bỏ ${m?.title||''} khỏi danh sách`);li.append(drop);}
       box.append(li);
     });
-    const select=$('add-movie'),left=usable().filter(m=>!panel.films.some(f=>String(f.id)===String(m.id)));select.replaceChildren();
-    for(const m of left){const o=node('option',`${m.title} · ${m.duration} phút${m.status==='COMING_SOON'?' · Sắp chiếu':''}`);o.value=String(m.id);select.append(o);}
-    const canAdd=left.length>0&&panelMode()!=='one';select.hidden=!canAdd;$('add-film').hidden=!canAdd;$('add-film').textContent=panel.films.length?'+ Thêm phim':'+ Chọn phim';
+    const left=usable().filter(m=>!panel.films.some(f=>String(f.id)===String(m.id))),canAdd=left.length>0&&panelMode()!=='one';$('add-film').hidden=!canAdd;
     $('add-order').hidden=!many;
   }
   function renderPanelDays(){
@@ -366,7 +383,7 @@
   }
   /* Room or film changes drop the pinned times, so ask first when some exist. */
   async function changePlan(){if(pinned()&&!await ask('Đổi phòng hoặc danh sách phim sẽ bỏ các giờ đã ghim. Tiếp tục?','Bỏ giờ đã ghim','Có giờ đã ghim')){renderPanel();return false;}panel.slots.clear();panel.extra.clear();renderPanel();return true;}
-  async function pickPanelRoom(id){if(id===panelRoom())return;const old=panelRoom();$('room').value=id;if(!await changePlan()){$('room').value=old;renderPanel();}}
+  async function pickPanelRoom(id,old=panelRoom()){if(id===old)return;$('room').value=id;if(!await changePlan()){$('room').value=old;renderPanel();}}
   /* Earliest free start in the room on the first chosen day: after the shows already there, never in the past. */
   function suggestStart(day,room){
     if(!calendar||!day||!room||!panel.films.length)return '09:00';const base=C.stamp(`${day}T00:00`),soon=day===today()?C.roundUp((Date.parse(now())+7*3600000-base)/60000+1):0,from=Math.max(540,soon);
@@ -383,7 +400,7 @@
     renderPanelDays();$('add-days').querySelectorAll('input').forEach(input=>{input.checked=!input.disabled&&input.value===pick;});
     $('add-start').value=time&&/^\d\d:\d\d$/.test(time)?time:suggestStart(pick,panelRoom());
     if(time)root.querySelector('input[name=batch-add-mode][value=one]').checked=true;
-    renderPanel();setTimeout(()=>$('add').querySelector('.sched-chip.on')?.focus(),30);
+    renderPanel();setTimeout(()=>$('room').focus(),30);
   }
   function closeAdd(){if(!panel.open)return;panel.open=false;panel.result=[];$('add').hidden=true;root.classList.remove('has-panel');renderMain();$('add-open').focus();}
   function setPanelDays(test){$('add-days').querySelectorAll('input:not(:disabled)').forEach(input=>{const d=(new Date(`${input.value}T00:00Z`).getUTCDay()+6)%7;input.checked=test(d);});renderPanel();}
@@ -424,16 +441,17 @@
         if(until>end){const clean=node('div',undefined,'event-clean');clean.style.height=`${(until-end)/60*hourPx}px`;clean.title='Dọn phòng 15 phút';block.append(clean);}
         col.append(block);
       }
+      if(room.active&&activeDay>=today()){filmTarget(col,(id,e)=>{clearGhost();const spot=place(col,e.clientY);renderMovies();if(spot&&!spot.reason)add(spot.row);else message(spot?.reason||'Không thêm được suất ở đây.','error');});col.addEventListener('dragover',e=>{if(!filmDrag)return;const spot=place(col,e.clientY,null,0,filmDrag);if(spot)drawGhost(col,spot);});}
       grid.append(col);
     }
     box.append(grid);box.scrollTop=initialScroll?(activeDay===today()?Math.max(0,(nowMinute-view.from)/60*hourPx-40):0):scroll.top;box.scrollLeft=initialScroll?0:scroll.left;initialScroll=false;state();
   }
   /* Where a show would land for a pointer in a room column; `source` is the unsaved row being dragged, if any. */
-  function place(col,clientY,source,grab=0){
-    const movie=source?source.movieId:movieId,duration=durations.get(String(movie));if(!duration||!calendar)return null;const room=col.dataset.room;
+  function place(col,clientY,source,grab=0,film){
+    const movie=source?source.movieId:film||movieId,duration=durations.get(String(movie));if(!duration||!calendar)return null;const room=col.dataset.room;
     const minute=Math.max(0,Math.min(1439,view.from+(clientY-col.getBoundingClientRect().top)/hourPx*60-grab)),events=others(source),spot=C.snap(minute,duration+15,C.busy(activeDay,room,durations,events,draft.rows,source?.rowKey));
     const old=source&&rooms.find(r=>String(r.id)===String(source.roomId)),next=rooms.find(r=>String(r.id)===String(room));
-    const row=source?{...source,roomId:String(room),date:activeDay,time:spot.time,format:old&&next&&source.format===old.format?next.format:source.format}:{...defaults(room),rowKey:'candidate',sourceRow:null,date:activeDay,time:spot.time};
+    const row=source?{...source,roomId:String(room),date:activeDay,time:spot.time,format:old&&next&&source.format===old.format?next.format:source.format}:{...defaults(room),movieId:String(movie),rowKey:'candidate',sourceRow:null,date:activeDay,time:spot.time};
     return {...spot,row,duration,reason:spot.reason||C.problem(row,durations,events,draft.rows,now())};
   }
   function clearGhost(){ghost?.remove();ghost=null;}
@@ -504,15 +522,25 @@
   }
   $('day').onchange=()=>switchScope(activeCinema,$('day').value);$('cinema').onchange=()=>switchScope($('cinema').value,activeDay);$('back').onclick=()=>switchScope(activeCinema,C.addDays(week,-7));$('forward').onclick=()=>switchScope(activeCinema,C.addDays(week,7));$('today').onclick=()=>switchScope(activeCinema,today());$('refresh').onclick=()=>loadCalendar();
   $('movie-filter').oninput=renderMovies;
+  addEventListener('resize',placeMoviePick);addEventListener('scroll',placeMoviePick,true);
+  document.addEventListener('pointerdown',e=>{if(!e.target.closest('.sched-side,#batch-movie-pop'))closeMoviePick();});
+  $('movie-button').onclick=()=>$('movie-pop').hidden?openMoviePick():closeMoviePick(true);
+  root.querySelector('.sched-side').addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!$('movie-pop').hidden){e.preventDefault();e.stopPropagation();closeMoviePick(true);return;}
+    if(e.key==='ArrowDown'&&e.target===$('movie-button')&&$('movie-pop').hidden){e.preventDefault();openMoviePick();return;}
+    if(e.target===$('movie-button')||(e.key!=='ArrowDown'&&e.key!=='ArrowUp'))return;const items=[...$('movies').querySelectorAll('button')];if(!items.length)return;e.preventDefault();e.stopPropagation();
+    const at=items.indexOf(document.activeElement);items[at<0?(e.key==='ArrowDown'?0:items.length-1):(at+(e.key==='ArrowDown'?1:-1)+items.length)%items.length].focus();
+  });
   for(const id of ['from','to'])$(id).onchange=()=>{if(Number($('to').value)<=Number($('from').value))$(id==='from'?'to':'from').value=String(Number($(id).value)+(id==='from'?1:-1));initialScroll=true;renderMain();};
   $('errors-only').onchange=()=>{page=0;renderRows();};$('prev').onclick=()=>{page--;renderRows();};$('next').onclick=()=>{page++;renderRows();};
   $('view-week').onclick=()=>setMode('week');$('view-day').onclick=()=>setMode('day');
-  $('add-open').onclick=()=>panel.open?$('add').querySelector('.sched-chip.on')?.focus():openAdd(mode==='week'?currentRoom():$('room').value,activeDay>=today()?activeDay:'');
+  $('add-open').onclick=()=>panel.open?$('room').focus():openAdd(mode==='week'?currentRoom():$('room').value,activeDay>=today()?activeDay:'');
   $('add-close').onclick=closeAdd;$('add-cancel').onclick=closeAdd;
   $('add-all').onclick=()=>setPanelDays(()=>true);$('add-weekdays').onclick=()=>setPanelDays(d=>d<5);$('add-weekend').onclick=()=>setPanelDays(d=>d>=5);
-  $('add-film').onclick=async()=>{const id=$('add-movie').value;if(!id)return;const old=panel.films.slice();panel.films.push({id,count:3});if(!await changePlan())panel.films=old;renderPanel();};
+  $('add-film').onclick=async()=>{const id=String(usable().find(m=>!panel.films.some(f=>String(f.id)===String(m.id)))?.id||'');if(!id)return;const old=panel.films.slice();panel.films.push({id,count:3});if(!await changePlan())panel.films=old;renderPanel();};
   $('add-form').addEventListener('change',e=>{
-    if(e.target.closest('#batch-add-list')||e.target.id==='batch-add-movie')return;
+    if(e.target.closest('#batch-add-list')||e.target.classList.contains('sched-film-pick'))return;
+    if(e.target.id==='batch-room'){const id=$('room').value;pickPanelRoom(id,panel.room);return;}
     if(e.target.classList.contains('sched-hm')){const v=toHM(e.target.value);if(!v){e.target.value=e.target.dataset.last||(e.target.id==='batch-add-until'?'23:00':'09:00');return;}e.target.value=v;e.target.dataset.last=v;}
     if(e.target.name==='batch-add-mode'||e.target.name==='batch-add-order'){panel.slots.clear();panel.extra.clear();}
     // A new first start moves the first show of every day; the last start never drops pins.
@@ -525,7 +553,7 @@
     e.preventDefault();if(locked()||!calendar)return;const picked=seriesRows().map(row=>({...row,rowKey:uuid()}));if(!picked.length)return;
     const skipped=panel.result.flatMap(d=>d.list.filter(x=>!x.off&&x.reason).map(x=>`${dayName(d.day)} ${x.row.time}: ${x.reason}`));let rows;
     try{rows=C.merge(draft.rows,picked);}catch(error){$('add-summary').textContent=error.message;return;}
-    const room=panelRoom(),films=[...new Set(picked.map(r=>r.movieId))];movieId=films[0];viewRoom=String(room);closeAdd();changed(rows);
+    const room=panelRoom(),films=[...new Set(picked.map(r=>r.movieId))];movieId=films[0];focusMovie='';viewRoom=String(room);closeAdd();changed(rows);
     notify(`Đã thêm ${picked.length} suất ${films.map(title).join(', ')} tại ${roomName(room)}, ${new Set(picked.map(r=>r.date)).size} ngày.${skipped.length?` Bỏ qua ${skipped.length} suất trùng lịch hoặc ngoài thời gian chiếu.`:''}`,skipped);
   });
   /* Chép ngày works in both views: pick the day whose new shows are copied, then the days that receive them. */
@@ -596,8 +624,9 @@
     $('review-details').open=!preview.canCommit;$('review-rows').replaceChildren();
     for(const item of [...preview.rows].sort((a,b)=>String(a.startsAt).localeCompare(String(b.startsAt))||String(a.roomName).localeCompare(String(b.roomName)))){
       const tr=node('tr',undefined,item.errors.length?'review-invalid':''),name=node('td');name.dataset.label='Phim / phòng';name.append(node('strong',`${item.movieTitle||title(item.input.movieId)} · ${item.roomName||roomName(item.input.roomId)}`),node('small',sourceText(item.input)));tr.append(name);
-      for(const [label,value] of [['Bắt đầu',when(item.startsAt)],['Kết thúc',when(item.endsAt)],['Hết dọn',when(item.cleanupUntil)]]){const td=node('td',value);td.dataset.label=label;tr.append(td);}
-      const status=node('td',item.errors.map(e=>e.message).concat(item.warnings).join(' ')||'Hợp lệ');status.dataset.label='Kiểm tra';status.append(button('Xem / sửa',()=>{closeReview();edit(item.input);}));tr.append(status);$('review-rows').append(tr);
+      /* Times only, so the columns stay narrow; the date shows under the start, and an end on the next day says so. */
+      for(const [label,value,first] of [['Bắt đầu',item.startsAt,true],['Kết thúc',item.endsAt],['Hết dọn',item.cleanupUntil]]){const td=node('td',value?value.slice(11,16):'—');td.dataset.label=label;if(value&&first)td.append(node('small',dateLabel(value.slice(0,10))));else if(value&&item.startsAt&&value.slice(0,10)!==item.startsAt.slice(0,10))td.append(node('small','hôm sau'));tr.append(td);}
+      const status=node('td');status.append(node('span',item.errors.map(e=>e.message).concat(item.warnings).join(' ')||'Hợp lệ'));status.dataset.label='Kiểm tra';status.append(button('Xem / sửa',()=>{closeReview();edit(item.input);}));tr.append(status);$('review-rows').append(tr);
     }
     $('confirm').disabled=!preview.canCommit;$('confirm').textContent=open?`Mở bán ${preview.total} suất`:`Lưu nháp ${preview.total} suất`;
   }

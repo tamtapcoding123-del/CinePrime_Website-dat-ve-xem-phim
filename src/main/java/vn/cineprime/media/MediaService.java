@@ -56,6 +56,10 @@ public class MediaService {
     /** True when a stored image is sharp enough for the full-width hero. Uploaded names are random UUIDs and never rewritten, so sizes are cached. */
     public boolean wide(String url){int[] size=size(url);return size!=null&&wide(size[0],size[1]);}
     public boolean framed(String url){int[] size=size(url);return size!=null&&framed(size[0],size[1]);}
+    /** Offer and article cards show their image as a poster (2:3); anything not at least 4:5 portrait would be cut to a strip. */
+    public static boolean portrait(int width,int height){return width>0&&height*4L>=width*5L;}
+    /** False only when the stored image is known to be landscape or square; static seed images without a readable size pass. */
+    public boolean portraitOrUnknown(String url){int[] size=size(url);return size==null||portrait(size[0],size[1]);}
     /** Hero display for a banner image: "wide" fills the hero, "framed" sits at its own size beside the text, "" means use the poster instead. */
     public String bannerMode(String url){int[] size=size(url);return size==null?"":wide(size[0],size[1])?"wide":framed(size[0],size[1])?"framed":"";}
     /** Upload note shown to admins when a banner image is accepted but will not fill the hero. */

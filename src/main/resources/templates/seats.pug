@@ -33,6 +33,10 @@ block content
             p #{show.cinemaName} · #{show.roomName}
             p= show.when
             p.muted #{show.format} · #{show.language}
+            if show.memberTier != ''
+              p.member-flag Suất dành riêng cho hội viên hạng #{show.memberTier} trở lên.
+            if show.saleOpens != ''
+              p.member-flag Mở bán công khai #{show.saleOpens}. Hội viên Kim Cương/VIP được đặt sớm.
         .line
           span Ghế đã chọn
           strong#selected-seats Chưa chọn

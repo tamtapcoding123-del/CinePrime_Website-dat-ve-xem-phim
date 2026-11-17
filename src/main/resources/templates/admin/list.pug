@@ -1,21 +1,29 @@
 extends layout
-block admin
-  .page-heading
-    div
-      if !hub
-        h1= resourceLabel
-      p.muted #{total} kết quả · 5 dòng mỗi trang
-    if key != 'reviews'
-      if key == 'seats'
-        if roomId
-          a.button(href='/admin/setup/rooms/' + roomId) + Thêm / sửa ghế trên sơ đồ
-        else
-          button.button(type="button" disabled title="Chọn phòng trước khi thêm ghế") Chọn phòng để thêm ghế
-      else if key == 'showtimes'
-        a.button(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&movieId=' + movieId + '&roomId=' + roomId) + Thêm suất chiếu
+mixin listCount()
+  p.muted.list-count #{total} kết quả · 5 dòng mỗi trang
+mixin listAdd()
+  if key != 'reviews'
+    if key == 'seats'
+      if roomId
+        a.button(href='/admin/setup/rooms/' + roomId) + Thêm / sửa ghế trên sơ đồ
       else
-        a.button.primary(href='/admin/manage/' + key + '/edit?returnTo=' + returnEncoded data-dialog-form=dialogForm ? '/admin/manage/' + key + '/dialog?returnTo=' + returnEncoded : false)= addLabel ? addLabel : '+ Thêm mới'
-  if scopedCinema
+        button.button(type="button" disabled title="Chọn phòng trước khi thêm ghế") Chọn phòng để thêm ghế
+    else if key == 'showtimes'
+      a.button(href='/admin/showtimes/new?cinemaId=' + cinemaId + '&date=' + day + '&movieId=' + movieId + '&roomId=' + roomId) + Thêm suất chiếu
+    else
+      a.button.primary(data-list-add href='/admin/manage/' + key + '/edit?returnTo=' + returnEncoded data-dialog-form=dialogForm ? '/admin/manage/' + key + '/dialog?returnTo=' + returnEncoded : false)= addLabel ? addLabel : '+ Thêm mới'
+block hubTools
+  +listCount()
+  +listAdd()
+block admin
+  if !hub
+    .page-heading
+      div
+        h1= resourceLabel
+        +listCount()
+      +listAdd()
+  //- Rạp & phòng (16/11/2026): no cinema card or trail; the filter names the cinema and the counts link Rạp → Phòng → Ghế.
+  if scopedCinema && !(hub && hub.id == 'cinemas')
     .cinema-context
       span RẠP ĐANG QUẢN LÝ
       strong= selectedCinemaName
@@ -27,10 +35,17 @@ block admin
       a(href='?state=CUSTOMER' class=state == 'CUSTOMER' ? 'active' : '' aria-current=state == 'CUSTOMER' ? 'page' : false) User
       a(href='?state=STAFF' class=state == 'STAFF' ? 'active' : '' aria-current=state == 'STAFF' ? 'page' : false) Staff
       a(href='?state=ADMIN' class=state == 'ADMIN' ? 'active' : '' aria-current=state == 'ADMIN' ? 'page' : false) Admin
-  form.ops-filters(method="get" data-scope-filters=scopedCinema ? 'true' : false)
+  if key == 'contents' && contentTabs
+    //- Nội dung (17/11/2026): one tab per place on the site, so a row is easy to match with the home page.
+    nav.account-tabs.content-tabs(aria-label="Nơi hiển thị nội dung")
+      each t in contentTabs
+        a(href=t.state == '' ? '?' : '?state=' + t.state class=t.active ? 'active' : '' aria-current=t.active ? 'page' : false)
+          | #{t.label}
+          span.tab-count= t.count
+  form.ops-filters(method="get" data-scope-filters=scopedCinema ? 'true' : false class=hub && hub.id == 'cinemas' ? 'is-inline' : '')
     if key == 'prices' && roomId
       input(type="hidden" name="roomId" value=roomId)
-    if key == 'users'
+    if key == 'users' || key == 'contents'
       input(type="hidden" name="state" value=state)
     if hasCinemaFilter
       label Rạp
@@ -49,7 +64,7 @@ block admin
             option(value=m.id selected=movieId == m.id.toString())= m.name
     label Tìm kiếm
       input(name="q" value=q placeholder="Tên, mã hoặc thông tin liên quan…")
-    if states.size() > 0 && key != 'users'
+    if states.size() > 0 && key != 'users' && key != 'contents'
       label Trạng thái / Loại
         select(name="state")
           option(value="") Tất cả
@@ -60,11 +75,11 @@ block admin
         select(name="activity")
           option(value="") Tất cả
           option(value="true" selected=activity == 'true') Đang hoạt động
-          option(value="false" selected=activity == 'false') Đã khóa / Ngừng
+          option(value="false" selected=activity == 'false')= key == 'seats' ? 'Bảo trì' : 'Đã khóa / Ngừng'
     if hasRoomFilter
       label Phòng
         select(name="roomId")
-          option(value="")= key == 'seats' ? '— Chọn phòng để xem ghế —' : 'Tất cả phòng'
+          option(value="") Tất cả phòng
           each r in adminRooms
             option(value=r.id selected=roomId == r.id.toString())= r.name
     if key == 'prices'
@@ -74,7 +89,8 @@ block admin
           option(value="WEEKDAY" selected=dayType == 'WEEKDAY') Thứ 2–6
           option(value="WEEKEND" selected=dayType == 'WEEKEND') Thứ 7, Chủ nhật
     button.button(type="submit") Lọc kết quả
-  .panel
+  //- Rạp & phòng fits the window: only the table scrolls inside its card, the page itself does not (16/11/2026).
+  .panel(class=hub && hub.id == 'cinemas' ? 'hub-fit' : '')
     .table-wrap
       table.management-table
         thead
@@ -89,11 +105,17 @@ block admin
               td
                 span.record-id ##{row.id}
                 if row.image
-                  img.record-thumb(src=row.image alt="" loading="lazy")
+                  img.record-thumb(class=key == 'contents' ? 'is-poster' : '' src=row.image alt="" loading="lazy")
+                else if key == 'contents'
+                  span.record-thumb.is-poster.is-empty(title="Chưa có ảnh")
               each cell in row.cells
                 td(data-label=cell.label)
                   if cell.badge
                     span.status-badge(class='tone-' + cell.tone)= cell.value
+                  else if key == 'cinemas' && cell.label == 'Phòng hoạt động'
+                    a.count-link(href='/admin/manage/rooms?cinemaId=' + row.id title='Xem các phòng của ' + row.name) #{cell.value} phòng →
+                  else if key == 'rooms' && cell.label == 'Ghế hoạt động'
+                    a.count-link(href='/admin/manage/seats?cinemaId=' + cinemaId + '&roomId=' + row.id title='Xem ghế của ' + row.name) #{cell.value} ghế →
                   else if cell.expandable && cell.value.length() > 80
                     details.cell-details
                       summary
@@ -101,18 +123,18 @@ block admin
                         small Xem đầy đủ
                       p= cell.value
                   else
-                    span.cell-text= cell.value
+                    span(class=cell.label == 'Mã' ? 'ticket-code' : 'cell-text')= cell.value
               td.actions-cell
                 .row-actions
                   if key == 'seats'
-                    a.action-btn.primary(href='/admin/setup/rooms/' + roomId + '?seatId=' + row.id) Sửa ghế
+                    a.action-btn.primary(href='/admin/setup/rooms/' + row.roomId + '?seatId=' + row.id) Sửa ghế
                   else
                     a.action-btn.primary(href='/admin/manage/' + key + '/edit?id=' + row.id + '&returnTo=' + returnEncoded data-dialog-form=dialogForm && key != 'reviews' ? '/admin/manage/' + key + '/dialog?id=' + row.id + '&returnTo=' + returnEncoded : false data-show-edit=key == 'showtimes' ? row.id : false data-cinema=key == 'showtimes' ? cinemaId : false data-date=key == 'showtimes' ? day : false)
                       svg(viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false")
                         path(d=key == 'reviews' ? 'M20 6L9 17l-5-5' : 'M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4')
                       | #{key == 'reviews' ? 'Duyệt' : 'Sửa'}
                   if key == 'cinemas'
-                    a.action-btn(href='/admin/manage/rooms/edit?cinemaId=' + row.id) + Phòng
+                    a.action-btn(href='/admin/manage/rooms?cinemaId=' + row.id + '&add=1') + Phòng
                   if key == 'rooms'
                     a.action-btn(href='/admin/setup/rooms/' + row.id) Sơ đồ ghế
                   if key == 'users'
@@ -151,7 +173,7 @@ block admin
                             input(type="hidden" name="returnTo" value=returnTo)
                             button.menu-item.danger(type="submit" role="menuitem" data-confirm=(key == 'prices' ? 'Xóa khung giá ' : key == 'showtimes' ? 'Hủy suất ' : key == 'movie-genres' || key == 'credits' ? 'Gỡ liên kết ' : key == 'reviews' ? 'Ẩn bình luận ' : 'Ngừng hoạt động ') + row.name + '? Hệ thống sẽ kiểm tra dữ liệu liên quan trước khi thay đổi.')= key == 'prices' ? 'Xóa khung giá' : key == 'showtimes' ? 'Hủy suất chiếu' : key == 'movie-genres' || key == 'credits' ? 'Gỡ liên kết' : key == 'reviews' ? 'Ẩn bình luận' : key == 'cinemas' ? 'Ngừng hoạt động rạp' : key == 'rooms' ? 'Ngừng sử dụng phòng' : key == 'seats' ? 'Ngừng dùng ghế' : key == 'products' ? 'Ngừng bán' : key == 'vouchers' ? 'Ngừng mã ưu đãi' : key == 'contents' ? 'Ẩn nội dung' : 'Ngừng hoạt động'
     if rows.size() == 0
-      .empty= key == 'seats' && !roomId ? 'Chọn phòng trong rạp ở trên để xem và quản lý ghế.' : 'Không có dữ liệu phù hợp. Thử đổi bộ lọc hoặc thêm bản ghi mới.'
+      .empty= key == 'seats' && !roomId ? (activity == 'false' ? 'Rạp này không có ghế nào đang bảo trì. Chọn một phòng để xem toàn bộ ghế.' : 'Chưa có ghế phù hợp. Chọn một phòng để xem toàn bộ ghế.') : 'Không có dữ liệu phù hợp. Thử đổi bộ lọc hoặc thêm bản ghi mới.'
     +pagination()
   if key == 'seats' && roomId
     .panel.actions

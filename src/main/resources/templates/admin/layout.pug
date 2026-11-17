@@ -25,6 +25,8 @@ mixin navIcon(id)
     else if id == 'business'
       path(d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z")
       circle(cx="7.5" cy="7.5" r="1.5")
+    else if id == 'members'
+      path(d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z")
     else if id == 'content'
       rect(x="3" y="4" width="18" height="16" rx="2")
       circle(cx="9" cy="9.5" r="1.8")
@@ -32,6 +34,28 @@ mixin navIcon(id)
     else
       circle(cx="12" cy="12" r="3")
       path(d="M12 2.5v3M12 18.5v3M4.2 7l2.6 1.5M17.2 15.5l2.6 1.5M4.2 17l2.6-1.5M17.2 8.5l2.6-1.5")
+//- Thành viên (17/11/2026): one strip on all four member screens — the tier ladder (counts link to the customer list,
+//- each step to its rules) and what waits on the other tabs. `link` is 'members' or 'tiers': where a step leads.
+mixin memberBar(current, link)
+  if memberOverview
+    div.tier-strip(role="navigation" aria-label="Tổng quan thành viên")
+      ol.ladder
+        each t in memberOverview.ladder
+          li(class=current == t.code ? 'current' : '')
+            a.ladder-step(href=(link == 'tiers' ? '/admin/tiers?tier=' : '/admin/members?tier=') + t.code title=(link == 'tiers' ? 'Sửa quyền lợi hạng ' : 'Xem khách hạng ') + t.name)
+              span.tier-chip(class='tier-' + t.code)= t.name
+              strong= t.count
+              small= t.rank == 1 ? 'Khi đăng ký' : 'Từ ' + t.minSpendText
+      .tier-strip-side
+        a.side-stat(href="/admin/member-offers?giftState=WAITING" class=memberOverview.waitingGifts > 0 ? 'attention' : '')
+          strong= memberOverview.waitingGifts
+          small Quà chờ trao
+        a.side-stat(href="/admin/member-offers")
+          strong= memberOverview.openVouchers
+          small Voucher trong ví
+        a.side-stat(href="/admin/member-shows")
+          strong= memberOverview.memberShows
+          small Suất hội viên sắp tới
 block content
   .ops-shell
     button#sidebar-overlay(type="button" aria-label="Đóng điều hướng" hidden)
@@ -43,7 +67,7 @@ block content
           if item.sectionStart
             p.nav-section= item.sectionStart
           if item.children
-            details.nav-group(open=item.active data-nav-id=item.id)
+            details.nav-group(open=item.active data-nav-id=item.id data-nav-active=item.active ? 'true' : false)
               summary.nav-item(class=item.active ? 'active' : '')
                 span.nav-icon
                   +navIcon(item.id)
@@ -58,6 +82,8 @@ block content
               span.nav-icon
                 +navIcon(item.id)
               span.nav-label= item.label
+      //- Runs right after the nav is parsed (not deferred) so a group the admin left open is open on first paint.
+      script(src="/js/admin-nav-groups.js")
       .sidebar-account
         if viewer
           .account-who
@@ -74,19 +100,22 @@ block content
                 path(d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10")
             span.nav-label Đăng xuất
     main#main.ops-main
-      if !groupPage
+      if !groupPage && !hub
         .ops-breadcrumb
           a(href="/admin") Quản trị
-          if hub
-            span / #{hubLabel} / #{resourceLabel}
-          else
-            span / #{resourceLabel ? resourceLabel : title}
+          span / #{resourceLabel ? resourceLabel : title}
       if hub
+        //- 16/11/2026: heading, tabs and the page's count/add button share one row (the breadcrumb only repeated them).
         .hub-head
           h1= hubLabel
           nav.hub-tabs(aria-label=hubLabel)
             each tab in hub.tabs
-              a(href=tab.href class=tab.active ? 'active' : '' aria-current=tab.active ? 'page' : false)= tab.label
+              a(href=tab.href class=tab.active ? 'active' : '' aria-current=tab.active ? 'page' : false)
+                | #{tab.label}
+                if tab.badge
+                  span.tab-badge= tab.badge
+          .hub-tools
+            block hubTools
       if notice
         p.action-notice(role="status")= notice
       if actionError

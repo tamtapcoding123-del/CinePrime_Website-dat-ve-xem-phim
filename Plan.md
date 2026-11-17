@@ -4,7 +4,7 @@
 
 ## 1. Mục tiêu và tài liệu
 
-Đồ án website đặt vé hoàn chỉnh cho Customer, Admin, Staff; phát triển trên Windows và chuẩn bị demo HTTPS. Toàn bộ chức năng cơ bản thuộc bản đầu. Google Login, VNPay, hoàn tiền, đổi điểm và gợi ý cá nhân thuộc lộ trình sau.
+Đồ án website đặt vé hoàn chỉnh cho Customer, Admin, Staff; phát triển trên Windows và chuẩn bị demo HTTPS. Toàn bộ chức năng cơ bản thuộc bản đầu. Google Login, VNPay, hoàn tiền và gợi ý cá nhân thuộc lộ trình sau.
 
 Ba tài liệu gốc: Plan.md (đặc tả và nghiệm thu), README.MD (cách chạy và hiện trạng), AGENTS.md (hướng dẫn AI). Ban đầu dự án chỉ có UI-Template.md; không có các file demo được nhắc trong tài liệu đó. Không thêm cổng duyệt từng mốc.
 
@@ -17,7 +17,8 @@ Ba tài liệu gốc: Plan.md (đặc tả và nghiệm thu), README.MD (cách c
 - Combo, voucher, hóa đơn; MoMo sandbox; trạng thái đang xác minh/thành công/thất bại/hết hạn.
 - Một QR/ghế, email xác nhận, lịch sử đơn/thanh toán, PDF vé.
 - Yêu thích, đánh giá 1–5 sao và bình luận, nhắc phim sắp chiếu, nhắc suất trước 2 giờ, thông báo trong tài khoản.
-- Tích điểm và lịch sử điểm; chưa đổi điểm.
+- Tích điểm, lịch sử điểm và đổi điểm lấy voucher trong Ví voucher (từ 16/11/2026).
+- Hạng thành viên Bạc/Vàng/Bạch Kim/Kim Cương/VIP theo chi tiêu năm (giai đoạn 1, 16/11/2026): giảm % vé và combo tự động, xem tiến độ lên hạng và quyền lợi trong tài khoản. Giai đoạn 2–4: ví voucher, sinh nhật, đồ lưu niệm, quà tại quầy, suất hội viên và đặt sớm.
 
 ### Admin
 - Dashboard ngày/tuần/tháng/năm: doanh thu, vé, đơn, khách, phim đang/sắp chiếu, biểu đồ, top phim, lấp đầy.
@@ -27,6 +28,7 @@ Ba tài liệu gốc: Plan.md (đặc tả và nghiệm thu), README.MD (cách c
 - Tra cứu đơn/thanh toán, query MoMo, danh sách đối soát; xuất CSV giao dịch.
 - Người dùng/role/khóa/mở/Staff theo rạp, lịch sử khách; bảo vệ Admin cuối cùng.
 - Combo/đồ ăn/nước, voucher và quota; banner/bài viết/ưu đãi/thông báo/giới thiệu/liên hệ/chính sách; ẩn bình luận; nhật ký.
+- Thành viên: danh sách khách theo hạng, chi tiết (chi tiêu, sổ điểm, lịch sử hạng), điều chỉnh hạng có lý do, cấu hình quy tắc hạng và xét hạng toàn bộ.
 
 ### Staff
 - Login riêng; danh sách suất tại rạp phụ trách; camera QR hoặc tra mã đơn/vé.
@@ -676,3 +678,94 @@ Người dùng chọn lấy lớp hình ảnh của bảng tuần trong kit Cine
 Đã kiểm chứng (16/11/2026): 142 kiểm thử qua trên MySQL `cineprime_test`, 0 lỗi, 0 bỏ qua (chạy trước khi chỉnh CSS/JS lần cuối; sau đó không đổi Java hay mẫu Pug). Xem trên cổng 8081 ở 1366×768 với dữ liệu demo: ba màn hiện đúng màu theo phim, trang không cuộn, giờ không bị cắt ở bảng tuần, bấm phim làm nổi 8/35 suất, ngăn Thêm suất mở được.
 
 Chưa kiểm chứng: trạng thái nháp, mới chưa lưu, trùng lịch, đã chiếu và đang chiếu trên dữ liệu thật (dữ liệu demo chỉ có suất mở bán); chế độ Theo giờ; lưu suất sau khi đổi giao diện. Khi ngăn Thêm suất mở ở 1366px, cột ngày hẹp nên giờ kết thúc bị cắt.
+
+## Đối soát số liệu Admin ↔ Staff và dashboard tổng quan — yêu cầu và làm 16/11/2026
+
+Người dùng yêu cầu số liệu Admin (Tổng quan, Ca tại quầy) và Staff (Bán vé tại quầy, Soát vé) phải khớp tuyệt đối, ghi đủ, không sai số; tối ưu dashboard để quản lý các loại số liệu.
+
+Lệch tìm thấy:
+- Đơn quầy hủy vắt qua nửa đêm/kỳ: doanh thu kỳ bán bị trừ hồi tố (đơn chuyển CANCELLED) nhưng tiền mặt vẫn ghi vào kỳ đó, nên dòng "Dòng tiền thuần — Bằng doanh thu kỳ" sai.
+- `paidAt` của đơn và thời điểm giao dịch (tiền mặt `createdAt`, MoMo `updatedAt`) lấy từ hai lần `now()` khác nhau, có thể rơi vào hai kỳ.
+- Công thức ca (thu trong ca, dự kiến, số đơn/vé/hủy) viết lặp ở ba nơi (`CounterReadService`, `AdminReads.shifts`, `OperationsService`).
+- Dữ liệu thật `cineprime` lúc kiểm tra (đọc 16/11/2026): ca #1 50.000 + 0 = 50.000, đếm 120.000 (+70.000, ghi chú); ca #2 mở 15:53 với 100.000 — sau mốc chụp 15:52:47 của dashboard nên ảnh admin chưa thấy; không có đơn PAID lệch giao dịch, vé lệch ghế, hay đơn hủy còn vé hiệu lực.
+
+Đã làm:
+- [x] Doanh thu thuần = bán theo paidAt − hủy theo cancelledAt (biểu đồ, nhóm phim, CSV cùng định nghĩa); CSV thêm cột Loại, dòng hủy số âm; số trong CSV không bị thêm dấu `'`.
+- [x] Một instant cho thanh toán và `paidAt` (quầy và MoMo), một instant cho hoàn tiền và `cancelledAt`.
+- [x] `CounterService.figures` là công thức ca duy nhất; kèm cờ `intact` (số chốt khi đóng ca phải bằng giao dịch).
+- [x] Dashboard: KPI Doanh thu thuần (bán / hủy), Dòng tiền thuần có dấu Khớp/Lệch so với bảng giao dịch, Vé · đơn bán ròng, Soát vé theo ngày suất; dòng kiểm tra trong bảng dòng tiền; khối Đối soát ca quầy trong kỳ (thừa/thiếu, ca lệch, ca cần chú ý); cột Đã vào / Vé ở bảng lấp đầy. `/admin/shifts` thêm số vé, tiền đã hoàn, cảnh báo số chốt; phiếu tổng kết ca thêm dòng đã hoàn.
+- [x] Không có migration; không đổi dữ liệu `cineprime`.
+
+Đã kiểm chứng (16/11/2026): 145 kiểm thử qua trên MySQL `cineprime_test`, 0 lỗi, 0 bỏ qua, gồm ca mới `adminAndStaffFiguresReconcileAcrossMidnightCancellation` (bán 23:58, hủy 00:01: ngày cũ giữ doanh thu, ngày mới −hoàn, tuần = tổng; khớp đơn ↔ giao dịch; tổng CSV/biểu đồ/nhóm phim = dashboard; số ca Staff = `/admin/shifts` = widget = dashboard; lệch đóng ca −10.000; soát vé dashboard = màn Soát vé; vé không đến). Chạy JAR cổng 8081 trên `cineprime_test` với dữ liệu demo: mở ca 200.000, bán 180.000 + 90.000, hủy 90.000 → màn quầy "Đơn 1 · Vé 2 · 380.000 đ" khớp widget ca và khối đối soát; dashboard "Doanh thu thuần 180.000 · Bán 270.000 · Hủy −90.000 · ✓ Khớp". Đổi nhãn "Thu trong ca (đã trừ hoàn)" sau lượt chạy test (chỉ chữ trong Pug).
+
+Chưa kiểm chứng: dữ liệu thật nhiều ca/nhiều rạp; dashboard ở kỳ năm với dữ liệu lớn; ứng dụng IntelliJ "CinePrime Local" cần khởi động lại để dùng code mới.
+
+## Hạng thành viên — giai đoạn 1 — đề xuất, duyệt và làm 16/11/2026
+
+Người dùng duyệt đề xuất theo khuyến nghị: (1) hạng = max(chi tiêu năm nay, năm trước), lên hạng ngay, chỉ xuống ở kỳ xét 1/1; (2) giảm theo hạng cộng dồn với voucher, voucher tính trên phần còn lại; (3) đổi điểm ~100đ/điểm, đặt theo từng voucher (giai đoạn 2); (4) đồ lưu niệm chỉ bán kèm vé/tại quầy, nhận tại rạp (giai đoạn 3); (5) giữ mức VIP 20% nhưng Admin chỉnh được.
+
+Lộ trình: 1 nền hạng + giảm giá (xong) · 2 ví voucher, đổi điểm, ngày sinh, voucher sinh nhật/theo hạng · 3 đồ lưu niệm có tồn kho, quà theo hạng, nâng cấp combo · 4 suất `min_tier`, mở bán sớm.
+
+Đã làm (giai đoạn 1):
+- [x] Migration **V8** `membership_tiers` (5 hạng, mức chi tiêu, % vé/combo, quyền lợi), `users.tier_code/tier_since/tier_review_year`, `tier_history`, snapshot hạng trên `orders` (`tier_code`, `tier_ticket_pct`, `tier_combo_pct`, `tier_discount`) và `discount` trên từng dòng ghế/combo. `orders.discount` vẫn là tổng giảm (hạng + voucher) nên `subtotal − discount = total` và báo cáo cũ không đổi.
+- [x] `member.TierService`: chi tiêu xét hạng = tổng thực trả của đơn PAID trong năm (giờ VN, online + quầy, đơn hủy tự rời ra). Xét khi giữ ghế, sau thanh toán (MoMo/miễn phí/tiền mặt), job 00:10 hằng đêm và nút Admin; mỗi khách một transaction có khóa dòng khách. Lên/xuống hạng ghi lịch sử và gửi thông báo.
+- [x] Giá: online chốt % hạng lúc giữ ghế (đổi cấu hình sau đó không đổi đơn đang giữ); quầy áp hạng khi thu tiền theo khách đã gắn, màn quầy xem trước tổng qua `/quote` và thu tiền bị từ chối nếu tổng khác số thu ngân đã thấy. Thứ tự khóa quầy: Staff → Ca → khách → Suất → Đơn.
+- [x] Admin nhóm **Thành viên**: Khách hàng thành viên (lọc hạng/tìm, chi tiêu 2 năm, điểm), chi tiết khách (tiến độ, lịch sử hạng, đơn, sổ điểm, xét lại, điều chỉnh thủ công bắt buộc lý do — giữ đến kỳ xét 1/1), Hạng thành viên (sửa tên/mức/%/quyền lợi; mức tăng dần, hạng đầu = 0, % 0–50).
+- [x] Khách: chip hạng ở đầu tài khoản, thẻ Hạng thành viên (giữ hạng đến, tiến độ, ưu đãi tự động, quyền lợi các hạng); hóa đơn tách "Ưu đãi hạng" và "Mã ưu đãi" (khách và Admin).
+- [x] Sửa kèm: lưu lại giỏ online cùng combo không còn trùng khóa `order_products` (flush xóa trước khi thêm).
+
+Đã kiểm chứng (16/11/2026): **150 tests, 0 failures/errors/skipped** trên MySQL `cineprime_test` (120 MySQL/HTTP), gồm 5 ca mới: snapshot % hạng + voucher trên phần còn lại + điểm theo thực trả; lên ngay/xuống chỉ kỳ 1/1/điều chỉnh tay; quầy xem trước = thu tiền, sai tổng bị từ chối và không ghi, gửi lại cùng khóa trả đúng đơn; quy tắc hạng sai bị chặn; màn Admin/khách render và khách không vào được Admin. JAR `cineprime_test` cổng 8082: xem Hạng thành viên, danh sách (sửa dải 5 hạng bị vỡ bố cục), chi tiết khách ở 1366×768; thẻ hạng tài khoản ở 1366×768 và 390×844 không tràn ngang (sửa trùng class `.membership` của trang chủ).
+- Áp dụng `cineprime` 16/11/2026: backup `D:\0_JAV102\Database-CinePrime-bakup\cineprime-2026-11-16.sql`, Flyway lên **v8** bằng JAR mới cổng 8081 (job tắt, rồi dừng); 5 khách hiện có ở hạng Bạc cho đến lần xét đầu.
+
+Chưa kiểm chứng: bấm thử giao diện quầy gắn khách hội viên trên trình duyệt (dữ liệu test không có suất mở bán; luồng đã có test service + kiểm cú pháp JS); job 00:10 chạy thật qua đêm; email thông báo lên hạng (mail tắt). CinePrime Local (8080) cần khởi động lại để dùng mã mới.
+
+## Quyền lợi thành viên — giai đoạn 2–4 — làm 16/11/2026
+
+Người dùng yêu cầu làm đủ các giai đoạn còn lại rồi báo cáo một lần.
+
+Đã làm:
+- [x] Migration **V9**: `user_vouchers` (ví voucher, unique theo khách + mã chiến dịch), voucher có `audience` PUBLIC/PERSONAL, `scope` ORDER/TICKET/COMBO/FREE_TICKET/COMBO_UPGRADE, `min_tier`, `points_cost`, `valid_days`; `point_ledger` cho phép REDEEM/ADJUST không gắn đơn, `ref` unique; `users.birth_date`; `products.stock`, `upgrade_to_id`, loại MERCH; `gift_grants`; `showtimes.min_tier`, `public_sale_at`; hạng có voucher sinh nhật/năm/sau mỗi đơn, quà sinh nhật, giờ đặt sớm. Seed 8 mẫu voucher ví (sinh nhật, vé miễn phí, nâng cấp combo, lần sau, 3 gói đổi điểm 200/600/1.200 điểm ≈ 100đ/điểm) và 2 sản phẩm lưu niệm ẩn, tồn 0.
+- [x] `member.WalletService`: phát voucher (idempotent theo mã chiến dịch, giới hạn quota), giữ voucher theo đơn 5 phút, trả lại khi hết hạn/hủy/đổi mã, dùng khi thanh toán; tính tiền theo phạm vi; đổi điểm (khóa khách, không âm, khóa yêu cầu chống bấm đúp); Admin cộng/trừ điểm có lý do; ngày sinh khách lưu một lần (phải lưu trước tháng sinh nhật); job 00:10 phát voucher/quà sinh nhật và voucher năm; voucher lần sau cho mỗi đơn đã trả (hủy đơn quầy thu hồi); quà nhận tại quầy (trao một lần, trừ kho); chiến dịch theo hạng (voucher, quà, thông báo).
+- [x] Lưu niệm: bán kèm vé online và tại quầy, nhận tại quầy; giữ kho khi vào giỏ, trả kho khi đơn hết hạn/hủy và khi hủy đơn quầy; không áp giảm hạng cho lưu niệm.
+- [x] Suất hội viên: `min_tier` (online và quầy; quầy phải gắn tài khoản khách đủ hạng); mở bán công khai `public_sale_at`, hạng có giờ đặt sớm (Kim Cương 24h, VIP 48h) giữ ghế trước. Danh sách suất hiện nhãn.
+- [x] Admin nhóm Thành viên thêm tab **Ưu đãi & quà** (chiến dịch, thống kê voucher ví, quà chờ/đã trao, kho lưu niệm) và **Suất hội viên**; Hạng thành viên cấu hình đủ quyền lợi tự động; chi tiết khách có ví (phát/thu hồi), ngày sinh, cộng/trừ điểm, quà (tặng/thu hồi). Kinh doanh → Voucher / Bắp nước & lưu niệm thêm trường mới.
+- [x] Khách: ngày sinh, Ví voucher, đổi điểm, quà, lịch sử điểm đủ loại; ô mã ưu đãi gợi ý mã trong ví; giỏ hiện tồn kho lưu niệm. Staff: khối "Quà thành viên" trên thanh ca và quà của khách đã gắn ở giỏ.
+
+Đã kiểm chứng (16/11/2026): **159 tests, 0 failures/errors/skipped** trên MySQL `cineprime_test` (129 MySQL/HTTP), gồm 9 ca mới: ví giữ/trả/dùng một lần; tranh chấp đổi điểm chỉ một lượt thắng, điều chỉnh không âm; sinh nhật/năm phát đúng một lần và chặn khai ngày sinh trong tháng; vé miễn phí (không ghế đôi), nâng cấp combo, voucher bắp nước; tranh chấp món lưu niệm cuối cùng, trả kho khi hết hạn và hủy quầy; trao quà một lần trừ kho; suất hội viên và mở bán sớm online/quầy; voucher lần sau một lần dù IPN trùng, thu hồi khi hủy quầy; màn Admin/khách và chiến dịch không phát trùng. JAR `cineprime_test` mới tạo lại (V1–V9 + dữ liệu demo), cổng 8082: Admin xét hạng, cấu hình hạng, chạy chiến dịch, chi tiết khách; khách VIP đổi 1.200 điểm, đặt ghế (−20% vé/bắp, cốc lưu niệm không giảm, voucher vé 72.000; tổng 184.200, kho cốc 3 → 2); Staff mở ca và trao quà qua khối Quà thành viên; tài khoản khách 390×844 không tràn ngang.
+- Áp dụng `cineprime` 16/11/2026: backup `D:\0_JAV102\Database-CinePrime-bakup\cineprime-2026-11-16-v8.sql`, Flyway lên **v9** bằng JAR mới cổng 8081 (job tắt, đã dừng). Lưu niệm mới ẩn, tồn 0 — Admin đặt giá/tồn/ảnh rồi bật bán.
+
+Chưa kiểm chứng: job 00:10 chạy thật qua đêm và email (mail tắt); màn Suất hội viên và trang chi tiết đơn Admin chỉ kiểm qua HTTP test, chưa bấm trên trình duyệt; hiệu năng chiến dịch với số khách lớn (mỗi khách một transaction). CinePrime Local (8080) cần khởi động lại để dùng mã mới.
+
+## Giao diện nhóm Thành viên — góp ý và làm 17/11/2026
+
+Người dùng: 4 tab Thành viên "chỉ là 4 nút vô hồn", màn Hạng là lưới form dài; báo cáo trước ghi "Kinh doanh → Sản phẩm" nhưng không có mục đó (tab thật tên "Bắp nước / Combo").
+
+Đã làm (chi tiết UI-Template §3.4 "Thành viên"):
+- [x] Tab đổi tên Khách hàng · Hạng & quyền lợi · Ưu đãi & quà · Suất hội viên, có huy hiệu số; dải bậc hạng chung (số khách mỗi hạng, mốc chi tiêu, quà chờ trao, voucher trong ví, suất hội viên sắp tới) liên kết các màn với nhau.
+- [x] Hạng & quyền lợi: danh sách hạng + một ngăn sửa theo ba khối, đổi hạng không tải lại trang, một thanh lưu cho cả 5 hạng; mô tả voucher dưới ô chọn.
+- [x] Khách hàng: cột tiến độ lên hạng, số voucher/quà chờ. Chi tiết khách: thẻ hạng + thao tác gập mở, tab Ví/Quà/Sổ điểm/Đơn/Lịch sử hạng; thao tác quay về đúng tab.
+- [x] Ưu đãi & quà: chiến dịch ba bước với ước tính số khách nhận; mẫu voucher có liên kết Sửa và "+ Thêm mẫu"; quà theo trạng thái; kho lưu niệm (tồn ≤ 5 màu cam).
+- [x] Suất hội viên: điều hướng ngày ‹ ›, ngày + giờ 24 giờ HH:MM (bỏ `datetime-local`), chip chỉ ở suất có giới hạn.
+- [x] Kinh doanh: tab "Bắp nước & lưu niệm" (lọc Loại = Lưu niệm để quản lý cốc/áo, tồn kho).
+- [x] Màu hạng thành token `--tier-*`; CSS/JS riêng `admin-members.css`/`admin-members.js`. Lỗi gặp khi làm: thẻ `nav` trong nội dung bị CSS chung tô nền tối → dùng `div role="navigation"`.
+
+Đã kiểm chứng: **159 tests, 0 failures/errors/skipped** trên MySQL `cineprime_test` (thêm kiểm tra giờ mở bán HH:MM theo giờ Việt Nam và từ chối giờ 12 giờ; log `target/member-ui-final.log`). JAR thuần trên `cineprime_test` (dữ liệu demo) 1366×768: xem cả 4 tab, chi tiết khách, lọc Lưu niệm; lưu một suất "VIP trở lên, mở bán 09:30" qua giao diện, huy hiệu và dải cập nhật. Lệnh dò của skill: không gradient, bóng, bo góc hay hex rời trong CSS mới. Không có migration; `cineprime` không đổi. Chưa kiểm: số khách lớn (dải tổng quan đếm toàn bảng mỗi lần mở tab).
+
+## Màn rộng 100%, Ca tại quầy, banner chồng poster, mô tả ngắn nội dung — 17/11/2026
+
+Người dùng (scale Windows 100%, cửa sổ ~1920px): viền bị hở hai bên ở cả ba vai; Ca tại quầy cần ghi rõ chênh lệch và ghi chú; banner muốn rộng hơn, có poster phim kế tiếp chìm phía sau, chuyển mượt, tự chuyển 5 giây; thẻ "Ưu đãi cho bạn" / "Góc điện ảnh" có ảnh + nội dung ngay dưới ảnh, Admin quản lý.
+
+- [x] Bỏ giới hạn chiều rộng: admin `.ops-shell` (1800px) và form sửa (1100px) lấp đầy; trang khách `--container:clamp(1328px,83.4vw,1680px)` (≤1536px như cũ). Staff vốn đã rộng hết màn.
+- [x] Ca tại quầy: cột Chênh lệch ghi "Thừa tiền mặt" / "Thiếu tiền mặt" / "Khớp két" + số tiền; ghi chú nhân viên là khối riêng.
+- [x] Banner: chồng poster (phim hiện tại trước, phim kế tiếp nhỏ/tối dần phía sau), chuyển mờ + trượt lên 0,7 s; mặc định 5 giây (`BannerService.DEFAULT_SECONDS=5`, test cập nhật); ≤1090px ẩn chồng poster. Không dùng thuộc tính `style` trong Pug (CSP `style-src 'self'` chặn) — JS đặt `--o`.
+- [x] Migration **V10**: `contents.summary` ("Mô tả ngắn dưới ảnh", Admin nhập trong pop-up Bài viết / Ưu đãi); thẻ có ảnh hiện loại · tiêu đề · mô tả · ngày dưới ảnh, trống thì lấy đoạn đầu nội dung.
+
+Đã kiểm chứng (17/11/2026): **159 tests, 0 failures/errors/skipped** trên MySQL `cineprime_test` (129 MySQL/HTTP). JAR mới chạy cổng 8081 trên `cineprime` (job tắt, đã dừng): trang chủ 1920×950 và 375×812 không tràn ngang, banner tự chuyển sau 5 giây, chồng poster đúng thứ tự, banner khuyến mãi ẩn chồng poster.
+- Áp dụng `cineprime` 17/11/2026: backup `D:\0_JAV102\Database-CinePrime-bakup\cineprime-2026-11-17.sql`, Flyway lên **v10**; setting `banner.interval` 6 → 5.
+
+Chưa kiểm chứng trên app thật: màn Ca tại quầy, Thêm phim, Tổng quan admin ở 1920px và thẻ Ưu đãi có ảnh (dữ liệu hiện chưa có nội dung kèm ảnh) — mới kiểm qua trang thử tĩnh. App CinePrime Local (8080) cần khởi động lại để nạp mã Java mới.
+
+- [x] Cập nhật cùng ngày — Ưu đãi / Góc điện ảnh dạng poster: thẻ có ảnh = poster dọc 2:3 trên + khung viền nội dung dưới; trang chủ lấy 5 bài (5 poster một hàng; chỉ chữ vẫn 3 thẻ); Admin (Nội dung → Bài viết / Ưu đãi / Chính sách) chỉ nhận ảnh dọc từ 4:5 cho OFFER/ARTICLE, có gợi ý trong pop-up; trang chi tiết hiện ảnh dạng poster. Đã kiểm: **160 tests, 0 failures/errors/skipped** (130 MySQL/HTTP, thêm `offerAndArticleImagesArePortraitPostersOnHome`); trang thử tĩnh 1920px (5 cột) và 375px (2 cột, không tràn). Không có migration. Chưa kiểm trên app thật với ảnh thật.
+
+- [x] Cập nhật 2 (17/11/2026) — Nội dung dễ nhận biết: Admin → Nội dung có tab theo nơi hiển thị (Ưu đãi cho bạn / Góc điện ảnh / Trang thông tin, kèm số lượng), cột "Hiện ở" + mô tả ngắn + ảnh poster nhỏ, sắp theo nhóm; trang chủ đặt Ưu đãi và Góc điện ảnh cạnh nhau 3 + 3, bài chưa có ảnh có bìa chữ 2:3. Sửa lỗi: mở lại pop-up làm mất "Ngày xuất bản" (giá trị có phần giây lẻ nên ô datetime-local để trống) và bài lưu không có ngày nay lấy giờ lưu. Đã kiểm: **160 tests, 0 failures/errors/skipped**; JAR mới cổng 8081 trên  (job tắt, đã dừng) trang chủ 1920px đúng bố cục; trang thử 375px không tràn. Chưa sửa dữ liệu: bài #5, #6 trong  vẫn trống ngày xuất bản (bị mất trước khi sửa lỗi). Màn admin chưa kiểm trên app thật (cần đăng nhập).
+

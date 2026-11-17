@@ -1,0 +1,59 @@
+{
+  "ten": "ERD mẫu",
+  "tenFile": "mau-erd",
+  "word": {
+    "chuong": "2.3",
+    "tieuDe": "Thiết kế cơ sở dữ liệu",
+    "tenHinh": "Mô hình thực thể quan hệ ERD",
+    "anhErd": "mau-erd.png",
+    "gioiThieu": [
+      "- Để đảm bảo toàn vẹn dữ liệu và tránh mất mát dữ liệu hoặc xóa nhầm, hệ thống dùng cờ trạng thái “active” trong các bảng danh mục thay cho việc xóa dữ liệu trực tiếp trên cơ sở dữ liệu. active là True tức là đang sử dụng, active là False tức là đã ẩn/ngừng sử dụng."
+    ]
+  },
+  "bang": [
+    { "id": "cinemas", "x": 40, "y": 40, "rong": 180, "moTa": "dùng để lưu trữ thông tin các rạp chiếu phim.",
+      "cot": [
+        ["id", "bigint", "NOT NULL", "PK", "Mã rạp"],
+        ["name", "varchar(255)", "NOT NULL", "", "Tên rạp"],
+        ["city", "varchar(255)", "NOT NULL", "", "Tỉnh/thành phố"],
+        ["address", "varchar(255)", "NULL", "", "Địa chỉ"],
+        ["phone", "varchar(255)", "NULL", "", "Số điện thoại"],
+        ["description", "varchar(6000)", "NULL", "", "Mô tả rạp"],
+        ["active", "boolean", "NOT NULL", "", "Đang hoạt động (true/false)"]
+      ] },
+    { "id": "rooms", "x": 300, "y": 40, "rong": 180, "moTa": "dùng để lưu trữ thông tin phòng chiếu của từng rạp.",
+      "cot": [
+        ["id", "bigint", "NOT NULL", "PK", "Mã phòng chiếu"],
+        ["cinema_id", "bigint", "NOT NULL", "FK", "Mã rạp chứa phòng"],
+        ["name", "varchar(255)", "NOT NULL", "", "Tên phòng (duy nhất trong rạp)"],
+        ["format", "varchar(255)", "NOT NULL", "", "Định dạng chiếu (2D, 3D, …)"],
+        ["active", "boolean", "NOT NULL", "", "Đang hoạt động (true/false)"]
+      ] },
+    { "id": "seats", "x": 560, "y": 40, "rong": 180, "moTa": "dùng để lưu trữ sơ đồ ghế của phòng chiếu.",
+      "cot": [
+        ["id", "bigint", "NOT NULL", "PK", "Mã ghế"],
+        ["room_id", "bigint", "NOT NULL", "FK", "Mã phòng chiếu"],
+        ["label", "varchar(255)", "NOT NULL", "", "Nhãn ghế (A1, B5, …)"],
+        ["row_label", "varchar(255)", "NOT NULL", "", "Tên hàng ghế"],
+        ["position", "int", "NOT NULL", "", "Vị trí trong hàng"],
+        ["type", "varchar(255)", "NOT NULL", "", "Loại ghế: thường, VIP, đôi"],
+        ["couple_group", "varchar(255)", "NULL", "", "Nhóm cặp của ghế đôi"],
+        ["active", "boolean", "NOT NULL", "", "Ghế dùng được (false = bảo trì)"]
+      ] },
+    { "id": "users", "x": 300, "y": 260, "rong": 180, "moTa": "dùng để lưu trữ tài khoản khách hàng, nhân viên và quản trị viên.",
+      "cot": [
+        ["id", "bigint", "NOT NULL", "PK", "Mã người dùng"],
+        ["cinema_id", "bigint", "NULL", "FK", "Rạp phụ trách (chỉ nhân viên)"],
+        ["email", "varchar(255)", "NOT NULL", "", "Email đăng nhập", true],
+        ["password_hash", "varchar(255)", "NOT NULL", "", "Mật khẩu đã băm"],
+        ["name", "varchar(255)", "NOT NULL", "", "Họ tên"],
+        ["role", "varchar(255)", "NOT NULL", "", "Vai trò: CUSTOMER, STAFF, ADMIN"],
+        ["enabled", "boolean", "NOT NULL", "", "Tài khoản đang mở (false = bị khóa)"]
+      ] }
+  ],
+  "quanHe": [
+    { "cha": "cinemas.id", "con": "rooms.cinema_id", "kieu": "1-N" },
+    { "cha": "rooms.id", "con": "seats.room_id", "kieu": "1-N" },
+    { "cha": "cinemas.id", "con": "users.cinema_id", "kieu": "1-N" }
+  ]
+}

@@ -11,8 +11,8 @@ import static vn.cineprime.domain.Domain.*;
 
 @Service @Transactional
 public class BookingService {
-    private final Store db;private final Clock clock;private final Notifications notices;
-    public BookingService(Store db,Clock clock,Notifications notices){this.db=db;this.clock=clock;this.notices=notices;}
+    private final Store db;private final Clock clock;private final Notifications notices;private final vn.cineprime.member.TierService tiers;private final vn.cineprime.member.WalletService wallet;
+    public BookingService(Store db,Clock clock,Notifications notices,vn.cineprime.member.TierService tiers,vn.cineprime.member.WalletService wallet){this.db=db;this.clock=clock;this.notices=notices;this.tiers=tiers;this.wallet=wallet;}
     public Instant now(){return clock.instant();}
     public long price(Showtime show,Seat seat){
         Room room=db.get(Room.class,show.roomId);
@@ -33,7 +33,10 @@ public class BookingService {
         }
         Showtime show=db.lock(Showtime.class,showtimeId);
         if(!show.status.equals("OPEN")||now().plusSeconds(1200).isAfter(show.startsAt))throw new IllegalArgumentException("Suất đã ngừng nhận đặt vé.");
-        Order o=new Order();o.userId=userId;return reserve(show,requested,o);
+        // Member price: the tier is refreshed under the customer lock and snapshotted, so later combo/voucher edits keep the same percentages.
+        Tier tier=tiers.refresh(user);
+        tiers.gate(show,tier);// member-only showtime / early sales for high tiers
+        Order o=new Order();o.userId=userId;reserve(show,requested,o);tiers.price(o,tier);return o;
     }
     /** Allocates seats for an already locked OPEN showtime; caller has checked its own sales cutoff and hold limits. */
     public Order reserve(Showtime show,List<Long> requested,Order o){
@@ -72,26 +75,56 @@ public class BookingService {
     private void editable(Order o){if(!o.status.equals("PENDING_PAYMENT")||!now().isBefore(o.expiresAt))throw new IllegalArgumentException("Đơn đã hết hạn hoặc đã hoàn tất.");if(o.frozen)throw new IllegalArgumentException("Đơn đã chuyển sang thanh toán, không thể sửa nội dung.");}
     public void updateCart(Long userId,Long id,Map<Long,Integer> quantities,String voucherCode){
         owned(userId,id);Order o=lockOrder(id);editable(o);
-        for(OrderProduct old:db.list(OrderProduct.class,"where e.orderId=?1",id))db.delete(old);
-        o.subtotal=db.list(OrderSeat.class,"where e.orderId=?1",id).stream().mapToLong(l->l.price).sum();
-        for(var e:quantities.entrySet()){
-            if(e.getValue()==0)continue;if(e.getValue()<0||e.getValue()>20)throw new IllegalArgumentException("Số lượng combo từ 0 đến 20.");
-            Product p=db.get(Product.class,e.getKey());if(!p.active)throw new IllegalArgumentException("Combo đã ngừng bán.");
-            OrderProduct line=new OrderProduct();line.orderId=id;line.productId=p.id;line.name=p.name;line.quantity=e.getValue();line.price=p.price;db.save(line);o.subtotal=Math.addExact(o.subtotal,Math.multiplyExact(p.price,line.quantity));
-        }
+        o.subtotal=replaceLines(o,quantities);
         Optional<VoucherUse> previous=db.first(VoucherUse.class,"where e.orderId=?1",id);
         previous.ifPresent(use->{db.lock(Voucher.class,use.voucherId);use.status="RELEASED";});
-        o.voucherId=null;o.discount=0;
+        wallet.release(id);
+        // Fixed order: member (tier) price on each line first, then one voucher (public code or wallet copy) on what is left.
+        long net=Math.subtractExact(o.subtotal,tiers.applyTier(o));
+        o.voucherId=null;o.userVoucherId=null;o.discount=o.tierDiscount;
         if(voucherCode!=null&&!voucherCode.isBlank()){
-            Voucher v=db.first(Voucher.class,"where e.code=?1",voucherCode.trim().toUpperCase(Locale.ROOT)).orElseThrow(()->new IllegalArgumentException("Mã ưu đãi không tồn tại."));db.lock(Voucher.class,v.id);
-            if(!v.active||now().isBefore(v.startsAt)||!now().isBefore(v.endsAt)||o.subtotal<v.minimum)throw new IllegalArgumentException("Đơn chưa đủ điều kiện áp dụng mã.");
-            List<VoucherUse> used=db.list(VoucherUse.class,"where e.voucherId=?1 and (e.status='USED' or (e.status='RESERVED' and e.expiresAt>?2))",v.id,now());
-            if(used.size()>=v.quota||used.stream().filter(u->u.userId.equals(userId)).count()>=v.perUser)throw new IllegalArgumentException("Mã đã hết lượt sử dụng.");
-            long discount=v.kind.equals("PERCENT")?Math.multiplyExact(o.subtotal,v.value)/100:v.value;
-            if(v.maximum>0)discount=Math.min(discount,v.maximum);o.discount=Math.min(o.subtotal,discount);o.voucherId=v.id;
-            VoucherUse use=previous.orElseGet(VoucherUse::new);use.orderId=id;use.voucherId=v.id;use.userId=userId;use.status="RESERVED";use.expiresAt=o.expiresAt;db.save(use);
+            String code=voucherCode.trim().toUpperCase(Locale.ROOT);
+            Optional<UserVoucher> own=wallet.claim(o,userId,code);Voucher v;
+            if(own.isPresent())v=db.get(Voucher.class,own.get().voucherId);
+            else{
+                v=db.first(Voucher.class,"where e.code=?1 and e.audience='PUBLIC'",code).orElseThrow(()->new IllegalArgumentException("Mã ưu đãi không tồn tại."));db.lock(Voucher.class,v.id);
+                if(!v.active||now().isBefore(v.startsAt)||!now().isBefore(v.endsAt))throw new IllegalArgumentException("Đơn chưa đủ điều kiện áp dụng mã.");
+                List<VoucherUse> used=db.list(VoucherUse.class,"where e.voucherId=?1 and (e.status='USED' or (e.status='RESERVED' and e.expiresAt>?2))",v.id,now());
+                if(used.size()>=v.quota||used.stream().filter(u->u.userId.equals(userId)).count()>=v.perUser)throw new IllegalArgumentException("Mã đã hết lượt sử dụng.");
+                if(v.minTier!=null&&tiers.tier(db.get(User.class,userId).tierCode).rankOrder<tiers.tier(v.minTier).rankOrder)throw new IllegalArgumentException("Mã dành cho hạng "+tiers.tier(v.minTier).name+" trở lên.");
+            }
+            if(net<v.minimum)throw new IllegalArgumentException("Đơn chưa đủ điều kiện áp dụng mã.");
+            long discount=wallet.discount(o,v,net);
+            if(discount==0&&!"ORDER".equals(v.scope))throw new IllegalArgumentException("Mã chưa áp dụng được cho đơn này (cần có ghế hoặc combo phù hợp).");
+            o.discount=Math.addExact(o.tierDiscount,discount);o.voucherId=v.id;
+            if(own.isPresent()){wallet.hold(own.get(),o);o.userVoucherId=own.get().id;}
+            else{VoucherUse use=previous.orElseGet(VoucherUse::new);use.orderId=id;use.voucherId=v.id;use.userId=userId;use.status="RESERVED";use.expiresAt=o.expiresAt;db.save(use);}
         }
         o.total=o.subtotal-o.discount;
+    }
+    /**
+     * Replaces the product lines of a locked pending order and returns the new subtotal (seats + products).
+     * MERCH stock is taken here and given back on release, so the last item cannot be sold twice. Lock order: order → products by id.
+     */
+    public long replaceLines(Order o,Map<Long,Integer> quantities){
+        List<OrderProduct> old=db.list(OrderProduct.class,"where e.orderId=?1",o.id);
+        TreeSet<Long> ids=new TreeSet<>();old.forEach(l->ids.add(l.productId));quantities.forEach((k,v)->{if(k!=null&&v!=null&&v!=0)ids.add(k);});
+        Map<Long,Product> products=new HashMap<>();for(Long pid:ids)products.put(pid,db.lock(Product.class,pid));
+        // Flush the deletes first: Hibernate otherwise inserts the new lines before deleting the old ones (unique order_id, product_id).
+        for(OrderProduct l:old){Product p=products.get(l.productId);if(p.stock!=null)p.stock=p.stock+l.quantity;db.delete(l);}db.entityManager().flush();
+        long subtotal=db.list(OrderSeat.class,"where e.orderId=?1",o.id).stream().mapToLong(l->l.price).sum();
+        for(var e:new TreeMap<>(quantities).entrySet()){
+            Integer n=e.getValue();if(n==null||n==0)continue;if(n<0||n>20)throw new IllegalArgumentException("Số lượng combo từ 0 đến 20.");
+            Product p=products.get(e.getKey());if(!p.active)throw new IllegalArgumentException(p.name+" đã ngừng bán.");
+            if(p.stock!=null){if(p.stock<n)throw new IllegalArgumentException(p.name+(p.stock==0?" đã hết hàng.":" chỉ còn "+p.stock+" sản phẩm."));p.stock=p.stock-n;}
+            OrderProduct line=new OrderProduct();line.orderId=o.id;line.productId=p.id;line.name=p.name;line.quantity=n;line.price=p.price;db.save(line);subtotal=Math.addExact(subtotal,Math.multiplyExact(p.price,(long)n));
+        }
+        return subtotal;
+    }
+    /** Gives MERCH stock of an order back (pending order released, or a paid counter sale cancelled). */
+    public void restock(Long orderId){
+        List<OrderProduct> lines=db.list(OrderProduct.class,"where e.orderId=?1 order by e.productId",orderId);
+        for(OrderProduct l:lines){Product p=db.lock(Product.class,l.productId);if(p.stock!=null)p.stock=p.stock+l.quantity;}
     }
     /** Admin cancel of an unpaid order of any channel. */
     public void cancelUnpaid(Long id){Order o=lockOrder(id);if(!o.status.equals("PENDING_PAYMENT"))throw new IllegalArgumentException("Chỉ hủy được đơn chưa thanh toán.");release(o,"CANCELLED");}
@@ -100,6 +133,7 @@ public class BookingService {
     private void expireLocked(Order o){db.lock(Showtime.class,o.showtimeId);db.lock(Order.class,o.id);if(o.status.equals("PENDING_PAYMENT")&&!now().isBefore(o.expiresAt))release(o,"EXPIRED");}
     public void release(Order o,String status){
         o.status=status;
+        if(!"PAID".equals(status)){restock(o.id);wallet.release(o.id);}
         for(Inventory i:db.list(Inventory.class,"where e.orderId=?1 and e.status='HELD' order by e.seatId",o.id)){i.status="AVAILABLE";i.orderId=null;i.expiresAt=null;}
         db.first(VoucherUse.class,"where e.orderId=?1",o.id).ifPresent(use->{db.lock(Voucher.class,use.voucherId);if(use.status.equals("RESERVED"))use.status="RELEASED";});
     }
@@ -134,10 +168,10 @@ public class BookingService {
         }
         List<Inventory> seats=db.list(Inventory.class,"where e.orderId=?1 order by e.seatId",o.id);
         if(seats.size()!=db.list(OrderSeat.class,"where e.orderId=?1",o.id).size()||seats.stream().anyMatch(i->!i.status.equals("HELD"))){p.reconciliation=true;release(o,"EXPIRED");return;}
-        issue(o,seats);
-        db.first(VoucherUse.class,"where e.orderId=?1",o.id).ifPresent(use->{db.lock(Voucher.class,use.voucherId);use.status="USED";});
+        issue(o,seats);o.paidAt=p.updatedAt;// same instant as the successful payment, see ReportService ledger check
+        db.first(VoucherUse.class,"where e.orderId=?1",o.id).ifPresent(use->{db.lock(Voucher.class,use.voucherId);use.status="USED";});wallet.use(o);
         Point points=new Point();points.userId=o.userId;points.orderId=o.id;points.points=o.total/1000;points.createdAt=now();db.save(points);
-        User u=db.get(User.class,o.userId);notices.notify(u,"paid:"+o.id,"Đặt vé thành công · "+o.code,"Phim: "+o.movieTitle+"\nRạp: "+o.cinemaName+" · "+o.roomName+"\nSuất: "+db.date(o.showStartsAt)+"\nMở Vé của tôi trên CinePrime để xem QR và tải PDF.",true);
+        User u=db.get(User.class,o.userId);tiers.refresh(u);wallet.afterPayment(u,o);/* owner already locked by lockOrder; this paid order may lift the tier */notices.notify(u,"paid:"+o.id,"Đặt vé thành công · "+o.code,"Phim: "+o.movieTitle+"\nRạp: "+o.cinemaName+" · "+o.roomName+"\nSuất: "+db.date(o.showStartsAt)+"\nMở Vé của tôi trên CinePrime để xem QR và tải PDF.",true);
         db.audit(o.userId,"PAYMENT_CONFIRMED",o.code);
     }
     /** Sells the order's HELD inventory rows (locked by the caller) and issues one ticket per seat. */

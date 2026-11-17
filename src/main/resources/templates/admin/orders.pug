@@ -71,7 +71,7 @@ block admin
             tr
               td(data-label="Đơn / Khách")
                 a(href='/admin/orders/' + o.id)
-                  strong= o.code
+                  strong.ticket-code= o.code
                 small= o.customerName
                 small= o.email
               td(data-label="Kênh")

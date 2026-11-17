@@ -1,0 +1,53 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-members.css?v=20261117e")
+block hubTools
+  span.hub-count #{total} suất · #{memberOnly} dành cho hội viên
+block admin
+  +memberBar('', 'tiers')
+  form.ops-filters.one-line(method="get")
+    .day-nav
+      a.button.secondary(href='/admin/member-shows?date=' + prevDay + '&cinemaId=' + cinemaId aria-label="Ngày trước") ‹
+      label Ngày chiếu
+        input(type="date" name="date" value=day)
+      a.button.secondary(href='/admin/member-shows?date=' + nextDay + '&cinemaId=' + cinemaId aria-label="Ngày sau") ›
+    label Rạp
+      select(name="cinemaId")
+        option(value="") Tất cả rạp
+        each c in adminCinemas
+          option(value=c.id selected=cinemaId == c.id.toString())= c.name
+    button.button(type="submit") Xem
+  p.muted Suất dành cho hội viên chỉ cho hạng đã chọn trở lên giữ ghế (online, hoặc tại quầy khi gắn tài khoản khách). Trước giờ mở bán công khai, chỉ hạng có "Đặt vé sớm" ở tab Hạng & quyền lợi mới giữ được ghế. Vé đã bán không bị ảnh hưởng.
+  .panel.table-wrap
+    table.management-table.show-access-table
+      thead
+        tr
+          th Suất chiếu
+          th Dành cho · mở bán công khai (để trống = mở bán ngay)
+      tbody
+        each s in rows
+          tr
+            td
+              strong= s.movie
+              br
+              small #{s.place} · #{s.when} · #{s.status} · #{s.sold} vé
+              if s.minTier != '' || s.publicSaleAt != ''
+                br
+                if s.minTier != ''
+                  span.tier-chip(class='tier-' + s.minTier) Hội viên #{s.tierName}+
+                if s.publicSaleAt != ''
+                  span.status-badge.tone-info Mở bán công khai #{s.saleText}
+            td
+              form.show-access(action='/admin/member-shows/' + s.id method="post")
+                +csrf()
+                input(type="hidden" name="back" value='/admin/member-shows?date=' + day + '&cinemaId=' + cinemaId + '&page=' + page)
+                select(name="minTier" aria-label='Hạng tối thiểu suất ' + s.id)
+                  option(value="") Mọi khách
+                  each t in tierOptions
+                    option(value=t.code selected=s.minTier == t.code)= t.name + ' trở lên'
+                input(type="date" name="saleDate" value=s.saleDate aria-label='Ngày mở bán công khai suất ' + s.id)
+                input.time-24(name="saleTime" value=s.saleTime placeholder="HH:MM" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]" inputmode="numeric" aria-label='Giờ mở bán công khai suất ' + s.id)
+                button.button.secondary(type="submit") Lưu
+    if rows.size() == 0
+      .empty Không có suất trong ngày này. Xếp suất ở Lịch chiếu.
+    +pagination()

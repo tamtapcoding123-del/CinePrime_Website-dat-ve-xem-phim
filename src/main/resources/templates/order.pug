@@ -33,11 +33,16 @@ block content
                 div
                   strong= p.name
                   p= p.description
-                  span= p.priceText
+                  span #{p.priceText}#{p.merch ? ' · Lưu niệm, nhận tại quầy' : ''}#{p.stockText != '' ? ' · ' + p.stockText : ''}
                 label Số lượng
-                  input(type="number" name='product_' + p.id min="0" max="20" value=p.quantity)
+                  input(type="number" name='product_' + p.id min="0" max="20" value=p.quantity disabled=p.merch && p.stockText == 'Hết hàng' && p.quantity == 0)
             label Mã ưu đãi (một mã/đơn)
-              input(name="voucher" value=voucherCode placeholder="Nhập mã ưu đãi")
+              input(name="voucher" value=voucherCode placeholder="Nhập mã ưu đãi hoặc mã trong ví" list="wallet-codes" autocomplete="off")
+            if walletCodes.size() > 0
+              datalist#wallet-codes
+                each w in walletCodes
+                  option(value=w.code)= w.description
+              p.muted Ví của bạn có #{walletCodes.size()} voucher dùng được: chọn từ gợi ý của ô mã.
             button.button.secondary(type="submit") Áp dụng combo / mã ưu đãi
         if order.frozen && order.status == 'PENDING_PAYMENT'
           .notice Đơn đã gửi sang thanh toán. Nội dung được giữ nguyên để đối chiếu. Hãy kiểm tra trạng thái nếu bạn đã thanh toán.
@@ -47,9 +52,9 @@ block content
             each t in tickets
               article.panel.e-ticket
                 .eyebrow Vé điện tử CinePrime
-                h2 Ghế #{t.seat}
+                h2.cp-tear Ghế #{t.seat}
                 img.qr(src='/tickets/' + t.id + '/qr.png' alt='QR vé ' + t.code)
-                strong= t.code
+                strong.ticket-code= t.code
                 p.muted= t.status
                 a.button.secondary(href='/tickets/' + t.id + '/download') Tải vé PDF
         each p in payments
@@ -69,9 +74,13 @@ block content
         .line
           span Tạm tính
           strong= order.subtotalText
+        if order.tierDiscount > 0
+          .line
+            span Ưu đãi hạng #{order.tierName} (−#{order.tierTicketPct}% vé, −#{order.tierComboPct}% bắp nước)
+            strong −#{order.tierDiscountText}
         .line
-          span Giảm giá
-          strong= order.discountText
+          span Mã ưu đãi
+          strong #{order.voucherDiscount > 0 ? '−' : ''}#{order.voucherDiscountText}
         .total
           span Tổng thanh toán
           strong= order.totalText

@@ -46,7 +46,6 @@ body.admin-compact:has(.hub-context) .ops-main{padding-top:16px;padding-bottom:1
 .admin-compact .tl-ruler{position:relative;height:20px}
 .admin-compact .tl-hour{position:absolute;top:1px;transform:translateX(-50%);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .admin-compact .tl-hour:first-child{transform:none}
-.admin-compact .tl-nowtag{position:absolute;top:0;transform:translateX(-50%);padding:0 4px;border-radius:0;background-color:var(--accent);font-size:11px;font-weight:700;color:var(--accent-on);z-index:2}
 .admin-compact .tl-row{min-height:48px;border-bottom:1px solid var(--line-soft)}
 .admin-compact .tl-row.inactive{opacity:.7}
 .admin-compact .tl-room{display:flex;flex-direction:column;justify-content:center;gap:1px;padding-right:10px}
@@ -71,7 +70,6 @@ body.admin-compact:has(.hub-context) .ops-main{padding-top:16px;padding-bottom:1
 .admin-compact .tl-gap:hover{border-style:solid;background-color:var(--brand-soft)}
 .admin-compact .tl-empty{position:absolute;inset:0;display:flex;align-items:center;padding-left:12px;font-size:13px;color:var(--muted);text-decoration:none}
 .admin-compact a.tl-empty:hover{color:var(--brand)}
-.admin-compact .tl-now{position:absolute;top:0;bottom:0;width:2px;background-color:var(--accent);z-index:3;pointer-events:none;color:var(--accent-on)}
 .admin-compact .tl-foot{display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:13px;color:var(--ink-2)}
 .admin-compact .tl-foot .grow{flex:1}
 .admin-compact .tl-note{display:inline-flex;align-items:center;gap:8px}
@@ -80,7 +78,8 @@ body.admin-compact:has(.hub-context) .ops-main{padding-top:16px;padding-bottom:1
 /* Danh sách: bulk bar, a table that scrolls inside the card under a sticky head, room group rows, sales meter */
 .admin-compact .st-list{padding:0;margin:0;overflow:hidden}
 .admin-compact .st-list .table-wrap{border:0;border-radius:0}
-.admin-compact .st-scroll{overflow-y:auto;overscroll-behavior:contain}
+/* admin-sheet.css (loaded last) sets .table-wrap{overflow:hidden}; this list must scroll inside its box, so the rule needs more weight. */
+.admin-compact .st-list .table-wrap.st-scroll{overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain}
 .admin-compact .st-scroll thead th{position:sticky;top:0;z-index:2;background-color:var(--card-head)}
 .admin-compact .st-table td{padding-top:6px;padding-bottom:6px}
 .admin-compact .st-bulk{display:flex;align-items:center;gap:10px;padding:8px 16px;background-color:var(--brand-soft);border-bottom:1px solid var(--brand-line)}
@@ -101,7 +100,7 @@ body.admin-compact:has(.hub-context) .ops-main{padding-top:16px;padding-bottom:1
 .admin-compact .num-col{text-align:right}
 .admin-compact .meter{display:inline-block;width:64px;height:6px;margin-right:8px;border-radius:0;background-color:var(--line-soft);vertical-align:middle;overflow:hidden}
 .admin-compact .meter i{display:block;height:6px;background-color:var(--btn-dark)}
-.admin-compact .st-list .pager{padding:8px 16px;border-top:1px solid var(--line)}
+.admin-compact .st-total{margin:0;padding:8px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
 .admin-compact .st-list .empty{padding:16px}
 .admin-compact .st-note{margin:0;padding:0 16px 10px;font-size:12px;color:var(--muted)}
 
@@ -137,3 +136,28 @@ body.admin-compact:has(.hub-context) .ops-main{padding-top:16px;padding-bottom:1
 .admin-compact .tl-fill{background-color:var(--tone-bar)}
 .admin-compact .tl-bar.past:not(.live) .tl-fill{background-color:var(--faint)}
 /* ===== Film colour — end ===== */
+
+/* Quản lý suất chiếu context bar (16/11/2026): a grid, so nothing is ever left alone on a second line.
+   Wide windows: one row. Narrower: row 1 = cinema · day · + Thêm suất, row 2 = the filters spread across the bar. */
+.admin-compact .hub-context.hub-list{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:8px 10px}
+.admin-compact .hub-list .hub-filters{display:flex;align-items:center;gap:8px;min-width:0;padding-left:10px;border-left:1px solid var(--line)}
+.admin-compact .hub-list .hub-filters select{flex:1 1 0;min-width:96px;max-width:200px}
+.admin-compact .hub-list .hub-filters .hub-search{flex:1.4 1 0;width:auto;min-width:120px;max-width:none}
+.admin-compact .hub-list .hub-add{justify-self:end}
+@media (max-width:1599.98px){
+  .admin-compact .hub-context.hub-list{grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"cinema day add" "filters filters filters"}
+  .admin-compact .hub-list>select{grid-area:cinema}
+  .admin-compact .hub-list>.hub-day{grid-area:day}
+  .admin-compact .hub-list>.hub-add{grid-area:add}
+  .admin-compact .hub-list .hub-filters{grid-area:filters;padding:8px 0 0;border-left:0;border-top:1px solid var(--line-soft)}
+  .admin-compact .hub-list .hub-filters select{max-width:none}
+}
+
+/* Lịch trong ngày, current time (16/11/2026): a pointer under the last room with the live HH:MM, sticky at the bottom of the scroll box.
+   It replaces the red line through every row and the tag on the ruler. */
+.admin-compact .tl-nowrow{position:sticky;bottom:0;z-index:4;display:grid;grid-template-columns:136px minmax(0,1fr);height:30px;background-color:var(--card)}
+.admin-compact .tl-nowtrack{position:relative}
+.admin-compact .tl-cursor{position:absolute;top:2px;display:flex;flex-direction:column;align-items:center;transform:translateX(-50%);pointer-events:none;transition:left .6s linear}
+.admin-compact .tl-cursor::before{content:'';width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:7px solid var(--accent)}
+.admin-compact .tl-cursor-time{margin-top:1px;padding:1px 6px;border:1px solid var(--accent);background-color:var(--card);color:var(--accent-ink);font-size:11px;font-weight:700;line-height:1.3;white-space:nowrap}
+.admin-compact .sw.now{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:7px solid var(--accent);background-color:transparent}

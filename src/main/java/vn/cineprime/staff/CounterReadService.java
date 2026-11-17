@@ -13,8 +13,8 @@ import static vn.cineprime.domain.Domain.*;
 /** Read models for the box-office screen; never mutates holds or payments. */
 @Service @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
 public class CounterReadService {
-    private final Store db;private final BookingService bookings;private final CounterService counter;private final CheckInService checkin;private final Clock clock;
-    public CounterReadService(Store db,BookingService bookings,CounterService counter,CheckInService checkin,Clock clock){this.db=db;this.bookings=bookings;this.counter=counter;this.checkin=checkin;this.clock=clock;}
+    private final Store db;private final BookingService bookings;private final CounterService counter;private final CheckInService checkin;private final Clock clock;private final vn.cineprime.member.TierService tiers;
+    public CounterReadService(Store db,BookingService bookings,CounterService counter,CheckInService checkin,Clock clock,vn.cineprime.member.TierService tiers){this.db=db;this.bookings=bookings;this.counter=counter;this.checkin=checkin;this.clock=clock;this.tiers=tiers;}
     private User staff(Long id){User u=db.get(User.class,id);if(!u.enabled||!u.role.equals("STAFF"))throw new AccessDeniedException("Tài khoản không có quyền bán vé.");return u;}
     public Map<String,Object> page(Long staffId,LocalDate day){
         User staff=staff(staffId);if(staff.cinemaId==null)return Map.of("unassigned",true,"staffCinema","Chưa phân công rạp","operationsRole","Bán vé tại quầy");
@@ -25,7 +25,7 @@ public class CounterReadService {
         // Counter column 1 lists showtimes by movie (first show first), each movie with its time buttons.
         Map<Object,List<Map<String,Object>>> byMovie=new LinkedHashMap<>();shows.forEach(s->byMovie.computeIfAbsent(s.get("movieTitle"),k->new ArrayList<>()).add(s));
         model.put("showGroups",byMovie.values().stream().map(list->{Map<String,Object> f=list.getFirst();return Map.<String,Object>of("movieTitle",f.get("movieTitle"),"meta",f.get("ageRating")+" · "+f.get("format")+" · "+f.get("duration")+" phút","shows",list,"anySellable",list.stream().anyMatch(s->Boolean.TRUE.equals(s.get("sellable"))));}).toList());
-        model.put("products",db.list(Product.class,"where e.active=true order by e.price,e.id").stream().map(p->Map.<String,Object>of("id",p.id,"name",p.name,"price",p.price,"priceText",db.cash(p.price),"description",Objects.toString(p.description,""))).toList());
+        model.put("products",db.list(Product.class,"where e.active=true order by e.price,e.id").stream().map(p->Map.<String,Object>of("id",p.id,"name",p.name,"price",p.price,"priceText",db.cash(p.price),"description",Objects.toString(p.description,"")+(p.stock==null?"":" · Còn "+p.stock))).toList());
         Order active=db.first(Order.class,"where e.soldBy=?1 and e.channel='COUNTER' and e.status='PENDING_PAYMENT' and e.expiresAt>?2 order by e.id desc",staffId,now).orElse(null);
         model.put("activeOrder",active==null?null:order(active));
         model.put("orders",shift.map(s->orders(staffId,s.id,now)).orElse(List.of()));model.put("lastClosed",db.first(Shift.class,"where e.staffId=?1 and e.status='CLOSED' order by e.closedAt desc",staffId).map(this::shift).orElse(null));
@@ -38,10 +38,9 @@ public class CounterReadService {
             Map<String,Object> v=new LinkedHashMap<>();v.put("id",s.id);v.put("movieTitle",r[1]);v.put("ageRating",r[2]);v.put("poster",Objects.toString(r[3],""));v.put("roomName",r[4]);v.put("time",String.format("%02d:%02d",t.getHour(),t.getMinute()));v.put("when",db.date(s.startsAt));v.put("format",s.format+" · "+s.language);v.put("duration",r[5]);v.put("available",c[0]);v.put("capacity",c[1]);v.put("sellable",sellable&&c[0]>0);v.put("state",!sellable?"Đã ngừng bán":c[0]==0?"Hết ghế":"Còn "+c[0]+"/"+c[1]+" ghế");return v;}).toList();
     }
     public Map<String,Object> shift(Shift s){
-        long cash=counter.expected(s)-s.openingCash;long orders=db.count(Order.class,"where e.shiftId=?1 and e.status='PAID'",s.id),cancelled=db.count(Order.class,"where e.shiftId=?1 and e.status='CANCELLED' and e.cancelledAt is not null",s.id);
-        long tickets=db.query("select count(t) from %s t, %s o where t.orderId=o.id and o.shiftId=?1 and t.status in ('VALID','USED')".formatted(db.entityName(Ticket.class),db.entityName(Order.class)),Long.class,s.id).getFirst();
-        Map<String,Object> v=new LinkedHashMap<>();v.put("id",s.id);v.put("status",s.status);v.put("opened",db.date(s.openedAt));v.put("openedTime",db.date(s.openedAt).substring(0,5));v.put("closed",db.date(s.closedAt));v.put("openingCash",db.cash(s.openingCash));v.put("cashIn",db.cash(cash));v.put("orders",orders);v.put("cancelled",cancelled);v.put("tickets",tickets);
-        long expected=s.expectedCash!=null?s.expectedCash:counter.expected(s);v.put("expected",db.cash(expected));v.put("expectedValue",expected);v.put("counted",s.countedCash==null?"—":db.cash(s.countedCash));v.put("difference",s.countedCash==null?"—":(s.countedCash-expected>0?"+":"")+db.cash(s.countedCash-expected));v.put("balanced",s.countedCash==null||s.countedCash==expected);v.put("note",Objects.toString(s.note,""));
+        CounterService.Figures f=counter.figures(s);
+        Map<String,Object> v=new LinkedHashMap<>();v.put("id",s.id);v.put("status",s.status);v.put("opened",db.date(s.openedAt));v.put("openedTime",db.date(s.openedAt).substring(0,5));v.put("closed",db.date(s.closedAt));v.put("openingCash",db.cash(s.openingCash));v.put("cashIn",db.cash(f.cashIn()));v.put("cashInValue",f.cashIn());v.put("refunded",db.cash(f.refunded()));v.put("orders",f.orders());v.put("cancelled",f.cancelled());v.put("tickets",f.tickets());
+        long expected=f.expected();v.put("expected",db.cash(expected));v.put("expectedValue",expected);v.put("counted",s.countedCash==null?"—":db.cash(s.countedCash));v.put("difference",s.countedCash==null?"—":(s.countedCash-expected>0?"+":"")+db.cash(s.countedCash-expected));v.put("balanced",s.countedCash==null||s.countedCash==expected);v.put("note",Objects.toString(s.note,""));
         User u=db.get(User.class,s.staffId);v.put("staffName",u.name);v.put("cinemaName",db.get(Cinema.class,s.cinemaId).name);return v;
     }
     private List<Map<String,Object>> orders(Long staffId,Long shiftId,Instant now){
@@ -55,7 +54,7 @@ public class CounterReadService {
         v.put("customer",o.userId==null?"Khách vãng lai":masked(db.get(User.class,o.userId)).get("label"));return v;
     }
     public Map<String,Object> order(Order o){
-        Map<String,Object> v=summary(o);v.put("expiresAt",o.expiresAt.toString());v.put("showtimeId",o.showtimeId);v.put("subtotal",o.subtotal);v.put("subtotalText",db.cash(o.subtotal));
+        Map<String,Object> v=summary(o);v.put("expiresAt",o.expiresAt.toString());v.put("showtimeId",o.showtimeId);v.put("subtotal",o.subtotal);v.put("subtotalText",db.cash(o.subtotal));v.put("tierDiscount",o.tierDiscount);v.put("tierDiscountText",db.cash(o.tierDiscount));v.put("tierName",o.tierCode==null?"":tiers.tier(o.tierCode).name);
         v.put("seatLines",db.list(OrderSeat.class,"where e.orderId=?1 order by e.label",o.id).stream().map(l->Map.<String,Object>of("label",l.label,"seatType",l.seatType,"type",vn.cineprime.admin.AdminPresentation.text(l.seatType),"price",l.price,"priceText",db.cash(l.price))).toList());
         v.put("productLines",db.list(OrderProduct.class,"where e.orderId=?1 order by e.id",o.id).stream().map(l->Map.<String,Object>of("productId",l.productId,"name",l.name,"quantity",l.quantity,"price",l.price,"amountText",db.cash(l.price*l.quantity))).toList());
         Optional<Payment> cash=db.first(Payment.class,"where e.orderId=?1 and e.provider='CASH' order by e.id desc",o.id);v.put("received",cash.map(p->db.cash(p.received==null?p.amount:p.received)).orElse("—"));v.put("change",cash.map(p->db.cash((p.received==null?p.amount:p.received)-p.amount)).orElse("—"));
@@ -64,6 +63,17 @@ public class CounterReadService {
     }
     public Order owned(Long staffId,Long id){staff(staffId);Order o=db.get(Order.class,id);if(!"COUNTER".equals(o.channel)||!Objects.equals(o.soldBy,staffId))throw new AccessDeniedException("Đơn không phải đơn quầy của bạn.");return o;}
     public Map<String,Object> orderView(Long staffId,Long id){Order o=owned(staffId,id);if(o.status.equals("PENDING_PAYMENT")&&!clock.instant().isBefore(o.expiresAt))return Map.of("order",Map.of("id",o.id,"status","EXPIRED","statusLabel","Hết giữ ghế"),"serverTime",clock.instant().toString());return Map.of("order",order(o),"serverTime",clock.instant().toString());}
+    /** Gifts the customer can collect now (any cinema); the counter shows product and stock. */
+    public List<Map<String,Object>> gifts(Long staffId,Long customerId){
+        User s=staff(staffId);if(s.cinemaId==null)throw new IllegalArgumentException("Bạn chưa được phân công rạp.");User u=db.get(User.class,customerId);if(!"CUSTOMER".equals(u.role))throw new IllegalArgumentException("Tài khoản khách không hợp lệ.");
+        return db.list(GiftGrant.class,"where e.userId=?1 and e.status='ISSUED' and e.expiresAt>?2 order by e.expiresAt,e.id",customerId,clock.instant()).stream().map(g->{Product p=db.get(Product.class,g.productId);return Map.<String,Object>of("id",g.id,"product",p.name,"note",Objects.toString(g.note,""),"expires",db.date(g.expiresAt),"stock",p.stock==null?-1:p.stock);}).toList();
+    }
+    /** Member price preview for a held order: what payment would charge this customer (CounterService.pay recomputes and checks it). */
+    public Map<String,Object> quote(Long staffId,Long id,Long customerId){
+        Order o=owned(staffId,id);User u=db.get(User.class,customerId);if(!u.role.equals("CUSTOMER")||!u.enabled)throw new IllegalArgumentException("Tài khoản khách không hợp lệ hoặc đã khóa.");
+        Tier t=tiers.effective(u);long off=tiers.quote(o,t),total=Math.subtractExact(o.subtotal,off);
+        return Map.of("tierCode",t.code,"tierName",t.name,"ticketPct",t.ticketPct,"comboPct",t.comboPct,"discount",off,"discountText",db.cash(off),"total",total,"totalText",db.cash(total));
+    }
     public Map<String,Object> print(Long staffId,Long id){Order o=owned(staffId,id);if(!o.status.equals("PAID"))throw new IllegalArgumentException("Chỉ in vé của đơn đã thu tiền.");Map<String,Object> v=order(o);v.put("cashier",db.get(User.class,staffId).name);Showtime s=db.get(Showtime.class,o.showtimeId);v.put("format",s.format+" · "+s.language);v.put("printedAt",db.date(clock.instant()));return v;}
     public Map<String,Object> seats(Long staffId,Long showtimeId){
         Showtime show=db.get(Showtime.class,showtimeId);checkin.permitted(staffId,show);Instant now=clock.instant();Map<String,Long> prices=new HashMap<>();
@@ -78,7 +88,7 @@ public class CounterReadService {
         staff(staffId);String q=raw==null?"":raw.trim();if(q.length()<6||q.length()>120)throw new IllegalArgumentException("Nhập đầy đủ số điện thoại hoặc email của khách.");
         String phone=q.replaceAll("[\\s.-]","");
         List<User> found=q.contains("@")?db.list(User.class,"where lower(e.email)=?1 and e.role='CUSTOMER' and e.enabled=true",q.toLowerCase(Locale.ROOT)):db.list(User.class,"where e.phone=?1 and e.role='CUSTOMER' and e.enabled=true order by e.id",phone);
-        return found.stream().limit(5).map(this::masked).toList();
+        return found.stream().limit(5).map(this::masked).map(m->{Map<String,Object> v=new LinkedHashMap<>(m);Tier t=tiers.effective(db.get(User.class,(Long)m.get("id")));v.put("tierName",t.name);v.put("tierCode",t.code);return (Map<String,Object>)v;}).toList();
     }
     private Map<String,Object> masked(User u){String name=Objects.toString(u.name,"");String[] parts=name.trim().split("\\s+");String shown=parts.length==0||parts[0].isEmpty()?"Khách":parts.length==1?parts[0]:"… "+parts[parts.length-1];
         String email=u.email==null?"":u.email.replaceAll("(?<=^.).*(?=@)","***");String phone=u.phone==null||u.phone.length()<4?"":"***"+u.phone.substring(u.phone.length()-3);

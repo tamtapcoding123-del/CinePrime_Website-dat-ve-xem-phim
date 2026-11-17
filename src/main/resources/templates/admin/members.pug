@@ -1,0 +1,64 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-members.css?v=20261117e")
+  script(src="/js/admin-members.js?v=20261117a" defer)
+block hubTools
+  span.hub-count #{total} khách#{tier != '' ? ' · đang lọc hạng' : ''}
+block admin
+  +memberBar(tier, 'members')
+  form.ops-filters.one-line(method="get")
+    label Tìm khách
+      input(name="q" value=q placeholder="Tên, email hoặc số điện thoại")
+    label Hạng
+      select(name="tier")
+        option(value="") Tất cả hạng
+        each t in memberOverview.ladder
+          option(value=t.code selected=tier == t.code)= t.name
+    button.button(type="submit") Lọc
+    if q != '' || tier != ''
+      a.button.secondary(href="/admin/members") Bỏ lọc
+  .panel.table-wrap.member-table
+    table.management-table
+      thead
+        tr
+          th Khách hàng
+          th Hạng · tiến độ lên hạng
+          th.num Chi tiêu #{year}
+          th.num Năm #{year - 1}
+          th.num Điểm
+          th Ví · quà
+          th
+      tbody
+        each m in rows
+          tr
+            td(data-label="Khách hàng")
+              a(href='/admin/members/' + m.id)
+                strong= m.name
+              small #{m.email}#{m.phone != '' ? ' · ' + m.phone : ''}
+              if !m.enabled
+                span.status-badge.tone-muted Đã khóa
+            td(data-label="Hạng")
+              .tier-cell
+                span.tier-chip(class='tier-' + m.tier.code)= m.tier.name
+                if m.nextName != ''
+                  progress.tier-progress.slim(value=m.progress max="100" aria-label='Tiến độ lên ' + m.nextName)
+                  small Còn #{m.remaining} lên #{m.nextName}
+                else
+                  small Hạng cao nhất
+              if m.pending
+                small.hint-warn Đang lưu #{m.storedName}; cập nhật ở lần xét tới
+            td.num(data-label="Chi tiêu năm nay")= m.spendYear
+            td.num(data-label="Năm trước")= m.spendLast
+            td.num(data-label="Điểm")= m.balance
+            td(data-label="Ví · quà")
+              if m.wallet > 0
+                span.status-badge.tone-info #{m.wallet} voucher
+              if m.gifts > 0
+                span.status-badge.tone-warn #{m.gifts} quà chờ
+              if m.wallet == 0 && m.gifts == 0
+                small.muted —
+            td
+              a.button.secondary.small(href='/admin/members/' + m.id) Chi tiết
+    if rows.size() == 0
+      .empty Không có khách phù hợp.
+    +pagination()

@@ -12,7 +12,7 @@ import static vn.cineprime.domain.Domain.*;
 /** Home hero slides: admin-managed banners in their order, falling back to featured / now-showing movies when none is live. */
 @Service @Transactional(readOnly=true)
 public class BannerService {
-    public static final String INTERVAL="banner.interval";public static final int MIN_SECONDS=5,MAX_SECONDS=10,DEFAULT_SECONDS=6;
+    public static final String INTERVAL="banner.interval";public static final int MIN_SECONDS=5,MAX_SECONDS=10,DEFAULT_SECONDS=5;
     static final ZoneId ZONE=ZoneId.of("Asia/Ho_Chi_Minh");static final DateTimeFormatter WHEN=DateTimeFormatter.ofPattern("HH:mm dd/MM/yyyy");
     private final Store db;private final Catalog catalog;private final MediaService media;private final Clock clock;
     public BannerService(Store db,Catalog catalog,MediaService media,Clock clock){this.db=db;this.catalog=catalog;this.media=media;this.clock=clock;}

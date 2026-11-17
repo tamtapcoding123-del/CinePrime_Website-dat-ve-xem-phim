@@ -15,6 +15,17 @@ public final class Domain {
         public Long cinemaId;
         public boolean enabled = true;
         public int authVersion;
+        /** Cached membership tier; TierService moves it up at once and down only at the yearly review. */
+        public String tierCode="SILVER"; public Instant tierSince; public Integer tierReviewYear;
+        public LocalDate birthDate; public Instant birthDateSetAt;
+    }
+    @Entity @Table(name="membership_tiers") public static class Tier extends Row {
+        public String code, name, color, benefits; public int rankOrder, ticketPct, comboPct; public long minSpend;
+        /** Automatic benefits: vouchers issued in the birth month, each year, after each paid order; a gift; hours of early booking. */
+        public Long birthdayVoucherId, yearlyVoucherId, nextVoucherId, birthdayGiftId; public int birthdayVouchers, yearlyVouchers, earlyAccessHours;
+    }
+    @Entity @Table(name="tier_history") public static class TierChange extends Row {
+        public Long userId, actorId; public String fromCode, toCode, reason, note; public long spend; public Instant createdAt;
     }
     @Entity @Table(name="reset_tokens") public static class ResetToken extends Row {
         public Long userId; public String tokenHash; public Instant expiresAt; public boolean used;
@@ -43,6 +54,8 @@ public final class Domain {
         public Long movieId, roomId; public Instant startsAt, endsAt;
         public String language="Phụ đề", format="2D", status="DRAFT";
         public long surcharge;
+        /** Member-only showtime (lowest tier allowed) and the public sales start; before it only tiers with early access may book. */
+        public String minTier; public Instant publicSaleAt;
     }
     @Entity @Table(name="prices") public static class Price extends Row {
         public Long cinemaId; public String seatType="STANDARD", dayType="WEEKDAY";
@@ -50,16 +63,21 @@ public final class Domain {
     }
     @Entity @Table(name="products") public static class Product extends Row {
         public String name, kind="COMBO", image, description; public long price; public boolean active=true;
+        /** MERCH keeps stock (null = unlimited); upgradeToId = the bigger combo a COMBO_UPGRADE voucher moves to. */
+        public Integer stock; public Long upgradeToId;
     }
     @Entity @Table(name="vouchers") public static class Voucher extends Row {
         public String code, description, kind="FIXED"; public long value, minimum, maximum;
         public int quota=100, perUser=1; public Instant startsAt, endsAt; public boolean active=true;
+        /** PUBLIC typed code or PERSONAL wallet template; scope ORDER/TICKET/COMBO/FREE_TICKET/COMBO_UPGRADE. */
+        public String audience="PUBLIC", scope="ORDER", minTier; public int pointsCost, validDays=30;
     }
     @Entity(name="BookingOrder") @Table(name="orders") public static class Order extends Row {
-        public String code; public Long userId, showtimeId, voucherId;
+        public String code; public Long userId, showtimeId, voucherId; public Long userVoucherId;
         public String status="PENDING_PAYMENT";
         public Instant createdAt, expiresAt, paidAt;
-        public long subtotal, discount, total; public boolean frozen;
+        /** discount = tierDiscount + voucher discount; tier percentages are snapshotted when the order is priced. */
+        public long subtotal, discount, total, tierDiscount; public boolean frozen; public String tierCode; public int tierTicketPct, tierComboPct;
         public String movieTitle, cinemaName, roomName; public Instant showStartsAt;
         /** COUNTER orders are sold by Staff for cash; userId is null for walk-in customers. */
         public String channel="ONLINE"; public Long soldBy, shiftId, cancelledBy; public Instant cancelledAt; public String cancelReason;
@@ -68,10 +86,10 @@ public final class Domain {
         public Long showtimeId, seatId, orderId; public String status="AVAILABLE"; public Instant expiresAt;
     }
     @Entity @Table(name="order_seats") public static class OrderSeat extends Row {
-        public Long orderId, seatId; public String label, seatType; public long price;
+        public Long orderId, seatId; public String label, seatType; public long price, discount;
     }
     @Entity @Table(name="order_products") public static class OrderProduct extends Row {
-        public Long orderId, productId; public String name; public int quantity; public long price;
+        public Long orderId, productId; public String name; public int quantity; public long price, discount;
     }
     @Entity @Table(name="voucher_uses") public static class VoucherUse extends Row {
         public Long voucherId, orderId, userId; public String status="RESERVED"; public Instant expiresAt;
@@ -88,7 +106,14 @@ public final class Domain {
         public Long orderId, seatId, showtimeId; public String code, token, status="VALID";
         public Instant checkedInAt; public Long checkedInBy;
     }
-    @Entity @Table(name="point_ledger") public static class Point extends Row { public Long userId, orderId; public long points; public String kind="EARN"; public Instant createdAt; }
+    @Entity @Table(name="point_ledger") public static class Point extends Row { public Long userId, orderId, actorId; public long points; public String kind="EARN", ref, note; public Instant createdAt; }
+    /** A voucher copy in one customer's wallet; usable while ISSUED and before expiresAt, held by at most one pending order. */
+    @Entity @Table(name="user_vouchers") public static class UserVoucher extends Row {
+        public Long userId, voucherId, orderId, actorId; public String code, source, campaignKey, status="ISSUED"; public Instant issuedAt, expiresAt, reservedUntil, usedAt;
+    }
+    @Entity @Table(name="gift_grants") public static class GiftGrant extends Row {
+        public Long userId, productId, handedBy, cinemaId, actorId; public String reason, campaignKey, status="ISSUED", note; public Instant issuedAt, expiresAt, handedAt;
+    }
     @Entity @Table(name="favorites") public static class Favorite extends Row { public Long userId, movieId; }
     @Entity @Table(name="reviews") public static class Review extends Row {
         public Long userId, movieId; public int stars;
@@ -102,7 +127,7 @@ public final class Domain {
         public boolean seen; public Instant createdAt;
     }
     @Entity @Table(name="contents") public static class Content extends Row {
-        public String kind="ARTICLE", title, slug, image, link;
+        public String kind="ARTICLE", title, slug, image, link, summary;
         @Column(length=20000) public String body;
         public boolean active=true; public Instant publishedAt;
     }

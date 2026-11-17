@@ -69,7 +69,7 @@ class BookingIntegrationTest {
         tx.executeWithoutResult(s->{db.get(Showtime.class,show).status="DRAFT";Subscription sub=new Subscription();sub.userId=user1;sub.movieId=movie;db.save(sub);});
         assertEquals(false,catalog.movie(db.get(Movie.class,movie)).get("hasBookableShows"));
         String html=org.springframework.web.util.HtmlUtils.htmlUnescape(get(client(),"/movies/phim-kiem-thu").body());assertTrue(html.contains("Đang chiếu · Chưa có lịch mở bán"));assertTrue(html.contains("Nhắc tôi khi mở bán"));
-        var worker=new vn.cineprime.notification.Workers(db,booking,notices,null,clock,tm);worker.reminders();assertFalse(db.list(Subscription.class,"").getFirst().sent);
+        var worker=new vn.cineprime.notification.Workers(db,booking,notices,null,clock,tm,tierService,walletService);worker.reminders();assertFalse(db.list(Subscription.class,"").getFirst().sent);
         tx.executeWithoutResult(s->{Showtime sh=db.get(Showtime.class,show);sh.status="OPEN";sh.startsAt=Instant.parse("2026-12-02T03:00:00Z");sh.endsAt=sh.startsAt.plusSeconds(6000);db.get(Movie.class,movie).releaseDate=LocalDate.of(2026,12,2);db.get(Room.class,room).active=false;});
         worker.reminders();assertFalse(db.list(Subscription.class,"").getFirst().sent);
         tx.executeWithoutResult(s->db.get(Room.class,room).active=true);
@@ -377,7 +377,10 @@ class BookingIntegrationTest {
         try(var c=source.getConnection();var statement=c.createStatement()){
             assertTrue(c.getCatalog().equals("cineprime_test"),"Refuse to reset a non-test schema");
             statement.execute("SET FOREIGN_KEY_CHECKS=0");
-            try{for(String table:List.of("shifts","banners","settings","showtime_batch_results","mail_jobs","audit_logs","contents","notifications","subscriptions","reviews","favorites","point_ledger","tickets","payments","voucher_uses","order_products","order_seats","inventory","orders","vouchers","products","prices","showtimes","seats","rooms","credits","movie_genres","movies","people","genres","reset_tokens","users","cinemas"))statement.execute("TRUNCATE TABLE "+table);}finally{statement.execute("SET FOREIGN_KEY_CHECKS=1");}
+            try{for(String table:List.of("gift_grants","user_vouchers","tier_history","shifts","banners","settings","showtime_batch_results","mail_jobs","audit_logs","contents","notifications","subscriptions","reviews","favorites","point_ledger","tickets","payments","voucher_uses","order_products","order_seats","inventory","orders","vouchers","products","prices","showtimes","seats","rooms","credits","movie_genres","movies","people","genres","reset_tokens","users","cinemas"))statement.execute("TRUNCATE TABLE "+table);}finally{statement.execute("SET FOREIGN_KEY_CHECKS=1");}
+            // Tier rules are migration data, not truncated: put the shipped ladder back in case a test changed it.
+            String[][] ladder={{"SILVER","Bạc","0","0"},{"GOLD","Vàng","1000000","5"},{"PLATINUM","Bạch Kim","5000000","10"},{"DIAMOND","Kim Cương","10000000","15"},{"VIP","VIP","20000000","20"}};
+            for(String[] t:ladder)statement.execute("UPDATE membership_tiers SET name='"+t[1]+"',min_spend="+t[2]+",ticket_pct="+t[3]+",combo_pct="+t[3]+",birthday_voucher_id=NULL,birthday_vouchers=0,yearly_voucher_id=NULL,yearly_vouchers=0,next_voucher_id=NULL,birthday_gift_id=NULL,early_access_hours=0 WHERE code='"+t[0]+"'");
         }
         tx.executeWithoutResult(status->{
             Cinema c=new Cinema();c.name="Rạp kiểm thử";c.city="TP. Hồ Chí Minh";db.save(c);cinema=c.id;
@@ -551,7 +554,7 @@ class BookingIntegrationTest {
             var filtered=presentation.list("genres","Phân trang","true","",null,null,0);assertEquals((count+1L)/2,filtered.get("total"));assertTrue(((List<?>)filtered.get("rows")).size()<=5);
         }
         assertEquals(2L,presentation.list("users","","CUSTOMER","",null,null,0).get("total"));assertEquals(2L,presentation.list("users","","STAFF","",null,null,0).get("total"));assertEquals(1L,presentation.list("users","","ADMIN","",null,null,0).get("total"));
-        assertEquals(0L,presentation.list("seats","","","",cinema,null,0).get("total"));
+        assertEquals(0L,presentation.list("seats","","","false",cinema,null,0).get("total"));assertEquals(5L,presentation.list("seats","","","",cinema,null,0).get("total"));
     }
     @Test void scheduleFiltersBeforePagingAndUsesStoredMidnightEnd(){
         Long movie=db.get(Showtime.class,show).movieId;
@@ -598,7 +601,7 @@ class BookingIntegrationTest {
         HttpClient c=client();login(c,"admin@example.test");var redirect=get(c,"/admin/manage/rooms");assertEquals(302,redirect.statusCode());assertTrue(redirect.headers().firstValue("location").orElseThrow().contains("cinemaId="+db.get(User.class,otherStaff).cinemaId));
         assertEquals(200,get(c,"/admin/manage/rooms?cinemaId="+cinema).statusCode());var remembered=get(c,"/admin/manage/prices");assertTrue(remembered.headers().firstValue("location").orElseThrow().contains("cinemaId="+cinema));
         assertEquals(302,get(c,"/admin/schedule?cinemaId="+cinema+"&movieId=99999&page=2").statusCode());assertEquals(302,get(c,"/admin/manage/seats?cinemaId="+cinema+"&roomId=99999").statusCode());
-        var seats=get(c,"/admin/manage/seats?cinemaId="+cinema);assertEquals(200,seats.statusCode(),seats.body());assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(seats.body()).contains("Chọn phòng trong rạp"),"Room-selection guidance");assertTrue(seats.body().contains("0 kết quả"),seats.body());
+        var seats=get(c,"/admin/manage/seats?cinemaId="+cinema);assertEquals(200,seats.statusCode(),seats.body());assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(seats.body()).contains("không có ghế nào đang bảo trì"),"Maintenance-first guidance");assertTrue(seats.body().contains("0 kết quả"),seats.body());
         String users=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/users").body());assertTrue(users.contains("account-tabs"),"Role tabs");assertTrue(users.contains("Khách Một"),"Customer name");assertFalse(users.contains("staff@example.test"),"Default tab must be Customer");var staffTab=get(c,"/admin/manage/users?state=STAFF");assertEquals(200,staffTab.statusCode(),staffTab.body());assertTrue(staffTab.body().contains("staff@example.test"),staffTab.body());
         String business=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/vouchers").body());assertTrue(business.contains("hub-tabs"),"Business tabs");assertTrue(business.contains("href=\"/admin/manage/prices\""),"Price tab link");assertTrue(business.contains("+ Thêm voucher"),"Verb add button");assertEquals(1,Pattern.compile("class=\"nav-group\"").matcher(business).results().count(),"Only Lịch chiếu is a sidebar group");var group=Pattern.compile("<details[^>]*nav-group[^>]*>").matcher(business);assertTrue(group.find()&&group.group().contains("data-nav-id=\"schedule\"")&&!group.group().matches(".*\\sopen[\\s>=].*"),"Lịch chiếu group is closed on other areas");assertTrue(users.contains("Nhật ký hoạt động")&&users.contains("hub-tabs"),"System tabs");
         Long administrator=db.first(User.class,"where e.role='ADMIN'").orElseThrow().id;
@@ -629,6 +632,21 @@ class BookingIntegrationTest {
         assertEquals(403,wizardPost(c,"/admin/manage/genres/save","name=x&active=true").statusCode(),"CSRF is still required");
         HttpClient customer=client();login(customer,"one@example.test");assertEquals(403,get(customer,"/admin/manage/genres/dialog").statusCode());
     }
+    @Test void offerAndArticleImagesArePortraitPostersOnHome()throws Exception{
+        HttpClient c=client();login(c,"admin@example.test");String token=csrf(get(c,"/admin/manage/contents/dialog").body());
+        assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/contents/dialog").body()).contains("ảnh dọc kiểu poster"),"Dialog explains the poster image");
+        Matcher wide=Pattern.compile("/media/[a-f0-9-]{36}\\.png").matcher(uploadImage(c,token,"image","image/png",MediaServiceTest.png(900,600)).body());assertTrue(wide.find());
+        Matcher tall=Pattern.compile("/media/[a-f0-9-]{36}\\.png").matcher(uploadImage(c,token,"image","image/png",MediaServiceTest.png(600,900)).body());assertTrue(tall.find());
+        var rejected=wizardPost(c,"/admin/manage/contents/save","kind=OFFER&title="+enc("Ưu đãi ngang")+"&slug=uu-dai-ngang&image="+enc(wide.group())+"&active=true&returnTo=%2Fadmin%2Fmanage%2Fcontents&_csrf="+enc(token));assertEquals(400,rejected.statusCode());assertTrue(rejected.body().contains("ảnh dọc kiểu poster"),rejected.body());
+        assertEquals(200,wizardPost(c,"/admin/manage/contents/save","kind=POLICY&title="+enc("Chính sách")+"&slug=chinh-sach&image="+enc(wide.group())+"&active=true&returnTo=%2Fadmin%2Fmanage%2Fcontents&_csrf="+enc(token)).statusCode(),"Other kinds keep landscape images");
+        var saved=wizardPost(c,"/admin/manage/contents/save","kind=OFFER&title="+enc("Ưu đãi poster")+"&slug=uu-dai-poster&image="+enc(tall.group())+"&summary="+enc("Mô tả dưới ảnh")+"&active=true&publishedAt=2026-11-01T10:00&returnTo=%2Fadmin%2Fmanage%2Fcontents&_csrf="+enc(token));assertEquals(200,saved.statusCode(),saved.body());
+        String home=org.springframework.web.util.HtmlUtils.htmlUnescape(get(client(),"/").body());assertTrue(home.contains("content-card has-image")&&home.contains(tall.group())&&home.contains("Mô tả dưới ảnh"),"Poster card with its text under the image");
+        assertTrue(get(client(),"/content/uu-dai-poster").body().contains("article-image is-poster"));
+        Content saved2=db.first(Content.class,"where e.slug=?1","uu-dai-poster").orElseThrow();assertNotNull(saved2.publishedAt);
+        String dialog=get(c,"/admin/manage/contents/dialog?id="+saved2.id).body();assertTrue(Pattern.compile("name=\"publishedAt\" value=\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}\"").matcher(dialog).find(),"Publish time prefilled in a form the browser accepts, so saving again keeps it");
+        String offersTab=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/contents?state=OFFER").body());assertTrue(offersTab.contains("Trang chủ · Ưu đãi cho bạn")&&offersTab.contains("Ưu đãi poster")&&offersTab.contains("content-tabs"));
+        String pagesTab=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/contents?state=PAGES").body());assertTrue(pagesTab.contains("Chân trang")&&!pagesTab.contains("Ưu đãi poster"),"Footer pages tab holds only footer pages");
+    }
     @Test void adminBannersDriveHomeHeroOrderScheduleAndInterval()throws Exception{
         String home=get(client(),"/").body();assertFalse(home.contains("id=\"hero-carousel\""),"No banner and no movie with a landscape image: no hero, quick booking stays");assertTrue(home.contains("id=\"quick-book\""));
         HttpClient c=client();login(c,"admin@example.test");String token=csrf(get(c,"/admin/banners").body());
@@ -644,7 +662,7 @@ class BookingIntegrationTest {
             Long movie=db.first(Movie.class,"where e.slug='phim-kiem-thu'").orElseThrow().id;
             assertEquals(302,post(c,"/admin/banners/save","kind=MOVIE&movieId="+movie+"&active=true&_csrf="+enc(token)).statusCode());
             Banner promo=db.first(Banner.class,"where e.kind='PROMO'").orElseThrow(),film=db.first(Banner.class,"where e.kind='MOVIE'").orElseThrow();assertEquals("Phim kiểm thử tiếng Việt",film.title);assertTrue(promo.sortOrder<film.sortOrder);
-            home=get(client(),"/").body();assertEquals(3,home.split("href=\"/offers\"",-1).length-1,"Menu link, 'Tất cả ưu đãi' and the promo slide link");assertTrue(home.contains("data-interval=\"6000\""),"Default rotation 6 s");assertEquals(1,home.split("class=\"hero-banner\"",-1).length-1,"A movie without a landscape image stays off the image-only hero");
+            home=get(client(),"/").body();assertEquals(3,home.split("href=\"/offers\"",-1).length-1,"Menu link, 'Tất cả ưu đãi' and the promo slide link");assertTrue(home.contains("data-interval=\"5000\""),"Default rotation 5 s");assertEquals(1,home.split("class=\"hero-banner\"",-1).length-1,"A movie without a landscape image stays off the image-only hero");
             assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/banners").body()).contains("Thiếu ảnh ngang"));
             assertEquals(302,post(c,"/admin/banners/save","id="+film.id+"&kind=MOVIE&movieId="+movie+"&image="+enc(small)+"&active=true&_csrf="+enc(token)).statusCode());
             home=get(client(),"/").body();assertTrue(home.contains("class=\"hero-banner\" src=\""+small+"\""));assertTrue(home.contains("is-framed"),"A smaller landscape banner is centred, not stretched");assertTrue(home.indexOf("src=\""+url+"\"")<home.indexOf("src=\""+small+"\""),"Promo is first");
@@ -795,7 +813,7 @@ class BookingIntegrationTest {
     @Test void roomFinishSavesOnlyTheRoomAndWorkspaceKeepsOptionalSetup()throws Exception{
         HttpClient c=client();login(c,"admin@example.test");String html=get(c,"/admin/manage/rooms/edit?cinemaId="+cinema).body(),token=csrf(html);assertTrue(html.contains("Lưu và kết thúc"));
         var saved=post(c,"/admin/manage/rooms/save","cinemaId="+cinema+"&name=Finish&format=2D&active=true&next=finish&_csrf="+URLEncoder.encode(token,java.nio.charset.StandardCharsets.UTF_8));assertEquals(302,saved.statusCode());assertTrue(saved.headers().firstValue("location").orElseThrow().contains("/admin/manage/rooms?cinemaId="+cinema));Room r=db.first(Room.class,"where e.name='Finish'").orElseThrow();assertEquals(0L,db.count(Seat.class,"where e.roomId=?1",r.id));assertEquals(0L,db.count(Showtime.class,"where e.roomId=?1",r.id));
-        String workspace=get(c,"/admin/setup/rooms/"+r.id+"?step=prices").body();assertTrue(workspace.contains("seat-workspace"));assertTrue(workspace.contains("workspace-price-form"));assertTrue(workspace.contains("data-tool=\"COUPLE\"")&&workspace.contains("template-dialog")&&workspace.contains("/js/seat-3d.js"));assertTrue(workspace.contains("Tình trạng bán vé")&&workspace.contains("step-next")&&workspace.contains("canvas-add-show"));assertFalse(workspace.contains("Xem theo suất"));assertTrue(workspace.contains("Thêm suất chiếu (tùy chọn)"));assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(workspace).contains("/admin/showtimes/new?cinemaId="+cinema+"&roomId="+r.id));assertFalse(workspace.contains("4. Tạo suất"));
+        String workspace=get(c,"/admin/setup/rooms/"+r.id+"?step=prices").body();assertTrue(workspace.contains("seat-workspace"));assertTrue(workspace.contains("price-board-grid")&&workspace.contains("price-copy"));assertFalse(workspace.contains("price-prev"));assertTrue(workspace.contains("data-tool=\"COUPLE\"")&&workspace.contains("template-dialog")&&workspace.contains("/js/seat-3d.js"));assertTrue(workspace.contains("Tình trạng bán vé")&&workspace.contains("step-next")&&workspace.contains("canvas-add-show"));assertFalse(workspace.contains("Xem theo suất"));assertTrue(workspace.contains("Thêm suất chiếu (tùy chọn)"));assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(workspace).contains("/admin/showtimes/new?cinemaId="+cinema+"&roomId="+r.id));assertFalse(workspace.contains("4. Tạo suất"));
     }
     @Test void inlinePriceHttpRoundTripScopeVersionAndSecurity()throws Exception{
         Long r=emptyRoom();HttpClient c=client();login(c,"admin@example.test");String token=csrf(get(c,"/admin/setup/rooms/"+r).body()),url="/api/admin/rooms/"+r+"/prices";
@@ -871,6 +889,38 @@ class BookingIntegrationTest {
         assertThrows(IllegalArgumentException.class,()->counter.hold(staff,show,List.of(seat3)),"Closed shift stops sales");
         var model=reports.create("day",LocalDate.of(2026,12,1),null).model();assertEquals(290000L,model.get("revenueValue"));assertEquals(db.cash(290000),model.get("counterRevenue"));
     }
+    /** 16/11/2026: Admin dashboard, Admin shift list, Staff counter/shift slip, Staff check-in and CSV must agree to the đồng, also when a sale is cancelled after Vietnam midnight. */
+    @SuppressWarnings("unchecked") @Test void adminAndStaffFiguresReconcileAcrossMidnightCancellation(){
+        clock.value.set(Instant.parse("2026-11-30T16:58:00Z"));// 23:58 on 30/11 in Vietnam
+        Shift shift=counter.open(staff,200000L);Order online=booking.hold(user1,show,List.of(seat3));paid(online);
+        Order kept=counterSale(seat1,null),voided=counterSale(seat2,null);long onlineTotal=db.get(Order.class,online.id).total,keptTotal=db.get(Order.class,kept.id).total,voidTotal=db.get(Order.class,voided.id).total;
+        assertEquals(db.first(Payment.class,"where e.orderId=?1",kept.id).orElseThrow().createdAt,db.get(Order.class,kept.id).paidAt,"Cash payment and order share one instant");
+        assertEquals(db.first(Payment.class,"where e.orderId=?1 and e.status='SUCCEEDED'",online.id).orElseThrow().updatedAt,db.get(Order.class,online.id).paidAt,"MoMo payment and order share one instant");
+        clock.advance(180);counter.cancel(staff,voided.id,"Khách đổi ý sau nửa đêm");clock.advance(1);// 00:01 on 01/12
+        var night=reports.create("day",LocalDate.of(2026,11,30),null).model();var flowNight=(Map<String,Object>)night.get("cashflow");
+        assertEquals(onlineTotal+keptTotal+voidTotal,night.get("revenueValue"),"A closed day keeps the sale it took");assertEquals(true,flowNight.get("matched"));assertEquals(night.get("revenueValue"),flowNight.get("netValue"));assertEquals(3L,night.get("ticketCount"));
+        var day=reports.create("day",LocalDate.of(2026,12,1),cinema).model();var flowDay=(Map<String,Object>)day.get("cashflow");
+        assertEquals(-voidTotal,day.get("revenueValue"),"The refund belongs to the day it was paid back");assertEquals(true,flowDay.get("matched"));assertEquals(-voidTotal,flowDay.get("netValue"));assertEquals(-1,day.get("orderCount"));assertEquals(-1L,day.get("ticketCount"));assertEquals(1,day.get("cancelledOrders"));
+        var week=reports.create("week",LocalDate.of(2026,12,1),null);var flowWeek=(Map<String,Object>)week.model().get("cashflow");
+        assertEquals(onlineTotal+keptTotal,week.model().get("revenueValue"));assertEquals(true,flowWeek.get("matched"));assertEquals(db.cash(keptTotal),week.model().get("counterRevenue"));assertEquals(db.cash(keptTotal),flowWeek.get("cashNet"));
+        long chart=((List<Map<String,Object>>)week.model().get("chart")).stream().mapToLong(p->((Number)p.get("value")).longValue()).sum(),movies=((List<Map<String,Object>>)week.model().get("topMovies")).stream().mapToLong(p->((Number)p.get("value")).longValue()).sum();
+        assertEquals(onlineTotal+keptTotal,chart);assertEquals(onlineTotal+keptTotal,movies);
+        List<String> csv=new String(week.csv(),java.nio.charset.StandardCharsets.UTF_8).lines().skip(1).toList();assertEquals(4,csv.size(),"3 sales + 1 cancellation");
+        assertEquals(onlineTotal+keptTotal,csv.stream().mapToLong(line->{String[] cells=line.split("\",\"");return Long.parseLong(cells[cells.length-2]);}).sum(),"CSV revenue column sums to the dashboard");
+        // Shift: Staff bar/slip, Admin list and dashboard use one formula.
+        long expected=200000+keptTotal;var f=counter.figures(db.get(Shift.class,shift.id));assertEquals(keptTotal,f.cashIn());assertEquals(voidTotal,f.refunded());assertEquals(expected,f.expected());assertEquals(1,f.orders());assertEquals(1,f.cancelled());assertEquals(1,f.tickets());
+        var staffShift=(Map<String,Object>)counterReads.page(staff,null).get("shift");assertEquals(db.cash(expected),staffShift.get("expected"));assertEquals(db.cash(keptTotal),staffShift.get("cashIn"));assertEquals(1L,staffShift.get("orders"));assertEquals(1L,staffShift.get("tickets"));
+        var adminRow=rows(adminReads.shifts(null,null,"",0)).getFirst();assertEquals(staffShift.get("expected"),adminRow.get("expected"));assertEquals(staffShift.get("cashIn"),adminRow.get("cashIn"));assertEquals(1L,adminRow.get("orders"));assertEquals(1L,adminRow.get("cancelled"));
+        assertEquals(db.cash(expected),operationReads.page("shifts",null,"").get("totalAmount"));assertEquals(db.cash(expected),((Map<String,Object>)night.get("shifts")).get("expected"));
+        counter.close(staff,expected-10000,"Thiếu 10.000");var closed=(Map<String,Object>)reports.create("day",LocalDate.of(2026,11,30),null).model().get("shifts");
+        assertEquals(-10000L,closed.get("differenceValue"));assertEquals(1L,closed.get("mismatched"));assertEquals(0L,closed.get("broken"));assertEquals(true,rows(adminReads.shifts(null,null,"CLOSED",0)).getFirst().get("mismatch"));assertEquals(true,rows(adminReads.shifts(null,null,"CLOSED",0)).getFirst().get("intact"));
+        // Check-in: dashboard admission and occupancy equal the Staff check-in summary.
+        clock.value.set(db.get(Showtime.class,show).startsAt.minusSeconds(1800));checkin.checkIn(staff,db.first(Ticket.class,"where e.orderId=?1",kept.id).orElseThrow().id,show);
+        var summary=(Map<String,Object>)staffReads.tickets(staff,show,"","",0).get("summary");var report=reports.create("day",LocalDate.of(2026,12,1),cinema).model();var admission=(Map<String,Object>)report.get("admission");
+        assertEquals(summary.get("total"),admission.get("issued"));assertEquals(summary.get("used"),admission.get("used"));assertEquals(summary.get("rate"),admission.get("rate"));assertEquals(1L,admission.get("voided"));assertEquals(1L,admission.get("waiting"));
+        assertTrue(report.get("occupancy").toString().contains("1 / 2 (50.0%)"),report.get("occupancy").toString());
+        clock.value.set(db.get(Showtime.class,show).startsAt.plusSeconds(1801));assertEquals(1L,((Map<String,Object>)reports.create("day",LocalDate.of(2026,12,1),cinema).model().get("admission")).get("noShow"),"Valid ticket after the window closed");
+    }
     @Test void counterAndOnlineRaceForOneSeatHasOneWinnerAndNewHoldReplacesOld()throws Exception{
         counter.open(staff,0L);var results=race(()->counter.hold(staff,show,List.of(seat1)),()->booking.hold(user1,show,List.of(seat1)));assertEquals(1,results.stream().filter(Boolean::booleanValue).count());
         assertEquals(1,db.count(Inventory.class,"where e.seatId=?1 and e.status='HELD'",seat1));
@@ -931,5 +981,214 @@ class BookingIntegrationTest {
         String detail=org.springframework.web.util.HtmlUtils.htmlUnescape(get(administrator,"/admin/orders/"+id).body());assertTrue(detail.contains("Khách vãng lai"));assertTrue(detail.contains("Bán tại quầy"));
         assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(get(administrator,"/admin/shifts").body()).contains("285.000"));
         var csv=get(administrator,"/admin/transactions.csv");assertEquals(200,csv.statusCode());assertTrue(csv.body().contains("Quầy"));
+    }
+    // 16/11/2026: price grid edits run as one transaction each and keep the day covered while an OPEN showtime needs prices.
+    @Test void priceGridSplitsMovesMergesAndCopiesWithoutLeavingAGap(){
+        Long actor=accounts.register("grid@example.test","Quản trị lưới","CinePrimeTest2026!").id;
+        java.util.function.Supplier<List<Price>> weekday=()->db.list(Price.class,"where e.cinemaId=?1 and e.seatType='STANDARD' and e.dayType='WEEKDAY' order by e.fromMinute",cinema);
+        Price whole=weekday.get().getFirst();roomPrices.split(actor,room,whole.id,Map.of("priceVersion",vn.cineprime.admin.RoomPrices.version(whole),"at","17:00"));
+        var parts=weekday.get();assertEquals(2,parts.size());assertEquals(1020,parts.get(0).toMinute);assertEquals(1020,parts.get(1).fromMinute);assertEquals(1440,parts.get(1).toMinute);
+        Price first=parts.get(0);roomPrices.boundary(actor,room,first.id,Map.of("priceVersion",vn.cineprime.admin.RoomPrices.version(first),"at","18:00"));parts=weekday.get();assertEquals(1080,parts.get(0).toMinute);assertEquals(1080,parts.get(1).fromMinute);
+        Long stale=parts.get(0).id;assertThrows(org.springframework.dao.OptimisticLockingFailureException.class,()->roomPrices.boundary(actor,room,stale,Map.of("priceVersion","stale","at","10:00")));
+        Price late=parts.get(1);roomPrices.remove(actor,room,late.id,Map.of("priceVersion",vn.cineprime.admin.RoomPrices.version(late)));parts=weekday.get();assertEquals(1,parts.size());assertEquals(0,parts.getFirst().fromMinute);assertEquals(1440,parts.getFirst().toMinute);
+        Price only=parts.getFirst();assertThrows(IllegalArgumentException.class,()->roomPrices.remove(actor,room,only.id,Map.of("priceVersion",vn.cineprime.admin.RoomPrices.version(only))));
+        roomPrices.copyWeekdays(actor,room);assertEquals(2,db.count(Price.class,"where e.cinemaId=?1 and e.dayType='WEEKEND'",cinema));
+        assertEquals(85000L,booking.price(db.get(Showtime.class,show),db.get(Seat.class,seat1)));
+    }
+    // 16/11/2026: inserting or deleting rows/columns swaps the names and places of saved seats in one layout save.
+    @Test void savedSeatsCanSwapNamesAndPositionsInOneLayoutSave(){
+        Long actor=accounts.register("layout@example.test","Quản trị sơ đồ","CinePrimeTest2026!").id;Long[] ids=new Long[3];
+        Long spare=tx.execute(s->{Room r=new Room();r.cinemaId=cinema;r.name="Phòng trống";db.save(r);for(int i=1;i<=3;i++){Seat seat=new Seat();seat.roomId=r.id;seat.rowLabel="A";seat.label="A"+i;seat.position=i;db.save(seat);ids[i-1]=seat.id;}return r.id;});
+        setup.change(actor,spare,List.of(new vn.cineprime.admin.RoomSetup.SeatInput(ids[0],"A2","A",2,"STANDARD","",true),new vn.cineprime.admin.RoomSetup.SeatInput(ids[1],"A1","A",1,"STANDARD","",true),new vn.cineprime.admin.RoomSetup.SeatInput(ids[2],"B1","B",1,"STANDARD","",true)),List.of());
+        assertEquals("A2",db.get(Seat.class,ids[0]).label);assertEquals(1,db.get(Seat.class,ids[1]).position);assertEquals("B",db.get(Seat.class,ids[2]).rowLabel);
+    }
+
+    // ---- Membership tiers (giai đoạn 1, 16/11/2026) ----
+    @Autowired vn.cineprime.member.TierService tierService;@Autowired vn.cineprime.member.MemberReads memberReads;
+    /** A PAID order of the customer at a given instant, standing for earlier spend. */
+    void spent(Long user,String paidAt,long total){tx.executeWithoutResult(s->{Order o=new Order();o.code="SPEND-"+UUID.randomUUID();o.userId=user;o.showtimeId=show;o.status="PAID";o.paidAt=Instant.parse(paidAt);o.createdAt=o.paidAt;o.expiresAt=o.paidAt.plusSeconds(300);o.subtotal=total;o.total=total;o.movieTitle="Phim cũ";o.cinemaName="Rạp kiểm thử";o.roomName="Phòng 1";o.showStartsAt=o.paidAt;db.save(o);});}
+    Map<String,String> tierForm(){Map<String,String> v=new HashMap<>();for(Tier t:tierService.tiers()){v.put("name_"+t.code,t.name);v.put("minSpend_"+t.code,Long.toString(t.minSpend));v.put("ticketPct_"+t.code,Integer.toString(t.ticketPct));v.put("comboPct_"+t.code,Integer.toString(t.comboPct));v.put("benefits_"+t.code,t.benefits);v.put("birthdayVoucherId_"+t.code,Objects.toString(t.birthdayVoucherId,""));v.put("birthdayVouchers_"+t.code,Integer.toString(t.birthdayVouchers));v.put("yearlyVoucherId_"+t.code,Objects.toString(t.yearlyVoucherId,""));v.put("yearlyVouchers_"+t.code,Integer.toString(t.yearlyVouchers));v.put("nextVoucherId_"+t.code,Objects.toString(t.nextVoucherId,""));v.put("birthdayGiftId_"+t.code,Objects.toString(t.birthdayGiftId,""));v.put("earlyAccessHours_"+t.code,Integer.toString(t.earlyAccessHours));}return v;}
+    @Test void tierPriceIsSnapshottedVoucherAppliesOnRemainderAndPaymentKeepsInvariants(){
+        spent(user1,"2025-06-01T03:00:00Z",1_200_000);Long product=combo();
+        Order o=booking.hold(user1,show,List.of(seat1));
+        assertEquals("GOLD",db.get(User.class,user1).tierCode,"Last year's spend reaches Vàng at the first review");
+        assertEquals("GOLD",o.tierCode);assertEquals(4250,o.tierDiscount);assertEquals(80750,o.total);assertEquals(4250,db.list(OrderSeat.class,"where e.orderId=?1",o.id).getFirst().discount);
+        booking.updateCart(user1,o.id,Map.of(product,2),"LAST");Order cart=db.get(Order.class,o.id);
+        // subtotal 85.000 + 120.000; tier 4.250 + 2×3.000; voucher 10% of the remaining 194.750 = 19.475
+        assertEquals(205000,cart.subtotal);assertEquals(10250,cart.tierDiscount);assertEquals(29725,cart.discount);assertEquals(175275,cart.total);
+        Map<String,String> rules=tierForm();rules.put("ticketPct_GOLD","20");rules.put("comboPct_GOLD","20");tierService.configure(5L,rules);
+        booking.updateCart(user1,o.id,Map.of(product,2),"LAST");assertEquals(175275,db.get(Order.class,o.id).total,"A held order keeps the percentages snapshotted at hold");
+        paid(db.get(Order.class,o.id));Order done=db.get(Order.class,o.id);assertEquals("PAID",done.status);assertEquals(done.subtotal-done.discount,done.total);
+        assertEquals(175,db.list(Point.class,"where e.orderId=?1",o.id).getFirst().points,"Points use the amount actually paid");
+        assertEquals(1,db.count(TierChange.class,"where e.userId=?1",user1));assertEquals(1,db.count(Notification.class,"where e.userId=?1 and e.subject like ?2",user1,"%Vàng%"));
+        Order next=booking.hold(user2,show,List.of(seat2));assertEquals("SILVER",next.tierCode);assertEquals(0,next.tierDiscount);assertEquals(85000,next.total);
+    }
+    @Test void tierRisesAtOnceAndFallsOnlyAtTheYearlyReview(){
+        spent(user1,"2026-11-20T03:00:00Z",5_000_000);
+        assertEquals("PLATINUM",tierService.effective(db.get(User.class,user1)).code);assertTrue(tierService.review(user1));assertEquals("PLATINUM",db.get(User.class,user1).tierCode);
+        tx.executeWithoutResult(s->db.list(Order.class,"where e.userId=?1",user1).forEach(o->o.status="CANCELLED"));
+        assertFalse(tierService.review(user1),"A cancelled sale lowers spend but not the tier within the year");assertEquals("PLATINUM",db.get(User.class,user1).tierCode);
+        clock.value.set(Instant.parse("2026-12-31T17:00:00Z"));// 00:00 on 1/1/2027 in Asia/Ho_Chi_Minh
+        assertTrue(tierService.review(user1));assertEquals("SILVER",db.get(User.class,user1).tierCode);
+        assertEquals("ANNUAL_REVIEW",db.list(TierChange.class,"where e.userId=?1 order by e.id desc",user1).getFirst().reason);
+        assertThrows(IllegalArgumentException.class,()->tierService.assign(5L,user1,"GOLD","  "),"A reason is required");
+        assertThrows(IllegalArgumentException.class,()->tierService.assign(5L,staff,"GOLD","thử"),"Only customers have tiers");
+        tierService.assign(5L,user1,"GOLD","Bồi hoàn khiếu nại");assertEquals("GOLD",db.get(User.class,user1).tierCode);
+        assertFalse(tierService.review(user1),"An Admin tier holds until the next yearly review");assertEquals("GOLD",db.get(User.class,user1).tierCode);
+        spent(user1,"2027-01-02T03:00:00Z",10_000_000);assertTrue(tierService.review(user1));assertEquals("DIAMOND",db.get(User.class,user1).tierCode,"Spend can still lift an Admin tier");
+        var standing=memberReads.standing(db.get(User.class,user1));assertEquals("31/12/2028",standing.get("keepUntil"));assertEquals("VIP",((Map<?,?>)standing.get("next")).get("code"));
+    }
+    @Test void counterMemberPriceIsAppliedAtPaymentAndMustMatchThePreview(){
+        spent(user1,"2025-03-01T03:00:00Z",20_000_000);counter.open(staff,0L);
+        Order o=counter.hold(staff,show,List.of(seat1));assertEquals(85000,o.total);
+        var quote=counterReads.quote(staff,o.id,user1);assertEquals("VIP",quote.get("tierCode"));assertEquals(68000L,quote.get("total"));
+        assertThrows(IllegalArgumentException.class,()->counter.pay(staff,o.id,85000L,user1,"member-key-1",85000L),"A total the cashier did not see is refused");
+        Order still=db.get(Order.class,o.id);assertEquals("PENDING_PAYMENT",still.status);assertEquals(85000,still.total);assertNull(still.tierCode);
+        counter.pay(staff,o.id,70000L,user1,"member-key-2",68000L);Order paid=db.get(Order.class,o.id);
+        assertEquals("PAID",paid.status);assertEquals("VIP",paid.tierCode);assertEquals(17000,paid.tierDiscount);assertEquals(68000,paid.total);assertEquals(user1,paid.userId);
+        assertEquals(68000,db.first(Payment.class,"where e.orderId=?1",o.id).orElseThrow().amount);assertEquals(68,db.list(Point.class,"where e.orderId=?1",o.id).getFirst().points);
+        assertEquals(paid.id,counter.pay(staff,o.id,70000L,user1,"member-key-2",68000L).id,"Retrying the same request returns the sale");
+        Order walkIn=counter.hold(staff,show,List.of(seat2));counter.pay(staff,walkIn.id,85000L,null,"walk-in-key-1",85000L);assertEquals(85000,db.get(Order.class,walkIn.id).total);assertNull(db.get(Order.class,walkIn.id).tierCode);
+    }
+    @Test void tierRulesRejectBrokenLaddersAndKeepTheOldOnes(){
+        Map<String,String> rules=tierForm();rules.put("minSpend_PLATINUM","900000");
+        assertThrows(IllegalArgumentException.class,()->tierService.configure(5L,rules));assertEquals(5_000_000,tierService.tier("PLATINUM").minSpend);
+        Map<String,String> start=tierForm();start.put("minSpend_SILVER","1000");assertThrows(IllegalArgumentException.class,()->tierService.configure(5L,start));
+        Map<String,String> pct=tierForm();pct.put("ticketPct_VIP","51");assertThrows(IllegalArgumentException.class,()->tierService.configure(5L,pct));assertEquals(20,tierService.tier("VIP").ticketPct);
+        Map<String,String> ok=tierForm();ok.put("minSpend_GOLD","800000");ok.put("name_GOLD","Vàng Plus");tierService.configure(5L,ok);assertEquals(800000,tierService.tier("GOLD").minSpend);assertEquals("Vàng Plus",tierService.tier("GOLD").name);
+    }
+    @Test void memberScreensRenderForAdminAndStayClosedToCustomers()throws Exception{
+        spent(user1,"2026-02-01T03:00:00Z",1_500_000);tierService.review(user1);
+        HttpClient admin=client();login(admin,"admin@example.test");
+        var list=get(admin,"/admin/members?tier=GOLD");assertEquals(200,list.statusCode());String listHtml=org.springframework.web.util.HtmlUtils.htmlUnescape(list.body());assertTrue(listHtml.contains("Khách Một"));assertFalse(listHtml.contains("Khách Hai"));
+        String history=org.springframework.web.util.HtmlUtils.htmlUnescape(get(admin,"/admin/members/"+user1+"?tab=history").body());assertTrue(history.contains("Xét hạng định kỳ"),history.substring(0,Math.min(400,history.length())));String detail=org.springframework.web.util.HtmlUtils.htmlUnescape(get(admin,"/admin/members/"+user1).body());assertTrue(detail.contains("Ví voucher"),detail.substring(0,Math.min(400,detail.length())));assertTrue(detail.contains("Còn 3.500.000 đ để lên Bạch Kim"),detail);
+        var rules=get(admin,"/admin/tiers");assertEquals(200,rules.statusCode());String token=csrf(rules.body());assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(rules.body()).contains("Kim Cương"));
+        Map<String,String> form=tierForm();form.put("_csrf",token);form.put("comboPct_GOLD","7");assertEquals(302,post(admin,"/admin/tiers",formBody(form)).statusCode());assertEquals(7,tierService.tier("GOLD").comboPct);
+        assertEquals(302,post(admin,"/admin/members/"+user1+"/tier",formBody(Map.of("_csrf",token,"code","VIP","note","Khách mời sự kiện"))).statusCode());assertEquals("VIP",db.get(User.class,user1).tierCode);
+        HttpClient customer=client();login(customer,"one@example.test");
+        String account=org.springframework.web.util.HtmlUtils.htmlUnescape(get(customer,"/account").body());assertTrue(account.contains("Hạng thành viên"));assertTrue(account.contains("Hạng VIP"),account);
+        assertNotEquals(200,get(customer,"/admin/tiers").statusCode());assertNotEquals(200,get(customer,"/admin/members/"+user1).statusCode());
+    }
+
+    // ---- Member benefits: wallet, points, birthday, merch, gifts, member showtimes (giai đoạn 2–4, 16/11/2026) ----
+    @Autowired vn.cineprime.member.WalletService walletService;
+    Long template(String code,String scope,String kind,long value,long maximum,int pointsCost){return tx.execute(s->{Voucher v=new Voucher();v.code=code;v.description="Mẫu "+code;v.audience="PERSONAL";v.scope=scope;v.kind=kind;v.value=value;v.maximum=maximum;v.pointsCost=pointsCost;v.quota=1000;v.perUser=1;v.validDays=30;v.startsAt=clock.instant().minusSeconds(60);v.endsAt=clock.instant().plusSeconds(86400*365L);db.save(v);return v.id;});}
+    Long product(String name,String kind,long price,Integer stock,Long upgradeTo){return tx.execute(s->{Product p=new Product();p.name=name;p.kind=kind;p.price=price;p.stock=stock;p.upgradeToId=upgradeTo;db.save(p);return p.id;});}
+    void tierBenefit(String code,java.util.function.Consumer<Tier> change){tx.executeWithoutResult(s->change.accept(db.first(Tier.class,"where e.code=?1",code).orElseThrow()));}
+    @Test void walletVoucherIsHeldWithTheOrderFreedOnExpiryAndUsedOncePaid(){
+        Long v=template("TEST-VI","ORDER","FIXED",20000,0,0);
+        UserVoucher uv=walletService.give(5L,user1,v,"give-key-0001");assertEquals(uv.id,walletService.give(5L,user1,v,"give-key-0001").id,"Same request key, same copy");
+        assertThrows(IllegalArgumentException.class,()->{Order other=booking.hold(user2,show,List.of(seat2));booking.updateCart(user2,other.id,Map.of(),uv.code);},"Another customer cannot use the code");
+        Order o=booking.hold(user1,show,List.of(seat1));
+        assertThrows(IllegalArgumentException.class,()->booking.updateCart(user1,o.id,Map.of(),"TEST-VI"),"A wallet template is never a typed public code");
+        booking.updateCart(user1,o.id,Map.of(),uv.code.toLowerCase(Locale.ROOT));Order cart=db.get(Order.class,o.id);
+        assertEquals(20000,cart.discount);assertEquals(65000,cart.total);assertEquals(uv.id,cart.userVoucherId);assertEquals(o.id,db.get(UserVoucher.class,uv.id).orderId);
+        clock.advance(301);booking.expire(o.id);assertNull(db.get(UserVoucher.class,uv.id).orderId,"Expiry gives the copy back to the wallet");
+        Order again=booking.hold(user1,show,List.of(seat1));booking.updateCart(user1,again.id,Map.of(),uv.code);paid(db.get(Order.class,again.id));
+        assertEquals("USED",db.get(UserVoucher.class,uv.id).status);assertEquals(65000,db.get(Order.class,again.id).total);
+        Order third=booking.hold(user1,show,List.of(seat3));assertEquals("Voucher đã được dùng.",assertThrows(IllegalArgumentException.class,()->booking.updateCart(user1,third.id,Map.of(),uv.code)).getMessage());
+    }
+    @Test void pointsRedeemOnceUnderRaceAndAdjustNeverGoesNegative()throws Exception{
+        Long v=template("DOI-TEST","ORDER","FIXED",20000,0,200);
+        walletService.adjust(5L,user1,300,"Tặng điểm khai trương","adjust-key-01");walletService.adjust(5L,user1,300,"Tặng điểm khai trương","adjust-key-01");assertEquals(300,walletService.balance(user1),"Retried adjustment counts once");
+        assertEquals(List.of(true,false),race(()->walletService.redeem(user1,v,"redeem-key-a"),()->walletService.redeem(user1,v,"redeem-key-b")).stream().sorted(Comparator.reverseOrder()).toList(),"Only one redemption fits 300 points");
+        assertEquals(100,walletService.balance(user1));assertEquals(1,db.count(UserVoucher.class,"where e.userId=?1 and e.source='REDEEM'",user1));
+        String key=db.list(UserVoucher.class,"where e.userId=?1",user1).getFirst().campaignKey.substring("redeem:".length());assertEquals(100,walletService.balance(user1));walletService.redeem(user1,v,key);assertEquals(100,walletService.balance(user1),"Retrying the winning key spends nothing more");
+        assertThrows(IllegalArgumentException.class,()->walletService.adjust(5L,user1,-200,"Trừ sai","adjust-key-02"),"Balance cannot go below zero");
+        assertThrows(IllegalArgumentException.class,()->walletService.adjust(5L,user1,-50,"  ","adjust-key-03"),"A reason is required");
+        walletService.adjust(5L,user1,-100,"Thu hồi điểm tặng nhầm","adjust-key-04");assertEquals(0,walletService.balance(user1));
+    }
+    @Test void birthdayAndYearlyVouchersIssueOnceAndNeedTheDateSavedBeforeTheMonth(){
+        Long gift=template("SN-TEST","ORDER","PERCENT",10,30000,0),yearly=template("NAM-TEST","FREE_TICKET","FIXED",1,120000,0);
+        tierBenefit("SILVER",t->{t.birthdayVoucherId=gift;t.birthdayVouchers=1;});tierBenefit("GOLD",t->{t.birthdayVoucherId=gift;t.birthdayVouchers=2;t.yearlyVoucherId=yearly;t.yearlyVouchers=2;});
+        walletService.birthDate(user1,LocalDate.of(1999,12,5),null);
+        assertThrows(IllegalArgumentException.class,()->walletService.birthDate(user1,LocalDate.of(1999,1,5),null),"The customer saves it once");
+        assertEquals(0,walletService.birthday(user1),"Saved during the birth month: no birthday voucher this year");
+        tx.executeWithoutResult(s->db.get(User.class,user1).birthDateSetAt=Instant.parse("2026-10-01T00:00:00Z"));
+        assertEquals(1,walletService.birthday(user1));assertEquals(0,walletService.birthday(user1),"Re-running the job issues nothing");
+        spent(user1,"2026-03-01T03:00:00Z",1_500_000);assertEquals(1,walletService.birthday(user1),"Moving up mid-month adds only the missing copy");
+        assertEquals(2,walletService.yearly(user1));assertEquals(0,walletService.yearly(user1));
+        assertEquals(2,db.count(UserVoucher.class,"where e.userId=?1 and e.source='BIRTHDAY'",user1));assertEquals(2,db.count(UserVoucher.class,"where e.userId=?1 and e.source='YEARLY'",user1));
+        assertEquals(Instant.parse("2026-12-31T17:00:00Z"),db.list(UserVoucher.class,"where e.userId=?1 and e.source='BIRTHDAY'",user1).getFirst().expiresAt,"Birthday copies last to the end of the birth month (Vietnam time)");
+        assertEquals(0,walletService.birthday(user2),"No birth date, nothing issued");
+        tx.executeWithoutResult(s->{User u=db.get(User.class,user2);u.birthDate=LocalDate.of(2000,1,9);u.birthDateSetAt=Instant.parse("2026-01-01T00:00:00Z");});assertEquals(0,walletService.birthday(user2),"Not the birth month");
+    }
+    @Test void freeTicketComboUpgradeAndScopedVouchersPriceOnTheRightLines(){
+        Long big=product("Combo lớn","COMBO",90000,null,null),small=product("Combo nhỏ","COMBO",60000,null,big);
+        UserVoucher free=walletService.give(5L,user1,template("VE-TEST","FREE_TICKET","FIXED",1,80000,0),"give-key-0002");
+        UserVoucher upgrade=walletService.give(5L,user1,template("NANG-TEST","COMBO_UPGRADE","FIXED",1,0,0),"give-key-0003");
+        UserVoucher combo=walletService.give(5L,user1,template("BAP-TEST","COMBO","FIXED",50000,0,0),"give-key-0004");
+        Order o=booking.hold(user1,show,List.of(seat1,seat2));
+        booking.updateCart(user1,o.id,Map.of(),free.code);assertEquals(80000,db.get(Order.class,o.id).discount,"One seat, capped at 80.000");
+        assertThrows(IllegalArgumentException.class,()->booking.updateCart(user1,o.id,Map.of(),combo.code),"A food voucher needs food in the cart");
+        booking.updateCart(user1,o.id,Map.of(big,2),upgrade.code);assertEquals(30000,db.get(Order.class,o.id).discount,"Upgrade: one large combo at the small combo's price");
+        booking.updateCart(user1,o.id,Map.of(small,1),combo.code);assertEquals(50000,db.get(Order.class,o.id).discount);assertEquals(170000+60000-50000,db.get(Order.class,o.id).total);
+        assertNull(db.get(UserVoucher.class,free.id).orderId,"Switching vouchers frees the previous copy");
+        Order couple=booking.hold(user2,show,List.of(pair1,pair2));UserVoucher other=walletService.give(5L,user2,db.get(UserVoucher.class,free.id).voucherId,"give-key-0005");
+        assertThrows(IllegalArgumentException.class,()->booking.updateCart(user2,couple.id,Map.of(),other.code),"Free ticket does not cover couple seats");
+    }
+    @Test void merchandiseStockIsHeldByTheCartAndTheLastItemSellsOnce()throws Exception{
+        spent(user1,"2026-02-01T03:00:00Z",1_200_000);Long cup=product("Cốc CinePrime thử","MERCH",89000,1,null);
+        Order a=booking.hold(user1,show,List.of(seat1)),b=booking.hold(user2,show,List.of(seat2));
+        assertEquals(List.of(true,false),race(()->{booking.updateCart(user1,a.id,Map.of(cup,1),null);return null;},()->{booking.updateCart(user2,b.id,Map.of(cup,1),null);return null;}).stream().sorted(Comparator.reverseOrder()).toList());
+        assertEquals(0,db.get(Product.class,cup).stock);
+        Order winner=db.count(OrderProduct.class,"where e.orderId=?1",a.id)==1?db.get(Order.class,a.id):db.get(Order.class,b.id);
+        if(winner.userId.equals(user1))assertEquals(0,db.first(OrderProduct.class,"where e.orderId=?1",a.id).orElseThrow().discount,"No member discount on merchandise");
+        booking.updateCart(winner.userId,winner.id,Map.of(cup,1),null);assertEquals(0,db.get(Product.class,cup).stock,"Re-saving the same cart keeps one item held");
+        clock.advance(301);booking.expire(winner.id);assertEquals(1,db.get(Product.class,cup).stock,"Expiry gives the item back");
+        counter.open(staff,0L);Order sale=counter.hold(staff,show,List.of(seat3));counter.combos(staff,sale.id,Map.of(cup,1));counter.pay(staff,sale.id,174000L,null,"merch-key-01");assertEquals(0,db.get(Product.class,cup).stock);
+        counter.cancel(staff,sale.id,"Khách đổi ý");assertEquals(1,db.get(Product.class,cup).stock,"A cancelled counter sale restocks");
+    }
+    @Test void giftsAreHandedOverOnceAtTheCounterAndTakeStock(){
+        Long shirt=product("Áo thử","MERCH",199000,1,null);
+        GiftGrant g=walletService.giveGift(5L,user1,shirt,"Khách thân thiết","gift-key-0001");assertEquals(g.id,walletService.giveGift(5L,user1,shirt,"Khách thân thiết","gift-key-0001").id);
+        assertThrows(IllegalArgumentException.class,()->walletService.giveGift(5L,user1,combo(),"x","gift-key-0002"),"Only merchandise is a gift");
+        assertEquals(1,counterReads.gifts(staff,user1).size());
+        walletService.handOver(staff,g.id);walletService.handOver(otherStaff,g.id);assertEquals(0,db.get(Product.class,shirt).stock,"Handing over twice takes one item");
+        GiftGrant done=db.get(GiftGrant.class,g.id);assertEquals("HANDED_OVER",done.status);assertEquals(staff,done.handedBy);assertEquals(cinema,done.cinemaId);assertEquals(0,counterReads.gifts(staff,user1).size());
+        GiftGrant second=walletService.giveGift(5L,user2,shirt,null,"gift-key-0003");assertThrows(IllegalArgumentException.class,()->walletService.handOver(staff,second.id),"No stock left");
+        assertThrows(IllegalArgumentException.class,()->walletService.handOver(user1,second.id),"Only staff hand gifts over");
+        tierBenefit("VIP",t->t.birthdayGiftId=shirt);spent(user2,"2026-01-05T03:00:00Z",25_000_000);tx.executeWithoutResult(s->{User u=db.get(User.class,user2);u.birthDate=LocalDate.of(1990,12,20);u.birthDateSetAt=Instant.parse("2026-05-01T00:00:00Z");});
+        walletService.birthday(user2);walletService.birthday(user2);assertEquals(1,db.count(GiftGrant.class,"where e.userId=?1 and e.reason='BIRTHDAY'",user2),"One birthday gift per year");
+    }
+    @Test void memberOnlyShowtimesAndEarlySalesAreEnforcedOnlineAndAtTheCounter(){
+        tierService.access(5L,show,"DIAMOND",null);
+        assertTrue(assertThrows(IllegalArgumentException.class,()->booking.hold(user2,show,List.of(seat1))).getMessage().contains("Kim Cương"));
+        spent(user1,"2026-04-01T03:00:00Z",10_000_000);Order vip=booking.hold(user1,show,List.of(seat1));booking.cancel(user1,vip.id);
+        counter.open(staff,0L);Order walk=counter.hold(staff,show,List.of(seat2));
+        assertThrows(IllegalArgumentException.class,()->counter.pay(staff,walk.id,85000L,null,"walk-key-001"),"Walk-in cannot buy a member-only show");
+        assertEquals("PENDING_PAYMENT",db.get(Order.class,walk.id).status);counter.pay(staff,walk.id,85000L,user1,"walk-key-002");assertEquals("PAID",db.get(Order.class,walk.id).status);
+        Instant opens=clock.instant().plusSeconds(1800);tierService.access(5L,show,"",opens);assertThrows(IllegalArgumentException.class,()->tierService.access(5L,show,"",clock.instant().plusSeconds(7200)),"Public sales start before the show");
+        assertThrows(IllegalArgumentException.class,()->booking.hold(user2,show,List.of(seat3)),"Before public sales only early tiers");
+        assertThrows(IllegalArgumentException.class,()->booking.hold(user1,show,List.of(seat3)),"Diamond without early hours waits too");
+        tierBenefit("DIAMOND",t->t.earlyAccessHours=24);Order early=booking.hold(user1,show,List.of(seat3));assertEquals("PENDING_PAYMENT",early.status);
+        clock.value.set(opens);booking.cancel(user1,early.id);assertDoesNotThrow(()->booking.hold(user2,show,List.of(seat3)));
+    }
+    @Test void nextPurchaseVoucherIsIssuedOncePerPaidOrderAndTakenBackOnCounterCancel(){
+        Long next=template("SAU-TEST","ORDER","PERCENT",5,20000,0);tierBenefit("SILVER",t->t.nextVoucherId=next);
+        Order o=booking.hold(user1,show,List.of(seat1));Payment p=payment(o);booking.paymentResult(p.externalOrderId,p.amount,"tx-next",0);booking.paymentResult(p.externalOrderId,p.amount,"tx-next",0);
+        assertEquals(1,db.count(UserVoucher.class,"where e.userId=?1 and e.source='NEXT'",user1));
+        counter.open(staff,0L);Order sale=counter.hold(staff,show,List.of(seat2));counter.pay(staff,sale.id,85000L,user2,"next-key-001");
+        UserVoucher copy=db.first(UserVoucher.class,"where e.userId=?1 and e.source='NEXT'",user2).orElseThrow();counter.cancel(staff,sale.id,"Bán nhầm suất");assertEquals("REVOKED",db.get(UserVoucher.class,copy.id).status);
+    }
+    @Test void memberBenefitScreensRenderAndCampaignsDoNotIssueTwice()throws Exception{
+        Long v=template("CAMP-TEST","ORDER","FIXED",10000,0,150);Long cup=product("Cốc chiến dịch","MERCH",89000,5,null);spent(user1,"2026-02-01T03:00:00Z",1_500_000);tierService.review(user1);
+        HttpClient admin=client();login(admin,"admin@example.test");
+        String offers=org.springframework.web.util.HtmlUtils.htmlUnescape(get(admin,"/admin/member-offers").body());assertTrue(offers.contains("CAMP-TEST"),offers.substring(0,Math.min(300,offers.length())));String token=csrf(offers);
+        Map<String,String> camp=Map.of("_csrf",token,"campaign","tet-2027","minTier","GOLD","voucherId",v.toString(),"count","2","productId",cup.toString(),"message","Chúc mừng năm mới");
+        assertEquals(302,post(admin,"/admin/member-offers/campaign",formBody(camp)).statusCode());assertEquals(302,post(admin,"/admin/member-offers/campaign",formBody(camp)).statusCode());
+        assertEquals(2,db.count(UserVoucher.class,"where e.userId=?1 and e.source='CAMPAIGN'",user1),"Gold customer: 2 copies, once");assertEquals(0,db.count(UserVoucher.class,"where e.userId=?1",user2),"Silver customer is below the campaign tier");
+        assertEquals(1,db.count(GiftGrant.class,"where e.userId=?1",user1));
+        assertEquals(200,get(admin,"/admin/member-shows?date=2026-12-01").statusCode());
+        assertEquals(302,post(admin,"/admin/member-shows/"+show,formBody(Map.of("_csrf",token,"minTier","VIP","publicSaleAt",""))).statusCode());assertEquals("VIP",db.get(Showtime.class,show).minTier);
+        assertEquals(302,post(admin,"/admin/member-shows/"+show,formBody(Map.of("_csrf",token,"minTier","","saleDate","2026-12-01","saleTime","17:30"))).statusCode());assertEquals(Instant.parse("2026-12-01T10:30:00Z"),db.get(Showtime.class,show).publicSaleAt,"Date + 24-hour HH:MM in Vietnam time");assertNull(db.get(Showtime.class,show).minTier);
+        assertEquals(302,post(admin,"/admin/member-shows/"+show,formBody(Map.of("_csrf",token,"minTier","","saleDate","2026-12-01","saleTime","5:30 PM"))).statusCode());assertEquals(Instant.parse("2026-12-01T10:30:00Z"),db.get(Showtime.class,show).publicSaleAt,"A 12-hour time is refused");
+        String detail=org.springframework.web.util.HtmlUtils.htmlUnescape(get(admin,"/admin/members/"+user1).body());assertTrue(detail.contains("Ví voucher")&&detail.contains("Cốc chiến dịch"));
+        assertEquals(302,post(admin,"/admin/members/"+user1+"/points",formBody(Map.of("_csrf",token,"delta","200","note","Bù điểm","requestKey","points-key-01"))).statusCode());assertEquals(Long.valueOf(200),Long.valueOf(walletService.balance(user1)));
+        var rules=get(admin,"/admin/tiers");assertEquals(200,rules.statusCode());Map<String,String> form=tierForm();form.put("_csrf",token);form.put("yearlyVoucherId_VIP",v.toString());form.put("yearlyVouchers_VIP","3");assertEquals(302,post(admin,"/admin/tiers",formBody(form)).statusCode());assertEquals(3,tierService.tier("VIP").yearlyVouchers);
+        HttpClient customer=client();login(customer,"one@example.test");String account=org.springframework.web.util.HtmlUtils.htmlUnescape(get(customer,"/account").body());
+        assertTrue(account.contains("Ví voucher")&&account.contains("150 điểm"),account.substring(0,Math.min(300,account.length())));String ct=csrf(account);
+        assertEquals(302,post(customer,"/account/redeem/"+v,formBody(Map.of("_csrf",ct,"requestKey","redeem-http-01"))).statusCode());assertEquals(50,walletService.balance(user1));
+        assertEquals(302,post(customer,"/account/birthdate",formBody(Map.of("_csrf",ct,"birthDate","1995-06-15"))).statusCode());assertEquals(LocalDate.of(1995,6,15),db.get(User.class,user1).birthDate);
     }
 }
