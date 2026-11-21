@@ -18,6 +18,25 @@ html(lang="vi")
     block head
   body
     a.skip(href="#main") Đi đến nội dung
+    if maintenance
+      //- 18/11/2026: before the window = notice (booking still works); during it only pages that stay open render here.
+      .maint-strip(class=maintenance.active ? 'is-active' : 'is-scheduled' role="status")
+        .container
+          svg.icon(viewBox="0 0 24 24" aria-hidden="true" focusable="false")
+            path(d="M12 3l9.5 17h-19zM12 10v4.5M12 17.5v.01")
+          if maintenance.scheduled
+            p
+              strong Bảo trì website từ #{maintenance.startShort}#{maintenance.hasEnd ? ' đến khoảng ' + maintenance.endShort : ''}
+              span  · Trong thời gian này chưa đặt vé trực tuyến được (còn #{maintenance.startsInText}).
+          else if viewer && viewer.role == 'ADMIN'
+            p
+              strong Website đang bảo trì.
+              span  Khách đang thấy trang bảo trì; bạn xem được vì là Quản trị.
+              a(href="/admin/maintenance") Quản lý bảo trì →
+          else
+            p
+              strong Website đang bảo trì.
+              span  Bạn vẫn xem được vé đã mua; đặt vé mới tạm dừng#{maintenance.hasEnd && !maintenance.overdue ? ' tới khoảng ' + maintenance.endShort : ''}.
     if siteNotices && siteNotices.size() > 0
       each n in siteNotices
         .notice-strip(data-notice=n.id)

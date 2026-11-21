@@ -141,12 +141,12 @@ block admin
                     a.action-btn(href='/admin/orders?q=' + row.email) Lịch sử
                   if key == 'vouchers'
                     a.action-btn(href='/admin/voucher-usage/' + row.id) Lượt dùng
-                  if key == 'movies' && !row.active
-                    form(action='/admin/manage/movies/' + row.id + '/restore' method="post")
+                  if (key == 'movies' || key == 'contents') && !row.active
+                    form(action='/admin/manage/' + key + '/' + row.id + '/restore' method="post")
                       +csrf()
                       input(type="hidden" name="returnTo" value=returnTo)
-                      button.action-btn(type="submit" data-confirm='Hiện lại phim “' + row.name + '” trên website?') Hiện lại
-                  if (key == 'movies' && (row.active || row.canDelete)) || (key != 'movies' && key != 'users' && row.canDisable)
+                      button.action-btn(type="submit" data-confirm=(key == 'movies' ? 'Hiện lại phim “' : 'Hiện lại nội dung “') + row.name + '” trên website?') Hiện lại
+                  if key == 'contents' || (key == 'movies' && (row.active || row.canDelete)) || (key != 'movies' && key != 'users' && row.canDisable)
                     details.row-menu
                       summary(aria-label='Thao tác khác cho ' + row.name title="Thao tác khác")
                         svg(viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false")
@@ -167,6 +167,16 @@ block admin
                               button.menu-item.danger(type="submit" role="menuitem" data-confirm='Xóa vĩnh viễn phim chưa sử dụng “' + row.name + '”? Thao tác xóa bản ghi và liên kết thể loại/đoàn phim, không thể hoàn tác từ website.') Xóa vĩnh viễn
                           else
                             p.menu-note Phim đã có lịch hoặc dữ liệu khách nên chỉ ẩn được, không xóa được.
+                        else if key == 'contents'
+                          if row.active
+                            form(action='/admin/manage/contents/' + row.id + '/disable' method="post")
+                              +csrf()
+                              input(type="hidden" name="returnTo" value=returnTo)
+                              button.menu-item(type="submit" role="menuitem" data-confirm='Ẩn “' + row.name + '” khỏi website? Bài vẫn được giữ để hiện lại sau.') Ẩn khỏi website
+                          form(action='/admin/manage/contents/' + row.id + '/delete' method="post")
+                            +csrf()
+                            input(type="hidden" name="returnTo" value=returnTo)
+                            button.menu-item.danger(type="submit" role="menuitem" data-confirm='Xóa vĩnh viễn “' + row.name + '”? Không thể hoàn tác từ website.') Xóa vĩnh viễn
                         else
                           form(action='/admin/manage/' + key + '/' + row.id + '/disable' method="post")
                             +csrf()

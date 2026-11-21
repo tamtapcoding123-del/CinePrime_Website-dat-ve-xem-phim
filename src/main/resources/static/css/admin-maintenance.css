@@ -1,0 +1,54 @@
+/* Admin → Hệ thống → Bảo trì website (18/11/2026). Desktop only (≥ 1366×768). Pearl × Vé: chamfered cards, flat form. */
+.mt-layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+.mt-form{display:grid;gap:16px;min-width:0}
+.mt-card,.mt-state,.mt-rules,.mt-preview{--cut:var(--cut-md);background-color:var(--surface);border:1px solid var(--line);clip-path:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut));background-origin:border-box;background-image:linear-gradient(135deg,var(--line) 0,var(--line) calc(var(--cut)*.70710678 + 1px),transparent calc(var(--cut)*.70710678 + 1.6px)),linear-gradient(-45deg,var(--line) 0,var(--line) calc(var(--cut)*.70710678 + 1px),transparent calc(var(--cut)*.70710678 + 1.6px))}
+.mt-card{padding:20px 24px 22px;display:grid;gap:14px}
+.mt-card-head h2{margin:0;font:700 17px/1.4 var(--font-display);color:var(--ink)}
+.mt-card-head p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.mt-field{display:grid;gap:6px;min-width:0}
+.mt-field label,.mt-choice legend{font-size:14px;font-weight:600;color:var(--ink-2)}
+.mt-field input,.mt-field textarea{width:100%;box-sizing:border-box;font:inherit;font-size:15px}
+.mt-field textarea{resize:vertical;min-height:96px;line-height:1.55}
+.mt-field small,.mt-hint{font-size:13px;color:var(--muted)}
+.mt-when{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+.mt-when[hidden]{display:none}
+.mt-when .mt-field{flex:0 1 220px}
+.mt-when .mt-field.mt-hour{flex:0 0 120px}
+.mt-when .mt-field input[type=email]{min-width:280px}
+.mt-clear{min-height:38px}
+.mt-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0;padding:0;border:0}
+.mt-choice.is-stack{grid-template-columns:1fr}
+.mt-choice legend{margin-bottom:8px;padding:0}
+.mt-option{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);background-color:var(--bg-elev);cursor:pointer}
+.mt-option:hover{border-color:var(--line-strong)}
+.mt-option:has(input:checked){border-color:var(--accent-line);background-color:var(--accent-tint)}
+.admin-compact .mt-option input[type=radio]{flex:none;width:18px;height:18px;min-width:0;min-height:0;margin:3px 0 0;padding:0;border:0;box-shadow:none;clip-path:none;background-image:none;accent-color:var(--accent)}
+.mt-option span{display:grid;gap:2px}
+.mt-option strong{font-size:15px;color:var(--ink);display:flex;align-items:center;gap:8px}
+.mt-option small{font-size:13.5px;color:var(--muted);line-height:1.45}
+.mt-tag{font-style:normal;font-size:12px;font-weight:700;padding:0 6px;border:1px solid var(--ok-line);background-color:var(--ok-bg);color:var(--ok-fg)}
+.mt-submit{display:flex;align-items:center;gap:12px;padding:4px 0 8px}
+.mt-submit .button.dark{background-color:var(--btn-dark);border-color:var(--btn-dark);color:var(--accent-on)}
+.mt-submit .button.dark:hover{background-color:var(--btn-dark-hover);border-color:var(--btn-dark-hover)}
+.mt-submit-note{font-size:13.5px;color:var(--muted)}
+.mt-side{position:sticky;top:16px;display:grid;gap:12px}
+.mt-state{padding:20px 22px;display:grid;gap:12px;border-top:4px solid var(--ok-bar)}
+.mt-state.is-active{border-top-color:var(--bad-bar)}
+.mt-state.is-scheduled{border-top-color:var(--warn-bar)}
+.mt-state-label{font-size:13px;font-weight:600;color:var(--muted)}
+.mt-state .status-badge{justify-self:start;font-size:15px;min-height:30px;padding:0 12px}
+.mt-facts{margin:0;display:grid;gap:8px}
+.mt-facts div{display:grid;grid-template-columns:120px 1fr;gap:8px;font-size:14px}
+.mt-facts dt{color:var(--muted)}
+.mt-facts dd{margin:0;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.mt-state-note{margin:0;font-size:14px;color:var(--ink-2)}
+.mt-off{width:100%}
+.mt-preview{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;color:var(--ink)}
+.mt-preview span{display:grid;gap:2px}
+.mt-preview strong{font-size:15px;color:var(--accent-ink)}
+.mt-preview small{font-size:13px;color:var(--muted)}
+.mt-preview svg{fill:none;stroke:var(--accent-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mt-preview:hover{background-color:var(--bg-elev)}
+.mt-rules{padding:16px 20px}
+.mt-rules h2{margin:0 0 8px;font:700 15px/1.4 var(--font-display);color:var(--ink)}
+.mt-rules ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:13.5px;color:var(--ink-2);line-height:1.5}

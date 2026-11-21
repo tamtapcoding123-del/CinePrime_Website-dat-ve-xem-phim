@@ -48,7 +48,7 @@ public class AdminController {
         entry("business","Kinh doanh","Quản lý","Bảng giá","/admin/manage/prices","Bắp nước & lưu niệm","/admin/manage/products","Voucher","/admin/manage/vouchers"),
         entry("members","Thành viên","Quản lý","Khách hàng","/admin/members","Hạng & quyền lợi","/admin/tiers","Ưu đãi & quà","/admin/member-offers","Suất hội viên","/admin/member-shows"),
         entry("content","Nội dung","Quản lý","Banner trang chủ","/admin/banners","Bài viết / Ưu đãi / Chính sách","/admin/manage/contents","Bình luận","/admin/manage/reviews"),
-        entry("system","Hệ thống","Quản lý","Người dùng","/admin/manage/users","Nhật ký hoạt động","/admin/audit"));
+        entry("system","Hệ thống","Quản lý","Người dùng","/admin/manage/users","Nhật ký hoạt động","/admin/audit","Bảo trì website","/admin/maintenance"));
     /** Areas whose screens open as sidebar sub-items (no tab strip, no page heading). */
     private static final Set<String> SIDEBAR_GROUPS=Set.of("schedule");
     private static final Set<String> CINEMA_SCOPED=Set.of("/admin/schedule","/admin/manage/showtimes","/admin/manage/rooms","/admin/manage/seats","/admin/manage/prices");
@@ -181,6 +181,11 @@ public class AdminController {
         try{String name=admin.movieAction(user.id(),id,action);flash.addFlashAttribute("notice",(action.equals("delete")?"Đã xóa phim chưa sử dụng: ":"Đã hiện lại phim: ")+name);}
         catch(IllegalArgumentException|org.springframework.dao.DataAccessException e){flash.addFlashAttribute("actionError",e instanceof IllegalArgumentException?e.getMessage():"Phim vừa có dữ liệu liên quan. Không thể xóa; hãy ẩn phim.");}
         return "redirect:"+safeReturn("movies",returnTo);
+    }
+    @PostMapping("/manage/contents/{id}/{action:restore|delete}") public String contentAction(@AuthenticationPrincipal SessionUser user,@PathVariable Long id,@PathVariable String action,@RequestParam(defaultValue="")String returnTo,org.springframework.web.servlet.mvc.support.RedirectAttributes flash){
+        try{String name=admin.contentAction(user.id(),id,action);flash.addFlashAttribute("notice",(action.equals("delete")?"Đã xóa nội dung: ":"Đã hiện lại nội dung: ")+name);}
+        catch(IllegalArgumentException|org.springframework.dao.DataAccessException e){flash.addFlashAttribute("actionError",e instanceof IllegalArgumentException?e.getMessage():"Nội dung vừa thay đổi. Vui lòng tải lại trang.");}
+        return "redirect:"+safeReturn("contents",returnTo);
     }
     @PostMapping("/layout") public String layout(@AuthenticationPrincipal SessionUser user,@RequestParam Long roomId,@RequestParam int rows,@RequestParam int columns){admin.generateSeats(user.id(),roomId,rows,columns);return "redirect:/admin/manage/seats?roomId="+roomId;}
     /** Inline upload used by every admin form's image/trailer field; the old standalone Upload page is gone. */

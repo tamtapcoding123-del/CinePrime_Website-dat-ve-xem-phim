@@ -381,7 +381,9 @@ class BookingIntegrationTest {
             // Tier rules are migration data, not truncated: put the shipped ladder back in case a test changed it.
             String[][] ladder={{"SILVER","Bạc","0","0"},{"GOLD","Vàng","1000000","5"},{"PLATINUM","Bạch Kim","5000000","10"},{"DIAMOND","Kim Cương","10000000","15"},{"VIP","VIP","20000000","20"}};
             for(String[] t:ladder)statement.execute("UPDATE membership_tiers SET name='"+t[1]+"',min_spend="+t[2]+",ticket_pct="+t[3]+",combo_pct="+t[3]+",birthday_voucher_id=NULL,birthday_vouchers=0,yearly_voucher_id=NULL,yearly_vouchers=0,next_voucher_id=NULL,birthday_gift_id=NULL,early_access_hours=0 WHERE code='"+t[0]+"'");
+            statement.execute("UPDATE maintenance SET enabled=FALSE,starts_at=NULL,expected_end_at=NULL,staff_mode='CHECKIN',contact_phone=NULL,contact_email=NULL,updated_at=NULL,updated_by=NULL");
         }
+        maintenance.forget();
         tx.executeWithoutResult(status->{
             Cinema c=new Cinema();c.name="Rạp kiểm thử";c.city="TP. Hồ Chí Minh";db.save(c);cinema=c.id;
             Cinema other=new Cinema();other.name="Khác rạp";other.city="Hà Nội";db.save(other);
@@ -646,6 +648,11 @@ class BookingIntegrationTest {
         String dialog=get(c,"/admin/manage/contents/dialog?id="+saved2.id).body();assertTrue(Pattern.compile("name=\"publishedAt\" value=\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}\"").matcher(dialog).find(),"Publish time prefilled in a form the browser accepts, so saving again keeps it");
         String offersTab=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/contents?state=OFFER").body());assertTrue(offersTab.contains("Trang chủ · Ưu đãi cho bạn")&&offersTab.contains("Ưu đãi poster")&&offersTab.contains("content-tabs"));
         String pagesTab=org.springframework.web.util.HtmlUtils.htmlUnescape(get(c,"/admin/manage/contents?state=PAGES").body());assertTrue(pagesTab.contains("Chân trang")&&!pagesTab.contains("Ưu đãi poster"),"Footer pages tab holds only footer pages");
+        String back="returnTo=%2Fadmin%2Fmanage%2Fcontents&_csrf="+enc(token);
+        assertEquals(302,post(c,"/admin/manage/contents/"+saved2.id+"/disable",back).statusCode());assertFalse(db.get(Content.class,saved2.id).active);assertFalse(get(client(),"/").body().contains("Mô tả dưới ảnh"),"Hidden content leaves the home page");
+        assertTrue(get(c,"/admin/manage/contents?state=OFFER").body().contains("/admin/manage/contents/"+saved2.id+"/restore"),"Hidden row offers Hiện lại");
+        assertEquals(302,post(c,"/admin/manage/contents/"+saved2.id+"/restore",back).statusCode());assertTrue(db.get(Content.class,saved2.id).active);
+        assertEquals(302,post(c,"/admin/manage/contents/"+saved2.id+"/delete",back).statusCode());assertTrue(db.first(Content.class,"where e.id=?1",saved2.id).isEmpty(),"Content deleted for good");
     }
     @Test void adminBannersDriveHomeHeroOrderScheduleAndInterval()throws Exception{
         String home=get(client(),"/").body();assertFalse(home.contains("id=\"hero-carousel\""),"No banner and no movie with a landscape image: no hero, quick booking stays");assertTrue(home.contains("id=\"quick-book\""));
@@ -1190,5 +1197,45 @@ class BookingIntegrationTest {
         assertTrue(account.contains("Ví voucher")&&account.contains("150 điểm"),account.substring(0,Math.min(300,account.length())));String ct=csrf(account);
         assertEquals(302,post(customer,"/account/redeem/"+v,formBody(Map.of("_csrf",ct,"requestKey","redeem-http-01"))).statusCode());assertEquals(50,walletService.balance(user1));
         assertEquals(302,post(customer,"/account/birthdate",formBody(Map.of("_csrf",ct,"birthDate","1995-06-15"))).statusCode());assertEquals(LocalDate.of(1995,6,15),db.get(User.class,user1).birthDate);
+    }
+    @Autowired vn.cineprime.web.MaintenanceService maintenance;
+    @Test void maintenanceClosesCustomerSiteKeepsTicketsAndFollowsStaffMode()throws Exception{
+        Order o=booking.hold(user1,show,List.of(seat1));paid(o);Ticket ticket=db.list(Ticket.class,"").getFirst();
+        HttpClient adminC=client();login(adminC,"admin@example.test");HttpClient customer=client();login(customer,"one@example.test");HttpClient staffC=client();login(staffC,"staff@example.test");
+        var page=get(adminC,"/admin/maintenance");assertEquals(200,page.statusCode());String token=csrf(page.body());assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(page.body()).contains("Website hoạt động bình thường"));
+        LocalDate day=clock.instant().atZone(vn.cineprime.admin.ReportService.ZONE).toLocalDate();
+        Map<String,String> form=new HashMap<>(Map.of("_csrf",token,"title","Website đang bảo trì","message","Nâng cấp máy chủ thanh toán.","affected","Đặt vé trực tuyến\nThanh toán MoMo","startMode","schedule","startDate",day.plusDays(1).toString(),"startTime","22:00","endDate",day.plusDays(2).toString(),"endTime","02:00","staffMode","CHECKIN"));
+        form.put("contactPhone","1900 1234");form.put("action","enable");
+        Map<String,String> past=new HashMap<>(form);past.put("startDate",day.minusDays(1).toString());assertEquals(400,post(adminC,"/admin/maintenance",formBody(past)).statusCode(),"A scheduled start must be in the future");
+        Map<String,String> backwards=new HashMap<>(form);backwards.put("endDate",day.plusDays(1).toString());backwards.put("endTime","21:00");assertEquals(400,post(adminC,"/admin/maintenance",formBody(backwards)).statusCode(),"End before start");
+        Map<String,String> badTime=new HashMap<>(form);badTime.put("startTime","9h");assertEquals(400,post(adminC,"/admin/maintenance",formBody(badTime)).statusCode());
+        assertEquals("OFF",maintenance.phase(),"Rejected saves change nothing");
+        assertEquals(302,post(adminC,"/admin/maintenance",formBody(form)).statusCode());assertEquals("SCHEDULED",maintenance.phase());
+        var home=get(client(),"/");assertEquals(200,home.statusCode(),"Before the window customers still use the site");String homeText=org.springframework.web.util.HtmlUtils.htmlUnescape(home.body());assertTrue(homeText.contains("maint-strip is-scheduled")&&homeText.contains("Bảo trì website từ 22:00"),"Notice strip");
+        assertEquals(200,get(customer,"/api/showtimes/"+show+"/seats").statusCode());assertEquals(200,get(staffC,"/staff/counter").statusCode());
+        clock.advance(2*86400);assertEquals("ACTIVE",maintenance.phase());
+        var closed=get(client(),"/");assertEquals(503,closed.statusCode());String card=org.springframework.web.util.HtmlUtils.htmlUnescape(closed.body());assertTrue(card.contains("Website đang bảo trì")&&card.contains("Nâng cấp máy chủ thanh toán.")&&card.contains("Thanh toán MoMo")&&card.contains("1900 1234")&&card.contains("tel:19001234"),"Card carries the admin texts and contact");
+        assertTrue(closed.headers().firstValue("Retry-After").isPresent());assertTrue(card.contains("Sắp mở lại"),"Past the expected end it says it is finishing, and stays closed");
+        for(String path:List.of("/movies","/showtimes","/register","/cinemas/"+cinema))assertEquals(503,get(client(),path).statusCode(),path);
+        var api=get(customer,"/api/showtimes/"+show+"/seats");assertEquals(503,api.statusCode());assertTrue(api.body().contains("\"code\":\"MAINTENANCE\""));
+        String customerToken=csrf(get(customer,"/account").body());
+        var hold=customer.send(HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/holds")).header("Content-Type","application/json").header("X-CSRF-TOKEN",customerToken).POST(HttpRequest.BodyPublishers.ofString("{\"showtimeId\":"+show+",\"seatIds\":["+seat2+"]}")).build(),HttpResponse.BodyHandlers.ofString());
+        assertEquals(503,hold.statusCode(),hold.body());assertEquals(1,db.list(Order.class,"").size(),"No new hold during maintenance");
+        var account=get(customer,"/account");assertEquals(200,account.statusCode());assertTrue(account.body().contains("maint-strip is-active"));assertEquals(200,get(customer,"/orders/"+o.id).statusCode());assertEquals(200,get(customer,"/tickets/"+ticket.id+"/download").statusCode(),"Bought tickets stay downloadable");
+        assertEquals(503,post(customer,"/account/profile","name=X&_csrf="+enc(customerToken)).statusCode(),"Account changes wait");
+        assertEquals(200,get(client(),"/login").statusCode());
+        assertEquals(200,get(staffC,"/staff").statusCode(),"CHECKIN: the check-in board stays");var counterPage=get(staffC,"/staff/counter");assertEquals(503,counterPage.statusCode());assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(counterPage.body()).contains("Bán vé tại quầy tạm dừng"));
+        assertEquals(503,get(staffC,"/api/staff/counter/showtimes/"+show+"/seats").statusCode());
+        String adminHome=org.springframework.web.util.HtmlUtils.htmlUnescape(get(adminC,"/").body());assertTrue(adminHome.contains("bạn xem được vì là Quản trị"),"Admin can still see the site");assertTrue(org.springframework.web.util.HtmlUtils.htmlUnescape(get(adminC,"/admin").body()).contains("Khách đang thấy trang bảo trì"));
+        assertEquals(200,get(adminC,"/admin/maintenance/preview").statusCode());
+        token=csrf(get(adminC,"/admin/maintenance").body());form.put("_csrf",token);form.put("action","save");form.put("startMode","now");form.put("staffMode","LOCKED");form.put("endDate","");form.put("endTime","");
+        Instant started=db.first(Maintenance.class,"").orElseThrow().startsAt;
+        assertEquals(302,post(adminC,"/admin/maintenance",formBody(form)).statusCode());assertEquals("ACTIVE",maintenance.phase());assertEquals(started,db.first(Maintenance.class,"").orElseThrow().startsAt,"Saving keeps it on and keeps the original start");
+        assertEquals(503,get(staffC,"/staff").statusCode(),"LOCKED closes the check-in board too");
+        form.put("staffMode","WORK");assertEquals(302,post(adminC,"/admin/maintenance",formBody(form)).statusCode());assertEquals(200,get(staffC,"/staff/counter").statusCode(),"WORK leaves Staff untouched");
+        assertEquals(403,get(customer,"/admin/maintenance").statusCode());
+        assertEquals(302,post(adminC,"/admin/maintenance/off","_csrf="+enc(token)).statusCode());assertEquals("OFF",maintenance.phase());
+        var reopened=get(client(),"/");assertEquals(200,reopened.statusCode());assertFalse(reopened.body().contains("maint-strip"));assertEquals(200,get(client(),"/movies").statusCode());assertEquals(200,get(staffC,"/staff/counter").statusCode());
+        List<String> actions=db.list(Audit.class,"where e.action like 'MAINTENANCE%' order by e.id").stream().map(a->a.action).toList();assertEquals(List.of("MAINTENANCE_ON","MAINTENANCE_SAVE","MAINTENANCE_SAVE","MAINTENANCE_OFF"),actions);
     }
 }

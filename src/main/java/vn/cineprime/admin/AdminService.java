@@ -156,6 +156,8 @@ public class AdminService {
         else try{r.type().getField("active").set(row,false);}catch(ReflectiveOperationException e){throw new IllegalArgumentException("Không xóa dữ liệu lịch sử. Hãy sửa cấu hình thay thế.");}
         db.audit(actor,"DISABLE_"+key,id.toString());
     }
+    /** Shows a hidden content item again or deletes it for good; nothing references contents, so delete is safe. */
+    public String contentAction(Long actor,Long id,String action){Content c=db.lock(Content.class,id);String name=c.title;if(action.equals("delete"))db.delete(c);else c.active=true;db.audit(actor,(action.equals("delete")?"DELETE":"RESTORE")+"_contents",id.toString());return name;}
     public String movieAction(Long actor,Long id,String action){
         genres.lockCatalog();
         Movie movie=db.lock(Movie.class,id);String name=movie.title;

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Toàn bộ bộ Selenium: smoke + regression. Chạy: mvnw test -Pui -Dbase.url=http://localhost:8081 -Ddemo.password=... -->
+<suite name="CinePrime-UI-Full" verbose="1">
+  <test name="Selenium - Đăng ký, Đăng nhập, CRUD Admin, trang công khai">
+    <packages>
+      <package name="vn.cineprime.asm.ui.tests"/>
+    </packages>
+  </test>
+</suite>

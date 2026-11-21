@@ -364,3 +364,6 @@ body.admin-compact.operations :is(.hub-tabs,.channel-tabs,.account-tabs) a:is(.a
 .admin-compact .content-tabs .tab-count{margin-left:8px;font-size:12px;font-weight:600;opacity:.75}
 .admin-compact .record-thumb.is-poster{width:40px;height:60px;object-fit:cover;border:1px solid var(--line);margin-left:10px}
 .admin-compact .record-thumb.is-empty{border-style:dashed;background-color:var(--surface)}
+
+/* Lỗi ID001 (ASM SOF309): .table-wrap dùng clip-path vát góc nên cắt luôn menu "..." (position:fixed) khi bảng chỉ có 1-2 dòng; bỏ clip-path trong lúc menu đang mở. */
+.admin-compact .table-wrap:has(.row-menu[open]){clip-path:none !important}

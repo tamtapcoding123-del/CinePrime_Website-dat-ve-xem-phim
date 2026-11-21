@@ -100,6 +100,17 @@ block content
                 path(d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10")
             span.nav-label Đăng xuất
     main#main.ops-main
+      if maintenance
+        //- 18/11/2026: the maintenance state on every admin screen, inside the main area so the sidebar keeps its height.
+        .ops-maint.is-admin(class=maintenance.active ? 'is-active' : 'is-scheduled' role="status")
+          span.ops-maint-chip= maintenance.active ? (maintenance.overdue ? 'Quá giờ dự kiến' : 'Đang bảo trì') : 'Đã hẹn bảo trì'
+          p
+            if maintenance.active
+              | Khách đang thấy trang bảo trì#{maintenance.hasEnd ? ' · dự kiến xong ' + maintenance.endShort : ''} · #{maintenance.staffModeLabel}.
+            else
+              | Bắt đầu #{maintenance.startShort} (còn #{maintenance.startsInText})#{maintenance.hasEnd ? ' · dự kiến xong ' + maintenance.endShort : ''} · khách đang thấy dải báo trước.
+          if currentPath != '/admin/maintenance'
+            a(href="/admin/maintenance") Quản lý bảo trì →
       if !groupPage && !hub
         .ops-breadcrumb
           a(href="/admin") Quản trị

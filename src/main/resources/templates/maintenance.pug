@@ -1,0 +1,147 @@
+//- Website maintenance card (18/11/2026). Standalone page (no site menu: every menu link is closed during maintenance).
+//- Served with HTTP 503 by PageAdvice; staffView = a Staff screen closed by the Admin's staff mode. previewMode = Admin preview.
+doctype html
+html(lang="vi")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1")
+    meta(name="robots" content="noindex")
+    title= title
+    link(rel="icon" href="/images/cineprime-mark.svg" type="image/svg+xml")
+    link(rel="preload" href="/fonts/be-vietnam-pro-vietnamese-700-normal.woff2" as="font" type="font/woff2" crossorigin)
+    link(rel="stylesheet" href="/css/cineprime-theme.css?v=20261117p")
+    link(rel="stylesheet" href="/css/site.css?v=20261117z")
+    link(rel="stylesheet" href="/css/maintenance.css?v=20261118a")
+    script(src="/js/maintenance.js?v=20261118a" defer)
+  body.maint-page
+    if previewMode
+      .maint-preview-bar(role="note")
+        .container
+          span Bản xem trước cho Quản trị · khách chỉ thấy trang này khi bảo trì đang chạy.
+          a(href="/admin/maintenance") ← Quay lại cấu hình
+    header.maint-top
+      .container.maint-top-row
+        span.brand(aria-label="CinePrime")
+          img.brand-symbol(src="/images/cineprime-mark.svg" alt="" width="32" height="32" aria-hidden="true")
+          span Cine
+            strong Prime
+        if viewer
+          form.maint-account(action="/logout" method="post")
+            span.maint-who= viewer.name
+            input(type="hidden" name=csrfName value=csrfToken)
+            button.button.secondary.small(type="submit") Đăng xuất
+        else
+          a.maint-login(href="/login") Đăng nhập
+    main#main.maint-main(data-maint-refresh=previewMode ? false : '60')
+      .container
+        article.maint-card(aria-labelledby="maint-title")
+          .maint-head
+            span.maint-chip(class=maintenance.overdue ? 'is-finishing' : '')
+              span.maint-dot(aria-hidden="true")
+              | #{maintenance.overdue ? 'Đang hoàn tất' : 'Đang bảo trì'}
+            if maintenance.updatedText
+              span.maint-updated Cập nhật lúc #{maintenance.updatedText}
+          .maint-hero
+            span.maint-icon(aria-hidden="true")
+              svg(viewBox="0 0 24 24" width="40" height="40" focusable="false")
+                path(d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.6 1.6 0 0 0 2.3 2.3l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.5 2.5-2.2-.5-.5-2.2z")
+            .maint-hero-text
+              h1#maint-title= maintenance.title
+              if staffView
+                p.maint-lead= staffMode == 'LOCKED' ? 'Màn hình nhân viên tạm khóa trong thời gian bảo trì. Hãy chờ Quản trị mở lại hoặc liên hệ quản lý ca.' : 'Bán vé tại quầy tạm dừng trong thời gian bảo trì. Soát vé cho khách đã mua vẫn hoạt động.'
+              else
+                p.maint-lead= maintenance.message
+          //- Time stub: ticket-like strip, the tear line separates "when" from the progress.
+          section.maint-stub(aria-label="Thời gian bảo trì")
+            .maint-time
+              span.maint-label Bắt đầu
+              strong.maint-value= maintenance.startHour ? maintenance.startHour : '—'
+              span.maint-sub= maintenance.startDay
+            .maint-time
+              span.maint-label Dự kiến hoàn tất
+              if maintenance.hasEnd
+                strong.maint-value= maintenance.endHour
+                span.maint-sub= maintenance.endDay
+              else
+                strong.maint-value.is-text Sẽ thông báo
+                span.maint-sub Chưa có giờ cụ thể
+            .maint-time.is-left
+              span.maint-label Thời gian còn lại
+              if maintenance.overdue
+                strong.maint-value.is-text Sắp mở lại
+                span.maint-sub Đã quá giờ dự kiến, đang kiểm tra lần cuối
+              else if maintenance.hasEnd
+                strong.maint-value.is-text= 'Khoảng ' + maintenance.remainingText
+                span.maint-sub Tính tới lúc tải trang
+              else
+                strong.maint-value.is-text Chưa xác định
+                span.maint-sub Trang tự kiểm tra lại mỗi phút
+            if maintenance.showProgress
+              .maint-progress
+                .maint-bar(role="progressbar" aria-label="Tiến độ bảo trì theo thời gian" aria-valuemin="0" aria-valuemax="100" aria-valuenow=maintenance.progress)
+                  span(data-maint-fill=maintenance.progress)
+                span.maint-sub Đã qua #{maintenance.progress}% thời gian dự kiến
+          .maint-columns
+            if staffView
+              section.maint-list.is-off
+                h2 Tạm dừng với nhân viên
+                ul
+                  li Bán vé và thu tiền tại quầy
+                  if staffMode == 'LOCKED'
+                    li Soát vé bằng QR và nhập mã
+                  li Mở ca, đóng ca và in vé
+              section.maint-list.is-on
+                h2 Vẫn hoạt động
+                ul
+                  if staffMode != 'LOCKED'
+                    li
+                      a(href="/staff") Soát vé cho khách đã mua →
+                  li Vé đã bán vẫn hợp lệ, không cần bán lại
+                  li Đơn đã thanh toán trước giờ bảo trì được giữ nguyên
+            else
+              if maintenance.affected.size() > 0
+                section.maint-list.is-off
+                  h2 Tạm ngừng trong lúc bảo trì
+                  ul
+                    each item in maintenance.affected
+                      li= item
+              section.maint-list.is-on
+                h2 Bạn vẫn yên tâm
+                ul
+                  li Vé đã mua vẫn dùng bình thường tại rạp
+                  li
+                    if viewer
+                      a(href="/account") Xem lại vé và mã QR trong Vé của tôi →
+                    else
+                      | Xem lại vé và mã QR:&nbsp;
+                      a(href="/login") đăng nhập →
+                  li Đơn đã thanh toán trước giờ bảo trì được giữ nguyên
+          if maintenance.hasContact
+            section.maint-contact(aria-label="Liên hệ hỗ trợ")
+              span.maint-label Cần hỗ trợ gấp?
+              if maintenance.contactPhone
+                a.maint-contact-item(href='tel:' + maintenance.contactPhoneHref)
+                  svg(viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false")
+                    path(d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2")
+                  span
+                    small Hotline
+                    strong= maintenance.contactPhone
+              if maintenance.contactEmail
+                a.maint-contact-item(href='mailto:' + maintenance.contactEmail)
+                  svg(viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false")
+                    rect(x="3" y="5" width="18" height="14" rx="1")
+                    path(d="M3 7l9 6 9-6")
+                  span
+                    small Email
+                    strong= maintenance.contactEmail
+          .maint-actions
+            button.button(type="button" data-maint-reload) Tải lại trang
+            if staffView && staffMode != 'LOCKED'
+              a.button.secondary(href="/staff") Về màn soát vé
+            else if viewer && !staffView
+              a.button.secondary(href="/account") Vé của tôi
+            if !previewMode
+              span.maint-auto(data-maint-status) Trang tự tải lại mỗi phút.
+    footer.maint-foot
+      .container
+        span © CinePrime · Cảm ơn bạn đã kiên nhẫn chờ.

@@ -1,0 +1,143 @@
+extends layout
+block head
+  link(rel="stylesheet" href="/css/admin-maintenance.css?v=20261118a")
+  script(src="/js/admin-maintenance.js?v=20261118a" defer)
+block admin
+  //- Hệ thống → Bảo trì website (18/11/2026). Left: what customers read and when; right: current state and the one red action.
+  .mt-layout
+    form#mt-form.mt-form(action="/admin/maintenance" method="post" novalidate)
+      +csrf()
+      section.mt-card
+        header.mt-card-head
+          h2 Nội dung hiển thị cho khách
+          p Hiện to trên trang bảo trì. Viết ngắn, nói rõ khách cần làm gì.
+        .mt-field
+          label(for="mt-title") Tiêu đề
+          input#mt-title(name="title" value=form.title maxlength="160" required placeholder="Ví dụ: Website đang bảo trì")
+        .mt-field
+          label(for="mt-message") Nội dung thông báo
+          textarea#mt-message(name="message" rows="4" maxlength="2000" required)= form.message
+          small Xuống dòng được giữ nguyên trên trang khách. Tối đa 2.000 ký tự.
+        .mt-field
+          label(for="mt-affected") Chức năng tạm ngừng
+          textarea#mt-affected(name="affected" rows="4" maxlength="2000" placeholder="Mỗi dòng một chức năng")= form.affected
+          small Mỗi dòng một mục, tối đa 12 dòng. Phần "Bạn vẫn yên tâm" (vé đã mua, Vé của tôi) luôn hiện sẵn.
+      section.mt-card
+        header.mt-card-head
+          h2 Thời gian
+          p Trước giờ bắt đầu, khách thấy dải báo trước và vẫn đặt vé được. Qua giờ dự kiến, website vẫn đóng cho tới khi bạn tắt bảo trì.
+        fieldset.mt-choice
+          legend Bắt đầu
+          label.mt-option
+            input(type="radio" name="startMode" value="now" checked=form.startMode != 'schedule')
+            span
+              strong Ngay khi bật
+              small Khách thấy trang bảo trì ngay sau khi bấm "Bật bảo trì".
+          label.mt-option
+            input(type="radio" name="startMode" value="schedule" checked=form.startMode == 'schedule')
+            span
+              strong Hẹn giờ
+              small Hiện dải báo trước trên website cho tới giờ bắt đầu.
+        .mt-when(data-mt-schedule)
+          .mt-field
+            label(for="mt-start-date") Ngày bắt đầu
+            input#mt-start-date(type="date" name="startDate" value=form.startDate)
+          .mt-field.mt-hour
+            label(for="mt-start-time") Giờ (24 giờ)
+            input#mt-start-time(name="startTime" value=form.startTime placeholder="HH:MM" inputmode="numeric" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]")
+        .mt-when
+          .mt-field
+            label(for="mt-end-date") Dự kiến hoàn tất — ngày
+            input#mt-end-date(type="date" name="endDate" value=form.endDate)
+          .mt-field.mt-hour
+            label(for="mt-end-time") Giờ (24 giờ)
+            input#mt-end-time(name="endTime" value=form.endTime placeholder="HH:MM" inputmode="numeric" maxlength="5" pattern="([01][0-9]|2[0-3]):[0-5][0-9]")
+          button.button.secondary.mt-clear(type="button" data-mt-clear-end) Để trống
+        small.mt-hint Để trống giờ hoàn tất thì trang khách ghi "Sẽ thông báo".
+      section.mt-card
+        header.mt-card-head
+          h2 Nhân viên Staff
+          p Quản trị luôn vào được. Chọn cho lần bảo trì này:
+        fieldset.mt-choice.is-stack
+          legend.sr-only Áp dụng cho nhân viên
+          label.mt-option
+            input(type="radio" name="staffMode" value="CHECKIN" checked=form.staffMode == 'CHECKIN')
+            span
+              strong Chỉ soát vé
+                em.mt-tag Khuyên dùng
+              small Khách đã mua vẫn vào xem được; bán vé tại quầy, mở/đóng ca tạm dừng.
+          label.mt-option
+            input(type="radio" name="staffMode" value="WORK" checked=form.staffMode == 'WORK')
+            span
+              strong Làm việc bình thường
+              small Chỉ đóng website khách; quầy vẫn bán vé và soát vé.
+          label.mt-option
+            input(type="radio" name="staffMode" value="LOCKED" checked=form.staffMode == 'LOCKED')
+            span
+              strong Khóa cả màn Staff
+              small Không soát vé, không bán tại quầy. Chỉ dùng khi bảo trì ảnh hưởng dữ liệu vé.
+      section.mt-card
+        header.mt-card-head
+          h2 Liên hệ hỗ trợ
+          p Không bắt buộc. Chỉ hiện khi có nhập; không ghi số hoặc email giả.
+        .mt-when
+          .mt-field
+            label(for="mt-phone") Hotline
+            input#mt-phone(name="contactPhone" value=form.contactPhone maxlength="40" inputmode="tel" placeholder="Ví dụ: 1900 0000")
+          .mt-field
+            label(for="mt-email") Email
+            input#mt-email(type="email" name="contactEmail" value=form.contactEmail maxlength="160" placeholder="hotro@ten-mien.vn")
+      .mt-submit
+        if state.phase == 'OFF'
+          button.button.primary(type="submit" name="action" value="enable" data-confirm="Bật bảo trì? Nếu chọn “Ngay khi bật”, khách sẽ thấy trang bảo trì ngay và không đặt vé được.") Bật bảo trì
+          button.button.secondary(type="submit" name="action" value="save") Lưu nội dung, chưa bật
+        else
+          button.button.dark(type="submit" name="action" value="save") Lưu thay đổi
+          span.mt-submit-note Lưu xong, trang khách cập nhật ngay.
+    aside.mt-side(aria-label="Trạng thái bảo trì")
+      section.mt-state(class='is-' + state.phase.toLowerCase())
+        span.mt-state-label Trạng thái hiện tại
+        span.status-badge(class=state.phase == 'ACTIVE' ? 'tone-bad' : state.phase == 'SCHEDULED' ? 'tone-warn' : 'tone-ok')= state.phase == 'ACTIVE' ? (state.overdue ? 'Đang bảo trì · quá giờ dự kiến' : 'Đang bảo trì') : state.phase == 'SCHEDULED' ? 'Đã hẹn giờ' : 'Website hoạt động bình thường'
+        dl.mt-facts
+          if state.phase == 'ACTIVE'
+            div
+              dt Bắt đầu
+              dd= state.startText
+            div
+              dt Dự kiến xong
+              dd= state.hasEnd ? state.endText + (state.overdue ? '' : ' · còn ' + state.remainingText) : 'Chưa đặt'
+          else if state.phase == 'SCHEDULED'
+            div
+              dt Bắt đầu
+              dd= state.startText + ' · còn ' + state.startsInText
+            div
+              dt Dự kiến xong
+              dd= state.hasEnd ? state.endText : 'Chưa đặt'
+          if state.phase != 'OFF'
+            div
+              dt Nhân viên
+              dd= state.staffModeLabel
+          if state.updatedText
+            div
+              dt Cập nhật lần cuối
+              dd= state.updatedText
+        if state.phase == 'OFF'
+          p.mt-state-note Khách đặt vé bình thường. Điền nội dung bên trái rồi bấm "Bật bảo trì".
+        else
+          form(action="/admin/maintenance/off" method="post")
+            +csrf()
+            button.button.primary.mt-off(type="submit" data-confirm="Tắt bảo trì và mở lại website cho khách?") Tắt bảo trì, mở lại website
+      a.mt-preview(href="/admin/maintenance/preview" target="_blank" rel="noopener")
+        span
+          strong Xem trước trang khách
+          small Theo nội dung đã lưu · mở tab mới
+        svg(viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false")
+          path(d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5")
+      section.mt-rules
+        h2 Khi bảo trì đang chạy
+        ul
+          li Khách thấy trang bảo trì (mã 503), không giữ ghế, không thanh toán đơn mới.
+          li Khách vẫn đăng nhập, xem và tải vé đã mua, kiểm tra đơn đang thanh toán.
+          li MoMo vẫn gửi kết quả về, đơn đã trả tiền không bị mất.
+          li Ghế đang giữ tự hết hạn sau 5 phút như thường.
+          li Bật, sửa, tắt đều ghi vào Nhật ký hoạt động.

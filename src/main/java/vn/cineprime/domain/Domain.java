@@ -137,6 +137,11 @@ public final class Domain {
         public int sortOrder; public boolean active=true; public Instant startsAt, endsAt;
     }
     @Entity @Table(name="settings") public static class Setting extends Row { public String name, value; }
+    /** Single row: website maintenance window edited by Admin (see MaintenanceService for how it is read). */
+    @Entity @Table(name="maintenance") public static class Maintenance extends Row {
+        public boolean enabled; public String title, message, affected, staffMode="CHECKIN", contactPhone, contactEmail;
+        public Instant startsAt, expectedEndAt, updatedAt; public Long updatedBy;
+    }
     @Entity @Table(name="audit_logs") public static class Audit extends Row {
         public Long actorId; public String action, target; public Instant createdAt;
     }

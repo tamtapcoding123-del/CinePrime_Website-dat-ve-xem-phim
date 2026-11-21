@@ -31,6 +31,8 @@ html(lang="vi")
         script(src="/js/seat-3d.js" defer)
         script(src="/js/admin-workspace.js?v=20261116v" defer)
     block head
+    if maintenance
+      link(rel="stylesheet" href="/css/maintenance.css?v=20261118a")
     if navItems
       link(rel="stylesheet" href="/css/admin-sheet.css?v=20261117z")
   body.operations(class=navItems ? (seatWorkspace ? 'admin-compact seat-workspace' : 'admin-compact') : (staffUi ? 'staff-ui' : '') data-admin-id=navItems && viewer ? viewer.id : false)
@@ -77,5 +79,14 @@ html(lang="vi")
     #ops-session.session-banner(role="alert" hidden)
       span Phiên không còn hợp lệ. Nội dung đang xem được giữ; hãy đăng nhập lại để tiếp tục.
       a(href="/login") Đăng nhập lại →
+    if maintenance && !navItems
+      //- 18/11/2026: Staff sees what still works for them (Admin's strip sits inside the admin main area, admin/layout.pug).
+      .ops-maint(class=maintenance.active ? 'is-active' : 'is-scheduled' role="status")
+        span.ops-maint-chip= maintenance.active ? (maintenance.overdue ? 'Quá giờ dự kiến' : 'Đang bảo trì') : 'Đã hẹn bảo trì'
+        p
+          if maintenance.active
+            | #{maintenance.staffMode == 'WORK' ? 'Website khách tạm đóng; màn nhân viên hoạt động bình thường.' : 'Bán vé tại quầy tạm dừng; soát vé cho khách đã mua vẫn hoạt động.'}#{maintenance.hasEnd && !maintenance.overdue ? ' Dự kiến xong ' + maintenance.endShort + '.' : ''}
+          else
+            | Bảo trì từ #{maintenance.startShort}#{maintenance.hasEnd ? ' đến khoảng ' + maintenance.endShort : ''}. #{maintenance.staffMode == 'WORK' ? 'Màn nhân viên vẫn hoạt động.' : maintenance.staffMode == 'LOCKED' ? 'Khi bắt đầu, màn nhân viên tạm khóa.' : 'Khi bắt đầu, chỉ còn soát vé; bán tại quầy tạm dừng.'}
     block content
     #toast(role="status" aria-live="polite")

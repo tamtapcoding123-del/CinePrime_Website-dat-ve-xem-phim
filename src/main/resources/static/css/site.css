@@ -801,3 +801,11 @@ input:autofill{border-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.
 .kind-article .content-body .content-kind{color:var(--navy)}
 @media(max-width:1090px){.home-picks{grid-template-columns:1fr;gap:40px}}
 @media(max-width:640px){.home-picks .content-grid.is-home{display:grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:46%;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:6px}.home-picks .content-card{scroll-snap-align:start}}
+/* Maintenance strip (18/11/2026): warn tone before the window, bad tone while it runs (only on pages that stay open). */
+.maint-strip{background-color:var(--warn-bg);border-bottom:1px solid var(--warn-line);color:var(--warn-fg);font-size:14.5px}
+.maint-strip.is-active{background-color:var(--bad-bg);border-bottom-color:var(--bad-line);color:var(--bad-fg)}
+.maint-strip .container{display:flex;align-items:center;gap:10px;min-height:44px;padding-top:6px;padding-bottom:6px}
+.maint-strip .icon{flex:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.maint-strip p{margin:0;line-height:1.45}
+.maint-strip strong{font-weight:700}
+.maint-strip a{font-weight:700;color:inherit;text-decoration:underline;text-underline-offset:3px}
